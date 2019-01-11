@@ -13,7 +13,7 @@
   <property name="compiler.debug" value="on"/>
   <property name="compiler.generate.no.warnings" value="off"/>
   <property name="compiler.args" value=""/>
-  <property name="compiler.max.memory" value="256m"/>
+  <property name="compiler.max.memory" value="700m"/>
   <patternset id="ignored.files">
     <exclude name="**/CVS/**"/>
     <exclude name="**/SCCS/**"/>
@@ -59,8 +59,8 @@
   
   <!-- Project Libraries -->
   
-  <path id="library.json-simple.classpath">
-    <pathelement location="${basedir}/lib/json-simple-3.0.2.jar"/>
+  <path id="library.minimal-json-0.9.5.classpath">
+    <pathelement location="${basedir}/lib/minimal-json-0.9.5.jar"/>
   </path>
   
   <!-- Modules -->
@@ -82,23 +82,23 @@
   </path>
   
   <path id="boxtools.module.production.classpath">
-    <path refid="library.json-simple.classpath"/>
+    <path refid="library.minimal-json-0.9.5.classpath"/>
   </path>
   
   <path id="boxtools.runtime.production.module.classpath">
     <pathelement location="${boxtools.output.dir}"/>
-    <path refid="library.json-simple.classpath"/>
+    <path refid="library.minimal-json-0.9.5.classpath"/>
   </path>
   
   <path id="boxtools.module.classpath">
     <pathelement location="${boxtools.output.dir}"/>
-    <path refid="library.json-simple.classpath"/>
+    <path refid="library.minimal-json-0.9.5.classpath"/>
   </path>
   
   <path id="boxtools.runtime.module.classpath">
     <pathelement location="${boxtools.testoutput.dir}"/>
     <pathelement location="${boxtools.output.dir}"/>
-    <path refid="library.json-simple.classpath"/>
+    <path refid="library.minimal-json-0.9.5.classpath"/>
   </path>
   
   
@@ -164,7 +164,7 @@
     <mkdir dir="${artifact.temp.output.boxtools:jar}"/>
     <jar destfile="${temp.jar.path.boxtools.jar}" duplicate="preserve" filesetmanifest="mergewithoutmain">
       <zipfileset dir="${boxtools.output.dir}"/>
-      <zipfileset src="${basedir}/lib/json-simple-3.0.2.jar"/>
+      <zipfileset src="${basedir}/lib/minimal-json-0.9.5.jar"/>
     </jar>
     <copy file="${temp.jar.path.boxtools.jar}" tofile="${artifact.temp.output.boxtools:jar}/boxtools.jar"/>
   </target>

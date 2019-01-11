@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="minimal-json-0.9.5">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/minimal-json-0.9.5.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$PROJECT_DIR$/../../Common/docjars/minimal-json-0.9.5-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/../../Common/srcjars/minimal-json-0.9.5-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

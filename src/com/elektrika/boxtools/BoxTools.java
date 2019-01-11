@@ -1,9 +1,7 @@
 package com.elektrika.boxtools;
 
-import com.github.cliftonlabs.json_simple.JsonException;
-import com.github.cliftonlabs.json_simple.JsonKey;
-import com.github.cliftonlabs.json_simple.JsonObject;
-import com.github.cliftonlabs.json_simple.Jsoner;
+import com.eclipsesource.json.Json;
+import com.eclipsesource.json.JsonObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -16,7 +14,7 @@ import java.nio.file.Paths;
 
 public class BoxTools
 {
-    public static void main(String[] args) throws IOException, JsonException {
+    public static void main(String[] args) throws IOException {
         if (args.length == 0)
             showHelpAndExit();
 
@@ -39,30 +37,15 @@ public class BoxTools
         System.exit(1);
     }
 
-    private static void extractBoxNoteText(String[] args, int numArgs, int argsStart)
-                throws JsonException, IOException {
+    private static void extractBoxNoteText(String[] args, int numArgs, int argsStart) throws IOException {
         if (numArgs != 2)
             showHelpAndExit();
 
         Path inPath = Paths.get(args[argsStart++]);
         Path outPath = Paths.get(args[argsStart++]);
-        JsonObject obj = loadJsonObject(inPath);
-        String text = ((JsonObject) obj.getMap(jk("atext"))).getString(jk("text"));
+
+        JsonObject obj = Json.parse(new InputStreamReader(Files.newInputStream(inPath), StandardCharsets.UTF_8)).asObject();
+        String text = obj.get("atext").asObject().get("text").asString();
         Files.write(outPath, text.getBytes(StandardCharsets.UTF_8));
     }
-
-    /** Mints a JsonKey from a String (with no default value) for use with the various JsonObject methods */
-    public static JsonKey jk(String key) {
-        return Jsoner.mintJsonKey(key, null);
-    }
-
-    /** Reads a JsonObject from a given path; returns null on error */
-    public static JsonObject loadJsonObject(Path p) throws JsonException, IOException {
-        JsonObject jo;
-        try (Reader r = new BufferedReader(new InputStreamReader(Files.newInputStream(p), StandardCharsets.UTF_8))) {
-            jo = (JsonObject) Jsoner.deserialize(r);
-        }
-        return jo;
-    }
-
 }
