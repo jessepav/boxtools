@@ -19,6 +19,7 @@ public final class BoxTools
         if (args.length == 0)
             showHelpAndExit();
 
+        Utils.initSimpleLogging("com.elektrika.boxtools.BoxTools");
         switch (args[0]) {
         case "-extract":
             extractBoxNoteText(args, args.length - 1, 1);
@@ -62,5 +63,9 @@ public final class BoxTools
         final Path localPath = Paths.get(args[argsStart++]);
 
         final Properties props = Utils.loadProps(propsPath);
+        FTP ftp = new FTP(props);
+        ftp.connect();
+        ftp.downloadFile(remotePath, localPath);
+        ftp.disconnect();
     }
 }

@@ -34,7 +34,7 @@ public final class FTP
 
     private FTPClient client;
 
-    FTP(Properties props) {
+    public FTP(Properties props) {
         host = props.getProperty("ftp-server");
         port = Utils.parseInt(props.getProperty("ftp-server-port"));
         timeouts = new int[3];
@@ -75,12 +75,12 @@ public final class FTP
         }
     }
 
-    boolean isValid() {
+    public boolean isValid() {
         return (host != null && port > 0 && timeouts[0] > 0 && security >= 0 &&
             username != null && password != null);
     }
 
-    FTPClient connect() throws IOException {
+    public FTPClient connect() throws IOException {
         if (!isValid())
             return null;
 
@@ -125,7 +125,7 @@ public final class FTP
         return client;
     }
 
-    void disconnect() throws IOException {
+    public void disconnect() throws IOException {
         if (client != null && client.isConnected()) {
             try {
                 client.disconnect(true);
@@ -146,7 +146,7 @@ public final class FTP
      * @param remoteDir the remote directory
      * @throws IOException
      */
-    void uploadFile(Path localPath, Path remoteDir) throws IOException {
+    public void uploadFile(Path localPath, Path remoteDir) throws IOException {
         if (client == null || !client.isConnected())
             return;
         try {
@@ -166,7 +166,7 @@ public final class FTP
      * @param localPath where to save the file
      * @throws IOException
      */
-    void downloadFile(Path remotePath, Path localPath) throws IOException {
+    public void downloadFile(Path remotePath, Path localPath) throws IOException {
         if (client == null || !client.isConnected())
             return;
         try {
@@ -186,7 +186,7 @@ public final class FTP
      * @param path file to delete
      * @throws IOException
      */
-    void deleteFile(Path path) throws IOException {
+    public void deleteFile(Path path) throws IOException {
         if (client == null || !client.isConnected())
             return;
         try {
@@ -208,7 +208,7 @@ public final class FTP
      * @return true if {@code path} exists
      * @throws IOException
      */
-    boolean remotePathExists(Path path) throws IOException {
+    public boolean remotePathExists(Path path) throws IOException {
         if (client == null || !client.isConnected())
             return false;
         try {
