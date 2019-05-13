@@ -11,8 +11,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Properties;
 
-public class BoxTools
+public final class BoxTools
 {
     public static void main(String[] args) throws IOException {
         if (args.length == 0)
@@ -21,6 +22,9 @@ public class BoxTools
         switch (args[0]) {
         case "-extract":
             extractBoxNoteText(args, args.length - 1, 1);
+            break;
+        case "-download":
+            downloadFile(args, args.length - 1, 1);
             break;
         default:
             showHelpAndExit();
@@ -32,7 +36,8 @@ public class BoxTools
         System.out.println(
             "Usage: BoxTools <command> [args]\n\n" +
             "Commands:\n" +
-            "   -extract <filename.boxnote> <filename.txt>"
+            "   -extract <filename.boxnote> <filename.txt>\n" +
+            "   -download <FTP properties file> <remote path> <local path>"
         );
         System.exit(1);
     }
@@ -47,5 +52,15 @@ public class BoxTools
         JsonObject obj = Json.parse(new InputStreamReader(Files.newInputStream(inPath), StandardCharsets.UTF_8)).asObject();
         String text = obj.get("atext").asObject().get("text").asString();
         Files.write(outPath, text.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static void downloadFile(String[] args, int numArgs, int argsStart) throws IOException {
+        if (numArgs != 3)
+            showHelpAndExit();
+        final Path propsPath = Paths.get(args[argsStart++]);
+        final Path remotePath = Paths.get(args[argsStart++]);
+        final Path localPath = Paths.get(args[argsStart++]);
+
+        final Properties props = Utils.loadProps(propsPath);
     }
 }

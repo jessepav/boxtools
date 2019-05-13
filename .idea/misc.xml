@@ -10,34 +10,6 @@
     <dictionary name="Jesse_P" />
     <dictionary name="JP" />
   </component>
-  <component name="ProjectInspectionProfilesVisibleTreeState">
-    <entry key="No Inspections">
-      <profile-state>
-        <expanded-state>
-          <State>
-            <id />
-          </State>
-          <State>
-            <id>Serialization issues</id>
-          </State>
-        </expanded-state>
-      </profile-state>
-    </entry>
-    <entry key="Project Default">
-      <profile-state>
-        <expanded-state>
-          <State>
-            <id />
-          </State>
-        </expanded-state>
-        <selected-state>
-          <State>
-            <id>Abstraction issues</id>
-          </State>
-        </selected-state>
-      </profile-state>
-    </entry>
-  </component>
   <component name="ProjectRootManager" version="2" languageLevel="JDK_1_7" assert-keyword="true" jdk-15="true" project-jdk-name="Java 7" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/out" />
   </component>
