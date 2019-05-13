@@ -12,6 +12,9 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="minimal-json-0.9.5" level="project" />
+    <orderEntry type="library" name="commons-codec-1.11" level="project" />
+    <orderEntry type="library" name="commons-lang3-3.4" level="project" />
+    <orderEntry type="library" name="ftp4j-1.7.2" level="project" />
   </component>
 </module>
 
