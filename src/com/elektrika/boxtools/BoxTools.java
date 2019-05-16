@@ -41,7 +41,7 @@ public final class BoxTools
             "Usage: BoxTools <command> [args]\n\n" +
             "Commands:\n" +
             "   -extract <filename.boxnote> <filename.txt>\n" +
-            "   -download <FTP properties file> <remote path> <local path>\n" +
+            "   -download <FTP properties file> <remote path> [<local path>]\n" +
             "   -upload <FTP properties file> <local path> <remote dir>"
         );
         System.exit(1);
@@ -60,11 +60,11 @@ public final class BoxTools
     }
 
     private static void downloadFile(String[] args, int numArgs, int argsStart) throws IOException {
-        if (numArgs != 3)
+        if (numArgs != 2 && numArgs != 3)
             showHelpAndExit();
         final Path propsPath = Paths.get(args[argsStart++]);
         final Path remotePath = Paths.get(args[argsStart++]);
-        final Path localPath = Paths.get(args[argsStart++]);
+        final Path localPath = numArgs == 3 ? Paths.get(args[argsStart++]) : remotePath.getFileName();
 
         final Properties props = Utils.loadProps(propsPath);
         FTP ftp = new FTP(props);
