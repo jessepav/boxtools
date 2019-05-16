@@ -27,6 +27,9 @@ public final class BoxTools
         case "-download":
             downloadFile(args, args.length - 1, 1);
             break;
+        case "-upload":
+            uploadFile(args, args.length - 1, 1);
+            break;
         default:
             showHelpAndExit();
         }
@@ -38,7 +41,8 @@ public final class BoxTools
             "Usage: BoxTools <command> [args]\n\n" +
             "Commands:\n" +
             "   -extract <filename.boxnote> <filename.txt>\n" +
-            "   -download <FTP properties file> <remote path> <local path>"
+            "   -download <FTP properties file> <remote path> <local path>\n" +
+            "   -upload <FTP properties file> <local path> <remote dir>"
         );
         System.exit(1);
     }
@@ -64,8 +68,28 @@ public final class BoxTools
 
         final Properties props = Utils.loadProps(propsPath);
         FTP ftp = new FTP(props);
+        System.out.println("Connecting...");
         ftp.connect();
+        System.out.println("Downloading...");
         ftp.downloadFile(remotePath, localPath);
+        System.out.println("Disconnecting...");
+        ftp.disconnect();
+    }
+
+    private static void uploadFile(String[] args, int numArgs, int argsStart) throws IOException {
+        if (numArgs != 3)
+            showHelpAndExit();
+        final Path propsPath = Paths.get(args[argsStart++]);
+        final Path localPath = Paths.get(args[argsStart++]);
+        final Path remoteDir = Paths.get(args[argsStart++]);
+
+        final Properties props = Utils.loadProps(propsPath);
+        FTP ftp = new FTP(props);
+        System.out.println("Connecting...");
+        ftp.connect();
+        System.out.println("Uploading...");
+        ftp.uploadFile(localPath, remoteDir);
+        System.out.println("Disconnecting...");
         ftp.disconnect();
     }
 }
