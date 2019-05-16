@@ -90,6 +90,7 @@ public final class FTP
             connector.setConnectionTimeout(timeouts[0]);
             connector.setReadTimeout(timeouts[1]);
             connector.setCloseTimeout(timeouts[2]);
+            client.setType(FTPClient.TYPE_BINARY);
             if (security != FTPClient.SECURITY_FTP) {
                 // If we're using SSL security, then create an SSLSocketFactory that accepts
                 // all server certificates.
@@ -101,7 +102,7 @@ public final class FTP
                 }};
                 SSLContext sslContext = null;
                 try {
-                    sslContext = SSLContext.getInstance("SSL");
+                    sslContext = SSLContext.getInstance("TLSv1.2");
                     sslContext.init(null, trustManager, new SecureRandom());
                 } catch (NoSuchAlgorithmException|KeyManagementException e) {
                     logger.log(Level.WARNING, "FTP connect()", e);
