@@ -70,10 +70,13 @@ public final class BoxTools
         FTP ftp = new FTP(props);
         System.out.println("Connecting...");
         ftp.connect();
-        System.out.println("Downloading...");
-        ftp.downloadFile(remotePath, localPath);
-        System.out.println("Disconnecting...");
-        ftp.disconnect();
+        try {
+            System.out.println("Downloading...");
+            ftp.downloadFile(remotePath, localPath);
+        } finally {
+            System.out.println("Disconnecting...");
+            ftp.disconnect();
+        }
     }
 
     private static void uploadFile(String[] args, int numArgs, int argsStart) throws IOException {
@@ -87,9 +90,12 @@ public final class BoxTools
         FTP ftp = new FTP(props);
         System.out.println("Connecting...");
         ftp.connect();
-        System.out.println("Uploading...");
-        ftp.uploadFile(localPath, remoteDir);
-        System.out.println("Disconnecting...");
-        ftp.disconnect();
+        try {
+            System.out.println("Uploading...");
+            ftp.uploadFile(localPath, remoteDir);
+        } finally {
+            System.out.println("Disconnecting...");
+            ftp.disconnect();
+        }
     }
 }
