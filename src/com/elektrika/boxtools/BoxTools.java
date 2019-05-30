@@ -11,6 +11,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.Properties;
 
 public final class BoxTools
@@ -20,15 +22,19 @@ public final class BoxTools
             showHelpAndExit();
 
         Utils.initSimpleLogging("com.elektrika.boxtools.BoxTools");
-        switch (args[0]) {
+
+        final LinkedList<String> argsList = new LinkedList<>(Arrays.asList(args));
+        final String cmd = argsList.removeFirst();
+
+        switch (cmd) {
         case "-extract":
-            extractBoxNoteText(args, args.length - 1, 1);
+            extractBoxNoteText(argsList);
             break;
         case "-download":
-            downloadFile(args, args.length - 1, 1);
+            downloadFile(argsList);
             break;
         case "-upload":
-            uploadFile(args, args.length - 1, 1);
+            uploadFile(argsList);
             break;
         default:
             showHelpAndExit();
@@ -42,57 +48,61 @@ public final class BoxTools
             "Commands:\n" +
             "   -extract <filename.boxnote> <filename.txt>\n" +
             "   -download <FTP properties file> <remote path> [<local path>]\n" +
-            "   -upload <FTP properties file> <local path> <remote dir>"
+            "   -download <FTP properties file> <remote path> <local path> [<remote path> <local path>] ...\n" +
+            "   -upload <FTP properties file> <local path> <remote dir> [<local path> <remote dir>] ..."
         );
         System.exit(1);
     }
 
-    private static void extractBoxNoteText(String[] args, int numArgs, int argsStart) throws IOException {
-        if (numArgs != 2)
+    private static void extractBoxNoteText(LinkedList<String> args) throws IOException {
+        if (args.size() != 2)
             showHelpAndExit();
 
-        Path inPath = Paths.get(args[argsStart++]);
-        Path outPath = Paths.get(args[argsStart++]);
-
-        JsonObject obj = Json.parse(new InputStreamReader(Files.newInputStream(inPath), StandardCharsets.UTF_8)).asObject();
-        String text = obj.get("atext").asObject().get("text").asString();
+        final Path inPath = Paths.get(args.removeFirst());
+        final Path outPath = Paths.get(args.removeFirst());
+        final JsonObject obj = Json.parse(new InputStreamReader(Files.newInputStream(inPath), StandardCharsets.UTF_8)).asObject();
+        final String text = obj.get("atext").asObject().get("text").asString();
         Files.write(outPath, text.getBytes(StandardCharsets.UTF_8));
     }
 
-    private static void downloadFile(String[] args, int numArgs, int argsStart) throws IOException {
-        if (numArgs != 2 && numArgs != 3)
+    private static void downloadFile(LinkedList<String> args) throws IOException {
+        if (args.size() < 2)
             showHelpAndExit();
-        final Path propsPath = Paths.get(args[argsStart++]);
-        final Path remotePath = Paths.get(args[argsStart++]);
-        final Path localPath = numArgs == 3 ? Paths.get(args[argsStart++]) : remotePath.getFileName();
 
+        final Path propsPath = Paths.get(args.removeFirst());
         final Properties props = Utils.loadProps(propsPath);
-        FTP ftp = new FTP(props);
+        final FTP ftp = new FTP(props);
         System.out.println("Connecting...");
         ftp.connect();
         try {
             System.out.println("Downloading...");
-            ftp.downloadFile(remotePath, localPath);
+            while (!args.isEmpty()) {
+                final Path remotePath = Paths.get(args.removeFirst());
+                final Path localPath = args.isEmpty() ? remotePath.getFileName() : Paths.get(args.removeFirst());
+                ftp.downloadFile(remotePath, localPath);
+            }
         } finally {
             System.out.println("Disconnecting...");
             ftp.disconnect();
         }
     }
 
-    private static void uploadFile(String[] args, int numArgs, int argsStart) throws IOException {
-        if (numArgs != 3)
+    private static void uploadFile(LinkedList<String> args) throws IOException {
+        if (args.size() < 3 || args.size() % 2 != 1)
             showHelpAndExit();
-        final Path propsPath = Paths.get(args[argsStart++]);
-        final Path localPath = Paths.get(args[argsStart++]);
-        final Path remoteDir = Paths.get(args[argsStart++]);
 
+        final Path propsPath = Paths.get(args.removeFirst());
         final Properties props = Utils.loadProps(propsPath);
-        FTP ftp = new FTP(props);
+        final FTP ftp = new FTP(props);
         System.out.println("Connecting...");
         ftp.connect();
         try {
             System.out.println("Uploading...");
-            ftp.uploadFile(localPath, remoteDir);
+            while (!args.isEmpty()) {
+                final Path localPath = Paths.get(args.removeFirst());
+                final Path remoteDir = Paths.get(args.removeFirst());
+                ftp.uploadFile(localPath, remoteDir);
+            }
         } finally {
             System.out.println("Disconnecting...");
             ftp.disconnect();
