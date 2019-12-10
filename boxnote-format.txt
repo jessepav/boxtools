@@ -1,0 +1,31 @@
+I learn all this from 
+
+  https://github.com/alexwennerberg/boxnotes2html/blob/master/boxnotes2html/boxnote.py
+  
+  An attribute chunk is formatted like this:
+
+    *n[*n...]+n[|n+n]
+        eg
+    *4*1+1|+1
+    where *n refers to an attribute to apply from the attribute pool
+    and +n is a number of characters to apply that attribute to
+    and |n is indicative of a line break (unclear the purpose of this)
+
+  All numbers 'n' are encoded as base-36 integers (i.e. [0-9a-z])
+  Note that a chunk may have no attributes, and can just be a character/line span, ex. "|1+1". 
+
+Here is a regex that matches a single chunk:
+
+  ((?:\*\w+)*)(?:\|\w+)?(\+\w+)
+  
+  $1 = attributes (if any), including the *'s
+  $2 = number of characters, including the +
+
+In the .boxnote JSON, the various keys of concern are:
+
+  "atext"->"text": the text itself
+  "atext"->"attribs": the attribute chunks
+  "pool"->"numToAttrib": mapping from attribute numbers to styles
+
+============================================================
+:indentSize=2:
