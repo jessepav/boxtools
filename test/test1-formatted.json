@@ -1,11 +1,28 @@
 { 
-   "head":37,
+   "head":117,
    "savepointDataFileId":"573801483415",
    "savepointListObject":{ 
-
+      "37":{ 
+         "revisionId":37,
+         "timestamp":1575997952418,
+         "state":"saved",
+         "type":"session",
+         "diffAuthorList":{ 
+            "2740917":true
+         }
+      },
+      "84":{ 
+         "revisionId":84,
+         "timestamp":1575999123283,
+         "state":"saved",
+         "type":"session",
+         "diffAuthorList":{ 
+            "2740917":true
+         }
+      }
    },
-   "lastEditTimestamp":1575997952418,
-   "diffChangeset":"Z:1>10v*4|f+hs*4+h9|1+1*4|1+1*4*2*5*3*6+1*4*7*8+8*4|1+1*4*2*5*3+1*4*7*8+8*4|1+1*4*2*5*3+1*4*7*8+a*4|1+1|1+1*4*2*a*3+1*4*7*8+7*4|1+1*4*2*a*3+1*4*7*8+7*4|1+1*4*2*a*3+1*4*7*8+9*4|3+3$Why didst thou promise such a beauteous day,\nAnd make me travel forth without my cloak,\nTo let base clouds o'ertake me in my way,\nHiding thy bravery in their rotten smoke?\n'Tis not enough that through the cloud thou break,\nTo dry the rain on my storm-beaten face,\nFor no man well of such a salve can speak,\nThat heals the wound, and cures not the disgrace:\nNor can thy shame give physic to my grief;\nThough thou repent, yet I have still the loss:\nThe offender's sorrow lends but weak relief\nTo him that bears the strong offence's cross.\n   Ah! but those tears are pearl which thy love sheds,\n   And they are rich and ransom all ill deeds.\n\nThis is linked closely to the previous sonnet in thought and language. The offence referred to may be a neglect or denial by the youth of any attachment to his friend, despite having given him assurances that he was committed to enduring love. Hence the beauteous day which was promised, encouraging the poet to cast away the cloak of defensive secrecy. A denial of friendship appears to call forth the language of the Gospels through association of the experience with Peter's denial of Christ. This was followed by Peter's repentance and sorrow, and indeed tears, as here. Matt.26. 31-4, 74-5. Mark 14.30, Luke 22.61-2.\n\n*List one\n*List two\n*List three\n\n*Dot one\n*Dot two\n*Dot three\n\n\n",
+   "lastEditTimestamp":1576006748465,
+   "diffChangeset":"Z:10v>14|o=10t*4*9|1-1|1+1*4*2*5*3*6+1*4*7*8+5*4|1+1*4*2*5*3+1*4*7*8+7*4|2+2*4*2*a*3+1*4*7*8+4*4|1+1*4*2*a*3+1*4*7*8+7*4|1+1*4*2*a*3+1*4*7*8+5*4|2+2$\n*where\n*are you\n\n*thus\n*we have\n*stuff\n\n",
    "invalidDiffChangeset":false,
    "authorList":{ 
       "2740917":{ 
@@ -19,10 +36,10 @@
    "shouldCreateSavepointBeforeApplyingNextRevision":false,
    "firstKeyRevision":5,
    "atext":{ 
-      "text":"Why didst thou promise such a beauteous day,\nAnd make me travel forth without my cloak,\nTo let base clouds o'ertake me in my way,\nHiding thy bravery in their rotten smoke?\n'Tis not enough that through the cloud thou break,\nTo dry the rain on my storm-beaten face,\nFor no man well of such a salve can speak,\nThat heals the wound, and cures not the disgrace:\nNor can thy shame give physic to my grief;\nThough thou repent, yet I have still the loss:\nThe offender's sorrow lends but weak relief\nTo him that bears the strong offence's cross.\n   Ah! but those tears are pearl which thy love sheds,\n   And they are rich and ransom all ill deeds.\n\nThis is linked closely to the previous sonnet in thought and language. The offence referred to may be a neglect or denial by the youth of any attachment to his friend, despite having given him assurances that he was committed to enduring love. Hence the beauteous day which was promised, encouraging the poet to cast away the cloak of defensive secrecy. A denial of friendship appears to call forth the language of the Gospels through association of the experience with Peter's denial of Christ. This was followed by Peter's repentance and sorrow, and indeed tears, as here. Matt.26. 31-4, 74-5. Mark 14.30, Luke 22.61-2.\n\n*List one\n*List two\n*List three\n\n*Dot one\n*Dot two\n*Dot three\n\n\n\n",
-      "attribs":"*4|f+hs*4+h9|1+1*4|1+1*4*2*5*3*6+1*4*7*8+8*4|1+1*4*2*5*3+1*4*7*8+8*4|1+1*4*2*5*3+1*4*7*8+a*4|1+1|1+1*4*2*a*3+1*4*7*8+7*4|1+1*4*2*a*3+1*4*7*8+7*4|1+1*4*2*a*3+1*4*7*8+9*4|3+3|1+1",
-      "opCount":24,
-      "appliedAttribsCount":52,
+      "text":"Why didst thou promise such a beauteous day,\nAnd make me travel forth without my cloak,\nTo let base clouds o'ertake me in my way,\nHiding thy bravery in their rotten smoke?\n'Tis not enough that through the cloud thou break,\nTo dry the rain on my storm-beaten face,\nFor no man well of such a salve can speak,\nThat heals the wound, and cures not the disgrace:\nNor can thy shame give physic to my grief;\nThough thou repent, yet I have still the loss:\nThe offender's sorrow lends but weak relief\nTo him that bears the strong offence's cross.\n   Ah! but those tears are pearl which thy love sheds,\n   And they are rich and ransom all ill deeds.\n\nThis is linked closely to the previous sonnet in thought and language. The offence referred to may be a neglect or denial by the youth of any attachment to his friend, despite having given him assurances that he was committed to enduring love. Hence the beauteous day which was promised, encouraging the poet to cast away the cloak of defensive secrecy. A denial of friendship appears to call forth the language of the Gospels through association of the experience with Peter's denial of Christ. This was followed by Peter's repentance and sorrow, and indeed tears, as here. Matt.26. 31-4, 74-5. Mark 14.30, Luke 22.61-2.\n\n*List one\n*List two\n*List three\n\n*Dot one\n*Dot two\n*Dot three\n\n*where\n*are you\n\n*thus\n*we have\n*stuff\n\n\n",
+      "attribs":"*4|f+hs*4+h9|1+1*4|1+1*4*2*5*3*6+1*4*7*8+8*4|1+1*4*2*5*3+1*4*7*8+8*4|1+1*4*2*5*3+1*4*7*8+a*4|1+1|1+1*4*2*a*3+1*4*7*8+7*4|1+1*4*2*a*3+1*4*7*8+7*4|1+1*4*2*a*3+1*4*7*8+9*4|1+1|1+1*4*2*5*3*6+1*4*7*8+5*4|1+1*4*2*5*3+1*4*7*8+7*4|2+2*4*2*a*3+1*4*7*8+4*4|1+1*4*2*a*3+1*4*7*8+7*4|1+1*4*2*a*3+1*4*7*8+5*4|2+2|1+1",
+      "opCount":40,
+      "appliedAttribsCount":93,
       "maxAttribsOnSingleOp":5
    },
    "pool":{ 
@@ -70,9 +87,17 @@
          "10":[ 
             "list",
             "bullet1"
+         ],
+         "11":[ 
+            "start",
+            "2"
+         ],
+         "12":[ 
+            "list",
+            "unchecked1"
          ]
       },
-      "nextNum":11
+      "nextNum":13
    },
    "chatHead":-1,
    "publicStatus":false,

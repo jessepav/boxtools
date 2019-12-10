@@ -62,7 +62,7 @@ public final class BoxTools
         final Path outPath = Paths.get(args.removeFirst());
         final JsonObject obj = Json.parse(new InputStreamReader(Files.newInputStream(inPath), StandardCharsets.UTF_8)).asObject();
         final BoxNote note = new BoxNote(obj);
-        final String text = note.getPlainText();
+        final String text = note.getFormattedText();
         Files.write(outPath, text.getBytes(StandardCharsets.UTF_8));
     }
 
