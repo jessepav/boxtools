@@ -15,8 +15,8 @@ import java.util.regex.Pattern;
 
 /**
  * A class that handles the conversion of Box Notes to text. The only attributes that it takes into
- * account are lists, so that list numbers and bullets are not lost, as they are if you select-all and
- * copy-paste out of the Box web app.
+ * account are lists, so that list numbers, bullets, and indentation are not lost, as they are if you
+ * select-all and copy-paste out of the Box web app.
  * <hr/>
  * <b>Box Note JSON format</b>
  * <pre>{@code
@@ -54,18 +54,20 @@ In the .boxnote JSON, the various keys of concern are:
  */
 public class BoxNote
 {
+    public static final int SPACES_PER_INDENT_LEVEL = 3;
+
     private JsonObject noteObj;
 
     public BoxNote(JsonObject noteObj) {
         this.noteObj = noteObj;
     }
 
-    public String getPlainText() {
+    public String getRawText() {
         return noteObj.get("atext").asObject().get("text").asString();
     }
 
     public String getFormattedText() {
-        final String text = getPlainText();
+        final String text = getRawText();
         final Map<Integer,Attribute> attributeMap = getAttributeMap();
         final List<AttributeChunk> chunks = getAttributeChunks(attributeMap);
         final String ftext = formatText(text, chunks);
@@ -80,6 +82,7 @@ public class BoxNote
         for (AttributeChunk chunk : chunks) {
             boolean numberedList = false;
             boolean bulletedList = false;
+            int indentLevel = 0;
             for (Attribute attr : chunk.attributes) {
                 if (attr.startListNumbering != 0)
                     listNum = attr.startListNumbering;
@@ -87,11 +90,15 @@ public class BoxNote
                     numberedList = true;
                 else if (attr.bulletedList)
                     bulletedList = true;
+                else if (attr.indentLevel != 0)
+                    indentLevel = attr.indentLevel;
             }
             if (numberedList)
                 sb.append(String.format("%d. ", listNum++));
             else if (bulletedList)
                 sb.append("* ");
+            else if (indentLevel != 0)
+                sb.append(StringUtils.repeat(' ', indentLevel * SPACES_PER_INDENT_LEVEL));
             else
                 sb.append(text.substring(n, n + chunk.numChars));
             n += chunk.numChars;
@@ -116,6 +123,8 @@ public class BoxNote
                     attr.numberedList = true;
                 else if (startsWith(val2, "bullet"))
                     attr.bulletedList = true;
+                else if (startsWith(val2, "indent"))
+                    attr.indentLevel = Integer.valueOf(val2.substring(6));
             } else if (val1.equals("start")) {
                 attr.startListNumbering = Integer.parseInt(val2);
             } else {
@@ -165,5 +174,6 @@ public class BoxNote
         public boolean numberedList;
         public boolean bulletedList;
         public int startListNumbering;
+        public int indentLevel;
     }
 }
