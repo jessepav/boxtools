@@ -80,30 +80,38 @@ public class BoxNote
         int n = 0;  // position in text
         int listNum = 1;
         for (AttributeChunk chunk : chunks) {
-            boolean numberedList = false;
-            boolean bulletedList = false;
+            int numberedListLevel = 0;
+            int bulletedListLevel = 0;
             int indentLevel = 0;
             for (Attribute attr : chunk.attributes) {
                 if (attr.startListNumbering != 0)
                     listNum = attr.startListNumbering;
-                else if (attr.numberedList)
-                    numberedList = true;
-                else if (attr.bulletedList)
-                    bulletedList = true;
+                else if (attr.numberedListLevel != 0)
+                    numberedListLevel = attr.numberedListLevel;
+                else if (attr.bulletedListLevel != 0)
+                    bulletedListLevel = attr.bulletedListLevel;
                 else if (attr.indentLevel != 0)
                     indentLevel = attr.indentLevel;
             }
-            if (numberedList)
+            if (numberedListLevel != 0) {
+                insertIndent(sb, numberedListLevel - 1);
                 sb.append(String.format("%d. ", listNum++));
-            else if (bulletedList)
+            } else if (bulletedListLevel != 0) {
+                insertIndent(sb, bulletedListLevel - 1);
                 sb.append("* ");
-            else if (indentLevel != 0)
-                sb.append(StringUtils.repeat(' ', indentLevel * SPACES_PER_INDENT_LEVEL));
-            else
+            } else if (indentLevel != 0) {
+                insertIndent(sb, indentLevel);
+            } else {
                 sb.append(text.substring(n, n + chunk.numChars));
+            }
             n += chunk.numChars;
         }
         return sb.toString();
+    }
+
+    private static void insertIndent(StringBuilder sb, int indentLevel) {
+        if (indentLevel > 0)
+            sb.append(StringUtils.repeat(' ', indentLevel * SPACES_PER_INDENT_LEVEL));
     }
 
     private Map<Integer,Attribute> getAttributeMap() {
@@ -120,13 +128,13 @@ public class BoxNote
             Attribute attr = new Attribute();
             if (val1.equals("list")) {
                 if (startsWith(val2, "number"))
-                    attr.numberedList = true;
+                    attr.numberedListLevel = Utils.parseInt(val2.substring(6));
                 else if (startsWith(val2, "bullet"))
-                    attr.bulletedList = true;
+                    attr.bulletedListLevel = Utils.parseInt(val2.substring(6));
                 else if (startsWith(val2, "indent"))
-                    attr.indentLevel = Integer.valueOf(val2.substring(6));
+                    attr.indentLevel = Utils.parseInt(val2.substring(6));
             } else if (val1.equals("start")) {
-                attr.startListNumbering = Integer.parseInt(val2);
+                attr.startListNumbering = Utils.parseInt(val2);
             } else {
                 recognized = false;
             }
@@ -171,9 +179,9 @@ public class BoxNote
 
     public static class Attribute
     {
-        public boolean numberedList;
-        public boolean bulletedList;
-        public int startListNumbering;
+        public int numberedListLevel;
+        public int bulletedListLevel;
         public int indentLevel;
+        public int startListNumbering;
     }
 }
