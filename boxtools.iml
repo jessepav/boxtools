@@ -16,6 +16,7 @@
     <orderEntry type="library" name="commons-lang3-3.4" level="project" />
     <orderEntry type="library" name="ftp4j-1.7.2" level="project" />
     <orderEntry type="library" name="box-java-sdk-2.41.0" level="project" />
+    <orderEntry type="library" name="nanohttpd-2.3.1" level="project" />
   </component>
 </module>
 
