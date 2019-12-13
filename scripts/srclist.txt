@@ -1,0 +1,7 @@
+.idea
+scripts
+src
+boxtools.iml
+boxtools-ant-build.properties
+boxtools-ant-build.xml
+README.md

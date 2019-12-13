@@ -1,0 +1,14 @@
+<component name="ArtifactManager">
+  <artifact name="Dist">
+    <output-path>$PROJECT_DIR$/build/dist</output-path>
+    <root id="root">
+      <element id="archive" name="boxtools.jar">
+        <element id="module-output" name="boxtools" />
+      </element>
+      <element id="directory" name="lib">
+        <element id="dir-copy" path="$PROJECT_DIR$/lib" />
+      </element>
+      <element id="file-copy" path="$PROJECT_DIR$/scripts/boxtools.cmd" />
+    </root>
+  </artifact>
+</component>
