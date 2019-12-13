@@ -54,12 +54,25 @@ In the .boxnote JSON, the various keys of concern are:
  */
 public class BoxNote
 {
-    public static final int SPACES_PER_INDENT_LEVEL = 3;
+    private int spacesPerIndentLevel;
 
     private JsonObject noteObj;
 
+    public BoxNote() {
+        spacesPerIndentLevel = 3;
+    }
+
     public BoxNote(JsonObject noteObj) {
+        this();
         this.noteObj = noteObj;
+    }
+
+    public void setNoteObj(JsonObject noteObj) {
+        this.noteObj = noteObj;
+    }
+
+    public void setSpacesPerIndentLevel(int spacesPerIndentLevel) {
+        this.spacesPerIndentLevel = spacesPerIndentLevel;
     }
 
     public String getRawText() {
@@ -95,10 +108,12 @@ public class BoxNote
             }
             if (numberedListLevel != 0) {
                 insertIndent(sb, numberedListLevel - 1);
-                sb.append(String.format("%d. ", listNum++));
+                formatNumberedListItem(sb, listNum++, numberedListLevel);
+                sb.append(". ");
             } else if (bulletedListLevel != 0) {
                 insertIndent(sb, bulletedListLevel - 1);
-                sb.append("* ");
+                formatBulletedListItem(sb, bulletedListLevel);
+                sb.append(" ");
             } else if (indentLevel != 0) {
                 insertIndent(sb, indentLevel);
             } else {
@@ -109,9 +124,43 @@ public class BoxNote
         return sb.toString();
     }
 
-    private static void insertIndent(StringBuilder sb, int indentLevel) {
+    private void formatNumberedListItem(StringBuilder sb, int listNum, int numberedListLevel) {
+        if (listNum <= 0) {
+            sb.append(listNum);
+            return;
+        }
+        switch ((numberedListLevel - 1) % 3) {
+        case 0:  // normal decimal numbers
+            sb.append(listNum);
+            break;
+        case 1: // a..z, aa, ab, etc.
+            if (listNum <= 702) {
+                if (listNum > 26)
+                    sb.append((char) ('a' + listNum / 26 - 1));
+                sb.append((char) ('a' + (listNum-1) % 26));
+            } else {
+                sb.append(listNum);
+            }
+            break;
+        case 2: // lowercase roman numerals
+            if (listNum <= 3999) {
+                sb.append(RomanNumerals.format(listNum).toLowerCase());
+            } else {
+                sb.append(listNum);
+            }
+            break;
+        }
+    }
+
+    private static char[] BULLETS = {'*', '+', '-'};
+
+    private void formatBulletedListItem(StringBuilder sb, int bulletedListLevel) {
+        sb.append(BULLETS[(bulletedListLevel - 1) % 3]);
+    }
+
+    private void insertIndent(StringBuilder sb, int indentLevel) {
         if (indentLevel > 0)
-            sb.append(StringUtils.repeat(' ', indentLevel * SPACES_PER_INDENT_LEVEL));
+            sb.append(StringUtils.repeat(' ', indentLevel * spacesPerIndentLevel));
     }
 
     private Map<Integer,Attribute> getAttributeMap() {

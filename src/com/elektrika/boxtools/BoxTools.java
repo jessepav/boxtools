@@ -46,7 +46,7 @@ public final class BoxTools
         System.out.println(
             "Usage: BoxTools <command> [args]\n\n" +
             "Commands:\n" +
-            "   -extract <filename.boxnote> <filename.txt>\n" +
+            "   -extract [-s spaces-per-indent-level] <filename.boxnote> <filename.txt>\n" +
             "   -download <FTP properties file> <remote path> [<local path>]\n" +
             "   -download <FTP properties file> <remote path> <local path> [<remote path> <local path>] ...\n" +
             "   -upload <FTP properties file> <local path> <remote dir> [<local path> <remote dir>] ..."
@@ -55,6 +55,17 @@ public final class BoxTools
     }
 
     private static void extractBoxNoteText(LinkedList<String> args) throws IOException {
+        int spacesPerIndentLevel = 0;
+
+        while (args.size() > 2) {
+            String opt = args.removeFirst();
+            switch (opt) {
+            case "-s":
+                spacesPerIndentLevel = Utils.parseInt(args.removeFirst());
+                break;
+            }
+        }
+
         if (args.size() != 2)
             showHelpAndExit();
 
@@ -62,6 +73,8 @@ public final class BoxTools
         final Path outPath = Paths.get(args.removeFirst());
         final JsonObject obj = Json.parse(new InputStreamReader(Files.newInputStream(inPath), StandardCharsets.UTF_8)).asObject();
         final BoxNote note = new BoxNote(obj);
+        if (spacesPerIndentLevel != 0)
+            note.setSpacesPerIndentLevel(spacesPerIndentLevel);
         final String text = note.getFormattedText();
         Files.write(outPath, text.getBytes(StandardCharsets.UTF_8));
     }
