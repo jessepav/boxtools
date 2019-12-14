@@ -64,4 +64,12 @@ public final class Utils
     public static int parseInt(String s) {
         return parseInt(s, 0);
     }
+
+    public static void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        }
+    }
 }

@@ -43,9 +43,14 @@ public class BoxOAuth
                 } catch (InterruptedException e) { /* ignore */ }
             }
         }
-        server.shutdown();
+        Utils.sleep(3000);
+        server.stop();
 
         BoxAPIConnection client = new BoxAPIConnection(clientId, clientSecret, server.code);
+        saveTokens(tokenFilePath, client);
+    }
+
+    static void saveTokens(Path tokenFilePath, BoxAPIConnection client) throws IOException {
         Properties tokenProps = new Properties();
         tokenProps.setProperty("access-token", client.getAccessToken());
         tokenProps.setProperty("refresh-token", client.getRefreshToken());
@@ -76,8 +81,8 @@ public class BoxOAuth
             }
         }
 
-        private synchronized void shutdown() {
-            stop();
+        protected boolean useGzipWhenAccepted(Response r) {
+            return false;
         }
     }
 }

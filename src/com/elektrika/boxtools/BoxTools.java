@@ -16,7 +16,7 @@ import java.util.Properties;
 
 public final class BoxTools
 {
-    public static void main(String[] args) throws IOException, URISyntaxException {
+    public static void main(String[] args) throws IOException, URISyntaxException, InterruptedException {
         if (args.length == 0)
             showHelpAndExit();
 
@@ -41,6 +41,9 @@ public final class BoxTools
         case "-get":
             boxGet(argsList);
             break;
+        case "-put":
+            boxPut(argsList);
+            break;
         default:
             showHelpAndExit();
         }
@@ -56,7 +59,8 @@ public final class BoxTools
             "   -download <FTP properties file> <remote path> <local path> [<remote path> <local path>] ...\n" +
             "   -upload <FTP properties file> <local path> <remote dir> [<local path> <remote dir>] ...\n" +
             "   -oauth <OAuth properties file>\n" +
-            "   -get <OAuth properties file> <item ID> <local path>"
+            "   -get <OAuth properties file> <item ID> <local path>\n" +
+            "   -put <OAuth properties file> [-new] <item ID> <local path>"
         );
         System.exit(1);
     }
@@ -144,10 +148,33 @@ public final class BoxTools
         final Path localPath = Paths.get(args.removeFirst());
 
         final Properties oauthProps = Utils.loadProps(propsPath);
-        final Properties tokenProps = Utils.loadProps(propsPath.resolveSibling(oauthProps.getProperty("token-file")));
+        final Path tokenPropsPath = propsPath.resolveSibling(oauthProps.getProperty("token-file"));
+        final Properties tokenProps = Utils.loadProps(tokenPropsPath);
         BoxOperations ops = new BoxOperations(oauthProps, tokenProps);
         ops.getFile(id, localPath);
+        BoxOAuth.saveTokens(tokenPropsPath, ops.getApiConnection());
     }
 
+    private static void boxPut(LinkedList<String> args) throws IOException, InterruptedException {
+        final Path propsPath = Paths.get(args.removeFirst());
+        boolean newFile = false;
 
+        while (args.size() > 2) {
+            String opt = args.removeFirst();
+            switch (opt) {
+            case "-new":
+                newFile = true;
+                break;
+            }
+        }
+        final String id = args.removeFirst();
+        final Path localPath = Paths.get(args.removeFirst());
+
+        final Properties oauthProps = Utils.loadProps(propsPath);
+        final Path tokenPropsPath = propsPath.resolveSibling(oauthProps.getProperty("token-file"));
+        final Properties tokenProps = Utils.loadProps(tokenPropsPath);
+        BoxOperations ops = new BoxOperations(oauthProps, tokenProps);
+        ops.putFile(id, localPath, newFile);
+        BoxOAuth.saveTokens(tokenPropsPath, ops.getApiConnection());
+    }
 }
