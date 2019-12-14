@@ -1,0 +1,17 @@
+import com.elektrika.boxtools.*;
+import com.box.sdk.*;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+Path oauthPropsPath = Paths.get("c:\\Users\\JP\\Applications\\bin\\boxtools-oauth.properties", new String[0]);
+BoxAPIConnection api = null;
+
+BoxAPIConnection createApi() {
+    api = BoxOAuth.createAPIConnection(oauthPropsPath);
+}
+
+void saveTokens() {
+    BoxOAuth.saveTokens(oauthPropsPath, api);
+}
