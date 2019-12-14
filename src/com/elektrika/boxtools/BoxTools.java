@@ -38,6 +38,9 @@ public final class BoxTools
         case "-oauth":
             retrieveOAuthCode(argsList);
             break;
+        case "-get":
+            boxGet(argsList);
+            break;
         default:
             showHelpAndExit();
         }
@@ -52,7 +55,8 @@ public final class BoxTools
             "   -download <FTP properties file> <remote path> [<local path>]\n" +
             "   -download <FTP properties file> <remote path> <local path> [<remote path> <local path>] ...\n" +
             "   -upload <FTP properties file> <local path> <remote dir> [<local path> <remote dir>] ...\n" +
-            "   -oauth <OAuth properties file>"
+            "   -oauth <OAuth properties file>\n" +
+            "   -get <OAuth properties file> <item ID> <local path>"
         );
         System.exit(1);
     }
@@ -133,4 +137,17 @@ public final class BoxTools
         oauth.retrieveTokens();
         System.out.println("Tokens retrieved.");
     }
+
+    private static void boxGet(LinkedList<String> args) throws IOException {
+        final Path propsPath = Paths.get(args.removeFirst());
+        final String id = args.removeFirst();
+        final Path localPath = Paths.get(args.removeFirst());
+
+        final Properties oauthProps = Utils.loadProps(propsPath);
+        final Properties tokenProps = Utils.loadProps(propsPath.resolveSibling(oauthProps.getProperty("token-file")));
+        BoxOperations ops = new BoxOperations(oauthProps, tokenProps);
+        ops.getFile(id, localPath);
+    }
+
+
 }
