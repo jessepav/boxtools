@@ -18,12 +18,8 @@ public class BoxOperations
 
     private BoxAPIConnection api;
 
-    public BoxOperations(Properties oauthProps, Properties tokenProps) {
-        final String clientId = oauthProps.getProperty("client-id");
-        final String clientSecret = oauthProps.getProperty("client-secret");
-        final String accessToken = tokenProps.getProperty("access-token");
-        final String refreshToken = tokenProps.getProperty("refresh-token");
-        api = new BoxAPIConnection(clientId, clientSecret, accessToken, refreshToken);
+    public BoxOperations(BoxAPIConnection api) {
+        this.api = api;
     }
 
     public BoxAPIConnection getApiConnection() {

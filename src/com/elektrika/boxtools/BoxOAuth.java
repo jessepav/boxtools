@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -50,7 +51,19 @@ public class BoxOAuth
         saveTokens(tokenFilePath, client);
     }
 
-    static void saveTokens(Path tokenFilePath, BoxAPIConnection client) throws IOException {
+    public static BoxAPIConnection createAPIConnection(Path oauthPropsPath) throws IOException {
+        final Properties oauthProps = Utils.loadProps(oauthPropsPath);
+        final Properties tokenProps = Utils.loadProps(oauthPropsPath.resolveSibling(oauthProps.getProperty("token-file")));
+        final String clientId = oauthProps.getProperty("client-id");
+        final String clientSecret = oauthProps.getProperty("client-secret");
+        final String accessToken = tokenProps.getProperty("access-token");
+        final String refreshToken = tokenProps.getProperty("refresh-token");
+        return new BoxAPIConnection(clientId, clientSecret, accessToken, refreshToken);
+    }
+
+    public static void saveTokens(Path oauthPropsPath, BoxAPIConnection client) throws IOException {
+        final Properties oauthProps = Utils.loadProps(oauthPropsPath);
+        final Path tokenFilePath = oauthPropsPath.resolveSibling(oauthProps.getProperty("token-file"));
         Properties tokenProps = new Properties();
         tokenProps.setProperty("access-token", client.getAccessToken());
         tokenProps.setProperty("refresh-token", client.getRefreshToken());

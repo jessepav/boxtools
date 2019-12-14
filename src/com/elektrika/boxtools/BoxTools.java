@@ -147,12 +147,9 @@ public final class BoxTools
         final String id = args.removeFirst();
         final Path localPath = Paths.get(args.removeFirst());
 
-        final Properties oauthProps = Utils.loadProps(propsPath);
-        final Path tokenPropsPath = propsPath.resolveSibling(oauthProps.getProperty("token-file"));
-        final Properties tokenProps = Utils.loadProps(tokenPropsPath);
-        BoxOperations ops = new BoxOperations(oauthProps, tokenProps);
+        BoxOperations ops = new BoxOperations(BoxOAuth.createAPIConnection(propsPath));
         ops.getFile(id, localPath);
-        BoxOAuth.saveTokens(tokenPropsPath, ops.getApiConnection());
+        BoxOAuth.saveTokens(propsPath, ops.getApiConnection());
     }
 
     private static void boxPut(LinkedList<String> args) throws IOException, InterruptedException {
@@ -170,11 +167,8 @@ public final class BoxTools
         final String id = args.removeFirst();
         final Path localPath = Paths.get(args.removeFirst());
 
-        final Properties oauthProps = Utils.loadProps(propsPath);
-        final Path tokenPropsPath = propsPath.resolveSibling(oauthProps.getProperty("token-file"));
-        final Properties tokenProps = Utils.loadProps(tokenPropsPath);
-        BoxOperations ops = new BoxOperations(oauthProps, tokenProps);
+        BoxOperations ops = new BoxOperations(BoxOAuth.createAPIConnection(propsPath));
         ops.putFile(id, localPath, newFile);
-        BoxOAuth.saveTokens(tokenPropsPath, ops.getApiConnection());
+        BoxOAuth.saveTokens(propsPath, ops.getApiConnection());
     }
 }
