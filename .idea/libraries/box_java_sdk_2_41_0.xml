@@ -9,6 +9,7 @@
     </CLASSES>
     <JAVADOC>
       <root url="jar://$PROJECT_DIR$/docjars/box-java-sdk-2.41.0-javadoc.jar!/" />
+      <root url="https://javadoc.io/doc/com.box/box-java-sdk/2.41.0/" />
     </JAVADOC>
     <SOURCES>
       <root url="jar://$PROJECT_DIR$/srcjars/box-java-sdk-2.41.0-sources.jar!/" />

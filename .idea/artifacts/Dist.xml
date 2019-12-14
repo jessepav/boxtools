@@ -9,6 +9,10 @@
         <element id="dir-copy" path="$PROJECT_DIR$/lib" />
       </element>
       <element id="file-copy" path="$PROJECT_DIR$/scripts/boxtools.cmd" />
+      <element id="directory" name="config">
+        <element id="file-copy" path="$PROJECT_DIR$/config/sample-box-oauth.properties" />
+        <element id="file-copy" path="$PROJECT_DIR$/config/sample-boxftp.properties" />
+      </element>
     </root>
   </artifact>
 </component>

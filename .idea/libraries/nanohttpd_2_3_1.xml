@@ -5,6 +5,7 @@
     </CLASSES>
     <JAVADOC>
       <root url="jar://$PROJECT_DIR$/docjars/nanohttpd-2.3.1-javadoc.jar!/" />
+      <root url="https://javadoc.io/doc/org.nanohttpd/nanohttpd/2.3.1" />
     </JAVADOC>
     <SOURCES>
       <root url="jar://$PROJECT_DIR$/srcjars/nanohttpd-2.3.1-sources.jar!/" />

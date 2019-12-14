@@ -3,10 +3,9 @@ package com.elektrika.boxtools;
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.Reader;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,7 +16,7 @@ import java.util.Properties;
 
 public final class BoxTools
 {
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, URISyntaxException {
         if (args.length == 0)
             showHelpAndExit();
 
@@ -36,6 +35,9 @@ public final class BoxTools
         case "-upload":
             uploadFile(argsList);
             break;
+        case "-oauth":
+            retrieveOAuthCode(argsList);
+            break;
         default:
             showHelpAndExit();
         }
@@ -49,7 +51,8 @@ public final class BoxTools
             "   -extract [-s spaces-per-indent-level] <filename.boxnote> <filename.txt>\n" +
             "   -download <FTP properties file> <remote path> [<local path>]\n" +
             "   -download <FTP properties file> <remote path> <local path> [<remote path> <local path>] ...\n" +
-            "   -upload <FTP properties file> <local path> <remote dir> [<local path> <remote dir>] ..."
+            "   -upload <FTP properties file> <local path> <remote dir> [<local path> <remote dir>] ...\n" +
+            "   -oauth <OAuth properties file>"
         );
         System.exit(1);
     }
@@ -121,5 +124,13 @@ public final class BoxTools
             System.out.println("Disconnecting...");
             ftp.disconnect();
         }
+    }
+
+    private static void retrieveOAuthCode(LinkedList<String> args) throws IOException, URISyntaxException {
+        final Path propsPath = Paths.get(args.removeFirst());
+        final Properties props = Utils.loadProps(propsPath);
+        BoxOAuth oauth = new BoxOAuth(props, propsPath);
+        oauth.retrieveTokens();
+        System.out.println("Tokens retrieved.");
     }
 }

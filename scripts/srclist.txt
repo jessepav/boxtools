@@ -1,6 +1,8 @@
 .idea
+config
 scripts
 src
+test\box-oauth-tokens.properties
 boxtools.iml
 boxtools-ant-build.properties
 boxtools-ant-build.xml
