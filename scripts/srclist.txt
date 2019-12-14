@@ -1,4 +1,5 @@
 .idea
+bsh
 config
 scripts
 src
