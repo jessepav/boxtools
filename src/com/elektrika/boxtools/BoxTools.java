@@ -27,12 +27,6 @@ public final class BoxTools
         case "-extract":
             extractBoxNoteText(argsList);
             break;
-        case "-download":
-            downloadFile(argsList);
-            break;
-        case "-upload":
-            uploadFile(argsList);
-            break;
         case "-oauth":
             retrieveOAuthCode(argsList);
             break;
@@ -59,9 +53,6 @@ public final class BoxTools
             "Usage: BoxTools <command> [args]\n\n" +
             "Commands:\n" +
             "   -extract [-s spaces-per-indent-level] <filename.boxnote> <filename.txt>\n" +
-            "   -download <FTP properties file> <remote path> [<local path>]\n" +
-            "   -download <FTP properties file> <remote path> <local path> [<remote path> <local path>] ...\n" +
-            "   -upload <FTP properties file> <local path> <remote dir> [<local path> <remote dir>] ...\n" +
             "   -oauth <OAuth properties file>\n" +
             "   -list <OAuth properties file> <folder ID>\n" +
             "   -get <OAuth properties file> <file ID> [<file ID> ...] <local dir>\n" +
@@ -97,50 +88,6 @@ public final class BoxTools
             note.setSpacesPerIndentLevel(spacesPerIndentLevel);
         final String text = note.getFormattedText();
         Files.write(outPath, text.getBytes(StandardCharsets.UTF_8));
-    }
-
-    private static void downloadFile(LinkedList<String> args) throws IOException {
-        if (args.size() < 2)
-            showHelpAndExit();
-
-        final Path propsPath = Paths.get(args.removeFirst());
-        final Properties props = Utils.loadProps(propsPath);
-        final FTP ftp = new FTP(props);
-        System.out.println("Connecting...");
-        ftp.connect();
-        try {
-            System.out.println("Downloading...");
-            while (!args.isEmpty()) {
-                final Path remotePath = Paths.get(args.removeFirst());
-                final Path localPath = args.isEmpty() ? remotePath.getFileName() : Paths.get(args.removeFirst());
-                ftp.downloadFile(remotePath, localPath);
-            }
-        } finally {
-            System.out.println("Disconnecting...");
-            ftp.disconnect();
-        }
-    }
-
-    private static void uploadFile(LinkedList<String> args) throws IOException {
-        if (args.size() < 3 || args.size() % 2 != 1)
-            showHelpAndExit();
-
-        final Path propsPath = Paths.get(args.removeFirst());
-        final Properties props = Utils.loadProps(propsPath);
-        final FTP ftp = new FTP(props);
-        System.out.println("Connecting...");
-        ftp.connect();
-        try {
-            System.out.println("Uploading...");
-            while (!args.isEmpty()) {
-                final Path localPath = Paths.get(args.removeFirst());
-                final Path remoteDir = Paths.get(args.removeFirst());
-                ftp.uploadFile(localPath, remoteDir);
-            }
-        } finally {
-            System.out.println("Disconnecting...");
-            ftp.disconnect();
-        }
     }
 
     // -oauth <OAuth properties file>
