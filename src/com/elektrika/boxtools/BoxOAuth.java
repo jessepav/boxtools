@@ -30,11 +30,11 @@ public class BoxOAuth
         final String redirectUri = props.getProperty("redirect-uri");
         final int port = new URI(redirectUri).getPort();
         final URI authorizationUri = new URI(StringUtils.replace(props.getProperty("authorization-url"), "[CLIENT_ID]", clientId, 1));
-        final Path tokenFilePath = propsPath.resolveSibling(props.getProperty("token-file"));
 
         OAuthHttpServer server = new OAuthHttpServer(port);
         server.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
 
+        System.out.println("Authorization URI:\n  " + authorizationUri.toString());
         OS.browseURI(authorizationUri);
 
         synchronized (server) {
@@ -48,7 +48,7 @@ public class BoxOAuth
         server.stop();
 
         BoxAPIConnection client = new BoxAPIConnection(clientId, clientSecret, server.code);
-        saveTokens(tokenFilePath, client);
+        saveTokens(propsPath, client);
     }
 
     public static BoxAPIConnection createAPIConnection(Path oauthPropsPath) throws IOException {
