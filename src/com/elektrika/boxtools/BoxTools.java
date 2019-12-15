@@ -10,9 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.Properties;
+import java.util.*;
 
 public final class BoxTools
 {
@@ -38,11 +36,17 @@ public final class BoxTools
         case "-oauth":
             retrieveOAuthCode(argsList);
             break;
+        case "-list":
+            boxList(argsList);
+            break;
         case "-get":
             boxGet(argsList);
             break;
         case "-put":
             boxPut(argsList);
+            break;
+        case "-rename":
+            boxRename(argsList);
             break;
         default:
             showHelpAndExit();
@@ -59,12 +63,17 @@ public final class BoxTools
             "   -download <FTP properties file> <remote path> <local path> [<remote path> <local path>] ...\n" +
             "   -upload <FTP properties file> <local path> <remote dir> [<local path> <remote dir>] ...\n" +
             "   -oauth <OAuth properties file>\n" +
-            "   -get <OAuth properties file> <item ID> <local path>\n" +
-            "   -put <OAuth properties file> [-new] <item ID> <local path>"
+            "   -list <OAuth properties file> <folder ID>\n" +
+            "   -get <OAuth properties file> <file ID> [<file ID> ...] <local dir>\n" +
+            "   -put <OAuth properties file> version <file ID> <local file> [<file ID> <local file> ...]\n" +
+            "                                folder <folder ID> <local file> [<local file> ...]\n" +
+            "   -rename <OAuth properties file> file|folder <file or folder ID> <new name>"
         );
         System.exit(1);
     }
 
+    // -extract [-s spaces-per-indent-level] <filename.boxnote> <filename.txt>
+    //
     private static void extractBoxNoteText(LinkedList<String> args) throws IOException {
         int spacesPerIndentLevel = 0;
 
@@ -134,6 +143,8 @@ public final class BoxTools
         }
     }
 
+    // -oauth <OAuth properties file>
+    //
     private static void retrieveOAuthCode(LinkedList<String> args) throws IOException, URISyntaxException {
         final Path propsPath = Paths.get(args.removeFirst());
         final Properties props = Utils.loadProps(propsPath);
@@ -142,33 +153,113 @@ public final class BoxTools
         System.out.println("Tokens retrieved.");
     }
 
-    private static void boxGet(LinkedList<String> args) throws IOException {
+    // -list <OAuth properties file> <folder ID>
+    //
+    private static void boxList(LinkedList<String> args) throws IOException {
+        if (args.size() < 2)
+            showHelpAndExit();
+
         final Path propsPath = Paths.get(args.removeFirst());
         final String id = args.removeFirst();
-        final Path localPath = Paths.get(args.removeFirst());
-
         BoxOperations ops = new BoxOperations(BoxOAuth.createAPIConnection(propsPath));
-        ops.getFile(id, localPath);
-        BoxOAuth.saveTokens(propsPath, ops.getApiConnection());
+        try {
+            ops.listFolder(id);
+        } finally {
+            BoxOAuth.saveTokens(propsPath, ops.getApiConnection());
+        }
     }
 
-    private static void boxPut(LinkedList<String> args) throws IOException, InterruptedException {
-        final Path propsPath = Paths.get(args.removeFirst());
-        boolean newFile = false;
+    // -get <OAuth properties file> <file ID> [<file ID> ...] <local dir>
+    //
+    private static void boxGet(LinkedList<String> args) throws IOException {
+        if (args.size() < 3)
+            showHelpAndExit();
 
-        while (args.size() > 2) {
-            String opt = args.removeFirst();
-            switch (opt) {
-            case "-new":
-                newFile = true;
-                break;
-            }
-        }
-        final String id = args.removeFirst();
-        final Path localPath = Paths.get(args.removeFirst());
+        final Path propsPath = Paths.get(args.removeFirst());
+        final Path localDir = Paths.get(args.removeLast());
+        final List<String> fileIds = args;
 
         BoxOperations ops = new BoxOperations(BoxOAuth.createAPIConnection(propsPath));
-        ops.putFile(id, localPath, newFile);
-        BoxOAuth.saveTokens(propsPath, ops.getApiConnection());
+        try {
+            for (String id : fileIds)
+                System.out.println("Retrieved: " + ops.getFile(id, localDir));
+        } finally {
+            BoxOAuth.saveTokens(propsPath, ops.getApiConnection());
+        }
+    }
+
+    // -put <OAuth properties file> version <file ID> <local file> [<file ID> <local file> ...]
+    //                              folder <folder ID> <local file> [<local file> ...]
+    //
+    private static void boxPut(LinkedList<String> args) throws IOException, InterruptedException {
+        if (args.size() < 4)
+            showHelpAndExit();
+
+        final Path propsPath = Paths.get(args.removeFirst());
+        BoxOperations ops;
+
+        switch (args.removeFirst()) {
+        case "version":
+            ops = new BoxOperations(BoxOAuth.createAPIConnection(propsPath));
+            try {
+                while (args.size() >= 2) {
+                    final String id = args.removeFirst();
+                    final Path localPath = Paths.get(args.removeFirst());
+                    System.out.println("Uploaded: " + ops.putVersion(id, localPath));
+                }
+            } finally {
+                BoxOAuth.saveTokens(propsPath, ops.getApiConnection());
+            }
+            break;
+        case "folder":
+            ops = new BoxOperations(BoxOAuth.createAPIConnection(propsPath));
+            try {
+                final String id = args.removeFirst();
+                final List<Path> localPaths = new ArrayList<>(args.size());
+                for (String name : args)
+                    localPaths.add(Paths.get(name));
+                final String name = ops.putFolder(id, localPaths);
+                System.out.printf("Uploaded %d files to folder: %s\n", localPaths.size(), name);
+            } finally {
+                BoxOAuth.saveTokens(propsPath, ops.getApiConnection());
+            }
+            break;
+        default:
+            showHelpAndExit();
+            break;
+        }
+    }
+
+    // -rename <OAuth properties file> file|folder <file or folder ID> <new name>
+    //
+    private static void boxRename(LinkedList<String> args) throws IOException {
+        if (args.size() != 4)
+            showHelpAndExit();
+
+        final Path propsPath = Paths.get(args.removeFirst());
+        final String command = args.removeFirst();
+        final String id = args.removeFirst();
+        final String newName = args.removeFirst();
+
+        boolean isFolder;
+        switch (command) {
+        case "file":
+            isFolder = false;
+            break;
+        case "folder":
+            isFolder = true;
+            break;
+        default:
+            showHelpAndExit();
+            return;
+        }
+
+        BoxOperations ops = new BoxOperations(BoxOAuth.createAPIConnection(propsPath));
+        try {
+            String oldName = ops.rename(id, isFolder, newName);
+            System.out.printf("Rename %s: %s -> %s\n", command, oldName, newName);
+        } finally {
+            BoxOAuth.saveTokens(propsPath, ops.getApiConnection());
+        }
     }
 }
