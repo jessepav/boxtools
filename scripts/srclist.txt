@@ -1,9 +1,11 @@
+.gitignore
 .idea
 bsh
 config
 scripts
 src
-test\box-oauth-tokens.properties
+test\*.properties
+test\*.json
 boxtools.iml
 boxtools-ant-build.properties
 boxtools-ant-build.xml

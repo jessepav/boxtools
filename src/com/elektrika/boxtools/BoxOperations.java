@@ -29,7 +29,11 @@ public class BoxOperations
     }
 
     public void listFolder(String id) {
-        final BoxFolder folder = new BoxFolder(api, id);
+        BoxFolder folder;
+        if (id.equals("/"))
+            folder = BoxFolder.getRootFolder(api);
+        else
+            folder = new BoxFolder(api, id);
         System.out.printf("\n=== %s =======================\n\n", folder.getInfo().getName());
         for (BoxItem.Info info : folder)
             System.out.printf("%-6s %-14s %s\n", info.getType(), info.getID(), info.getName());

@@ -1,34 +1,45 @@
 package com.elektrika.boxtools;
 
 import com.box.sdk.BoxAPIConnection;
+import com.box.sdk.BoxConfig;
+import com.box.sdk.BoxDeveloperEditionAPIConnection;
 import fi.iki.elonen.NanoHTTPD;
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.BufferedReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-public class BoxAuth
+public final class BoxAuth
 {
-    private Properties props;
-    private Path propsPath;
+    private Path authPropsPath;
+    private Properties authProps;
+    private boolean usingJwt;
 
-    public BoxAuth(Properties props, Path propsPath) {
-        this.props = props;
-        this.propsPath = propsPath;
+    public BoxAuth(Path authPropsPath) throws IOException {
+        reload(authPropsPath);
     }
 
+    public void reload(Path authPropsPath) throws IOException {
+        this.authPropsPath = authPropsPath;
+        this.authProps = Utils.loadProps(authPropsPath);
+    }
+
+
     public void retrieveOAuthTokens() throws IOException, URISyntaxException {
-        final String clientId = props.getProperty("client-id");
-        final String clientSecret = props.getProperty("client-secret");
-        final String redirectUri = props.getProperty("redirect-uri");
+        final String clientId = authProps.getProperty("client-id");
+        final String clientSecret = authProps.getProperty("client-secret");
+        final String redirectUri = authProps.getProperty("redirect-uri");
         final int port = new URI(redirectUri).getPort();
-        final URI authorizationUri = new URI(StringUtils.replace(props.getProperty("authorization-url"), "[CLIENT_ID]", clientId, 1));
+        final URI authorizationUri = new URI(StringUtils.replace(authProps.getProperty("authorization-url"), "[CLIENT_ID]", clientId, 1));
 
         OAuthHttpServer server = new OAuthHttpServer(port);
         server.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
@@ -43,25 +54,42 @@ public class BoxAuth
                 } catch (InterruptedException e) { /* ignore */ }
             }
         }
+        BoxAPIConnection client = new BoxAPIConnection(clientId, clientSecret, server.code);
+        usingJwt = false;
+        saveTokens(client);
+
         Utils.sleep(3000);
         server.stop();
-
-        BoxAPIConnection client = new BoxAPIConnection(clientId, clientSecret, server.code);
-        saveTokens(propsPath, client);
     }
 
-    public static BoxAPIConnection createAPIConnection(Path authPropsPath) throws IOException {
-        final Properties authProps = Utils.loadProps(authPropsPath);
-        final Properties tokenProps = Utils.loadProps(authPropsPath.resolveSibling(authProps.getProperty("token-file")));
-        final String clientId = authProps.getProperty("client-id");
-        final String clientSecret = authProps.getProperty("client-secret");
-        final String accessToken = tokenProps.getProperty("access-token");
-        final String refreshToken = tokenProps.getProperty("refresh-token");
-        return new BoxAPIConnection(clientId, clientSecret, accessToken, refreshToken);
+    public BoxAPIConnection createAPIConnection() throws IOException {
+        final String jwtConfig = authProps.getProperty("config-json");
+        if (jwtConfig == null) { // use OAuth
+            usingJwt = false;
+            final Properties tokenProps = Utils.loadProps(authPropsPath.resolveSibling(authProps.getProperty("token-file")));
+            final String clientId = authProps.getProperty("client-id");
+            final String clientSecret = authProps.getProperty("client-secret");
+            final String accessToken = tokenProps.getProperty("access-token");
+            final String refreshToken = tokenProps.getProperty("refresh-token");
+            return new BoxAPIConnection(clientId, clientSecret, accessToken, refreshToken);
+        } else {
+            usingJwt = true;
+            BoxConfig config;
+            try (BufferedReader reader = Files.newBufferedReader(authPropsPath.resolveSibling(jwtConfig), StandardCharsets.UTF_8)) {
+                config = BoxConfig.readFrom(reader);
+            }
+            BoxDeveloperEditionAPIConnection api = BoxDeveloperEditionAPIConnection.getAppEnterpriseConnection(config);
+            final String userId = authProps.getProperty("auth-user");
+            if (userId != null)
+                api = BoxDeveloperEditionAPIConnection.getAppUserConnection(userId, config);
+            return api;
+        }
     }
 
-    public static void saveTokens(Path authPropsPath, BoxAPIConnection client) throws IOException {
-        final Properties authProps = Utils.loadProps(authPropsPath);
+    public void saveTokens(BoxAPIConnection client) throws IOException {
+        if (usingJwt)
+            return;
+
         final Path tokenFilePath = authPropsPath.resolveSibling(authProps.getProperty("token-file"));
         Properties tokenProps = new Properties();
         tokenProps.setProperty("access-token", client.getAccessToken());
