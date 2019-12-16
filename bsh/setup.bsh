@@ -6,12 +6,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 Path authPropsPath = Paths.get("..\\config\\boxtools-auth.properties", new String[0]);
+BoxAuth auth = new BoxAuth(authPropsPath);
 BoxAPIConnection api = null;
 
 void createApi() {
-    api = BoxAuth.createAPIConnection(authPropsPath);
+    api = auth.createAPIConnection();
 }
 
 void saveTokens() {
-    BoxAuth.saveTokens(authPropsPath, api);
+    auth.saveTokens(api);
 }
