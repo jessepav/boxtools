@@ -1,1 +1,13 @@
 // A scratch space to avoid having to type code into the console
+
+/* 
+for (BoxUser.Info info : BoxUser.getAllEnterpriseUsers(api)) {
+    print("ID: " + info.getID() + "       Login: " + info.getLogin());
+}
+*/
+
+BoxUser user = BoxUser.getCurrentUser(api);
+BoxUser.Info info = user.getInfo(BoxUser.ALL_FIELDS);
+
+print(info.getName());
+print(info.getID());

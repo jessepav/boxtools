@@ -5,10 +5,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-Path authPropsPath = Paths.get("c:\\Users\\JP\\Applications\\bin\\boxtools-auth.properties", new String[0]);
+Path authPropsPath = Paths.get("..\\config\\boxtools-auth.properties", new String[0]);
 BoxAPIConnection api = null;
 
-BoxAPIConnection createApi() {
+void createApi() {
     api = BoxAuth.createAPIConnection(authPropsPath);
 }
 

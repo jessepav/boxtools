@@ -6,6 +6,7 @@
       <root url="jar://$PROJECT_DIR$/lib/bcprov-jdk15to18-164.jar!/" />
       <root url="jar://$PROJECT_DIR$/lib/jose4j-0.7.0.jar!/" />
       <root url="jar://$PROJECT_DIR$/lib/slf4j-api-1.7.29.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/slf4j-nop-1.7.29.jar!/" />
     </CLASSES>
     <JAVADOC>
       <root url="jar://$PROJECT_DIR$/docjars/box-java-sdk-2.41.0-javadoc.jar!/" />
