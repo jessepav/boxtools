@@ -9,22 +9,21 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-public class BoxOAuth
+public class BoxAuth
 {
     private Properties props;
     private Path propsPath;
 
-    public BoxOAuth(Properties props, Path propsPath) {
+    public BoxAuth(Properties props, Path propsPath) {
         this.props = props;
         this.propsPath = propsPath;
     }
 
-    public void retrieveTokens() throws IOException, URISyntaxException {
+    public void retrieveOAuthTokens() throws IOException, URISyntaxException {
         final String clientId = props.getProperty("client-id");
         final String clientSecret = props.getProperty("client-secret");
         final String redirectUri = props.getProperty("redirect-uri");
@@ -51,19 +50,19 @@ public class BoxOAuth
         saveTokens(propsPath, client);
     }
 
-    public static BoxAPIConnection createAPIConnection(Path oauthPropsPath) throws IOException {
-        final Properties oauthProps = Utils.loadProps(oauthPropsPath);
-        final Properties tokenProps = Utils.loadProps(oauthPropsPath.resolveSibling(oauthProps.getProperty("token-file")));
-        final String clientId = oauthProps.getProperty("client-id");
-        final String clientSecret = oauthProps.getProperty("client-secret");
+    public static BoxAPIConnection createAPIConnection(Path authPropsPath) throws IOException {
+        final Properties authProps = Utils.loadProps(authPropsPath);
+        final Properties tokenProps = Utils.loadProps(authPropsPath.resolveSibling(authProps.getProperty("token-file")));
+        final String clientId = authProps.getProperty("client-id");
+        final String clientSecret = authProps.getProperty("client-secret");
         final String accessToken = tokenProps.getProperty("access-token");
         final String refreshToken = tokenProps.getProperty("refresh-token");
         return new BoxAPIConnection(clientId, clientSecret, accessToken, refreshToken);
     }
 
-    public static void saveTokens(Path oauthPropsPath, BoxAPIConnection client) throws IOException {
-        final Properties oauthProps = Utils.loadProps(oauthPropsPath);
-        final Path tokenFilePath = oauthPropsPath.resolveSibling(oauthProps.getProperty("token-file"));
+    public static void saveTokens(Path authPropsPath, BoxAPIConnection client) throws IOException {
+        final Properties authProps = Utils.loadProps(authPropsPath);
+        final Path tokenFilePath = authPropsPath.resolveSibling(authProps.getProperty("token-file"));
         Properties tokenProps = new Properties();
         tokenProps.setProperty("access-token", client.getAccessToken());
         tokenProps.setProperty("refresh-token", client.getRefreshToken());
