@@ -59,6 +59,15 @@
   
   <!-- Project Libraries -->
   
+  <path id="library.box-java-sdk-2.41.0.classpath">
+    <pathelement location="${basedir}/lib/bcpkix-jdk15to18-164.jar"/>
+    <pathelement location="${basedir}/lib/bcprov-jdk15to18-164.jar"/>
+    <pathelement location="${basedir}/lib/box-java-sdk-2.41.0.jar"/>
+    <pathelement location="${basedir}/lib/jose4j-0.7.0.jar"/>
+    <pathelement location="${basedir}/lib/slf4j-api-1.7.29.jar"/>
+    <pathelement location="${basedir}/lib/slf4j-nop-1.7.29.jar"/>
+  </path>
+  
   <path id="library.commons-codec-1.11.classpath">
     <pathelement location="${basedir}/lib/commons-codec-1.10.jar"/>
   </path>
@@ -73,6 +82,10 @@
   
   <path id="library.minimal-json-0.9.5.classpath">
     <pathelement location="${basedir}/lib/minimal-json-0.9.5.jar"/>
+  </path>
+  
+  <path id="library.nanohttpd-2.3.1.classpath">
+    <pathelement location="${basedir}/lib/nanohttpd-2.3.1.jar"/>
   </path>
   
   <!-- Modules -->
@@ -98,6 +111,8 @@
     <path refid="library.commons-codec-1.11.classpath"/>
     <path refid="library.commons-lang3-3.4.classpath"/>
     <path refid="library.ftp4j-1.7.2.classpath"/>
+    <path refid="library.box-java-sdk-2.41.0.classpath"/>
+    <path refid="library.nanohttpd-2.3.1.classpath"/>
   </path>
   
   <path id="boxtools.runtime.production.module.classpath">
@@ -106,6 +121,8 @@
     <path refid="library.commons-codec-1.11.classpath"/>
     <path refid="library.commons-lang3-3.4.classpath"/>
     <path refid="library.ftp4j-1.7.2.classpath"/>
+    <path refid="library.box-java-sdk-2.41.0.classpath"/>
+    <path refid="library.nanohttpd-2.3.1.classpath"/>
   </path>
   
   <path id="boxtools.module.classpath">
@@ -114,6 +131,8 @@
     <path refid="library.commons-codec-1.11.classpath"/>
     <path refid="library.commons-lang3-3.4.classpath"/>
     <path refid="library.ftp4j-1.7.2.classpath"/>
+    <path refid="library.box-java-sdk-2.41.0.classpath"/>
+    <path refid="library.nanohttpd-2.3.1.classpath"/>
   </path>
   
   <path id="boxtools.runtime.module.classpath">
@@ -123,6 +142,8 @@
     <path refid="library.commons-codec-1.11.classpath"/>
     <path refid="library.commons-lang3-3.4.classpath"/>
     <path refid="library.ftp4j-1.7.2.classpath"/>
+    <path refid="library.box-java-sdk-2.41.0.classpath"/>
+    <path refid="library.nanohttpd-2.3.1.classpath"/>
   </path>
   
   
@@ -172,35 +193,37 @@
     <!-- Perform any build initialization in this target -->
   </target>
   
-  <target name="clean" depends="clean.module.boxtools" description="cleanup all"/>
+  <target name="clean" depends="clean.module.boxtools, clean.artifact.dist" description="cleanup all"/>
   
   <target name="build.modules" depends="init, clean, compile.module.boxtools" description="build all modules"/>
   
   <target name="init.artifacts">
     <property name="artifacts.temp.dir" value="${basedir}/__artifacts_temp"/>
-    <property name="artifact.output.boxtools:jar" value="${basedir}/build/boxtools_jar"/>
+    <property name="artifact.output.dist" value="${basedir}/build/dist"/>
     <mkdir dir="${artifacts.temp.dir}"/>
     <property name="temp.jar.path.boxtools.jar" value="${artifacts.temp.dir}/boxtools.jar"/>
   </target>
   
-  <target name="artifact.boxtools:jar" depends="init.artifacts, compile.module.boxtools" description="Build &#39;boxtools:jar&#39; artifact">
-    <property name="artifact.temp.output.boxtools:jar" value="${artifacts.temp.dir}/boxtools_jar"/>
-    <mkdir dir="${artifact.temp.output.boxtools:jar}"/>
-    <jar destfile="${temp.jar.path.boxtools.jar}" duplicate="preserve" filesetmanifest="mergewithoutmain">
-      <zipfileset dir="${boxtools.output.dir}"/>
-      <zipfileset src="${basedir}/lib/minimal-json-0.9.5.jar"/>
-      <zipfileset src="${basedir}/lib/ftp4j-1.7.2.jar"/>
-      <zipfileset src="${basedir}/lib/commons-codec-1.10.jar"/>
-      <zipfileset src="${basedir}/lib/commons-lang3-3.4.jar"/>
-    </jar>
-    <copy file="${temp.jar.path.boxtools.jar}" tofile="${artifact.temp.output.boxtools:jar}/boxtools.jar"/>
+  <target name="clean.artifact.dist" description="clean Dist artifact output">
+    <delete dir="${artifact.output.dist}"/>
   </target>
   
-  <target name="build.all.artifacts" depends="artifact.boxtools:jar" description="Build all artifacts">
-    <mkdir dir="${artifact.output.boxtools:jar}"/>
-    <copy todir="${artifact.output.boxtools:jar}">
-      <fileset dir="${artifact.temp.output.boxtools:jar}"/>
+  <target name="artifact.dist" depends="init.artifacts, compile.module.boxtools" description="Build &#39;Dist&#39; artifact">
+    <mkdir dir="${artifact.output.dist}"/>
+    <jar destfile="${temp.jar.path.boxtools.jar}" duplicate="preserve" filesetmanifest="mergewithoutmain">
+      <zipfileset dir="${boxtools.output.dir}"/>
+    </jar>
+    <copy file="${temp.jar.path.boxtools.jar}" tofile="${artifact.output.dist}/boxtools.jar"/>
+    <mkdir dir="${artifact.output.dist}/lib"/>
+    <copy todir="${artifact.output.dist}/lib">
+      <fileset dir="${basedir}/lib"/>
     </copy>
+    <copy file="${basedir}/scripts/boxtools.cmd" tofile="${artifact.output.dist}/boxtools.cmd"/>
+    <mkdir dir="${artifact.output.dist}/config"/>
+    <copy file="${basedir}/config/sample-box-auth.properties" tofile="${artifact.output.dist}/config/sample-box-auth.properties"/>
+  </target>
+  
+  <target name="build.all.artifacts" depends="artifact.dist" description="Build all artifacts">
     
     <!-- Delete temporary files -->
     <delete dir="${artifacts.temp.dir}"/>
