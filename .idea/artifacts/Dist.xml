@@ -10,7 +10,7 @@
       </element>
       <element id="file-copy" path="$PROJECT_DIR$/scripts/boxtools.cmd" />
       <element id="directory" name="config">
-        <element id="file-copy" path="$PROJECT_DIR$/config/sample-box-auth.properties" />
+        <element id="file-copy" path="$PROJECT_DIR$/config/sample-boxtools.properties" />
       </element>
     </root>
   </artifact>

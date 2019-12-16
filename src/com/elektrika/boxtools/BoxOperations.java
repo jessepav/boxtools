@@ -29,11 +29,7 @@ public class BoxOperations
     }
 
     public void listFolder(String id) {
-        BoxFolder folder;
-        if (id.equals("/"))
-            folder = BoxFolder.getRootFolder(api);
-        else
-            folder = new BoxFolder(api, id);
+        final BoxFolder folder = id.equals("/") ? BoxFolder.getRootFolder(api) : new BoxFolder(api, id);
         System.out.printf("\n=== %s =======================\n\n", folder.getInfo().getName());
         for (BoxItem.Info info : folder)
             System.out.printf("%-6s %-14s %s\n", info.getType(), info.getID(), info.getName());
@@ -66,7 +62,7 @@ public class BoxOperations
     }
 
     public String putFolder(String id, List<Path> localPaths) throws IOException, InterruptedException {
-        final BoxFolder folder = new BoxFolder(api, id);
+        final BoxFolder folder = id.equals("/") ? BoxFolder.getRootFolder(api) : new BoxFolder(api, id);
         final Map<String,String> nameIdMap = new HashMap<>(32);
         for (BoxItem.Info info : folder) {
             if (info.getType().equals("file"))
