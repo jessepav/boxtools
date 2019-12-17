@@ -22,11 +22,8 @@ public final class BoxTools
 
         Utils.initSimpleLogging("com.elektrika.boxtools.BoxTools");
 
-        config = new Config();
-
         final LinkedList<String> argsList = new LinkedList<>(Arrays.asList(args));
-        config.propsPath = Paths.get(argsList.removeFirst());
-        config.props = Utils.loadProps(config.propsPath);
+        config = new Config(Paths.get(argsList.removeFirst()));
         final String cmd = argsList.removeFirst();
 
         switch (cmd) {
@@ -106,7 +103,7 @@ public final class BoxTools
         final BoxOperations ops = new BoxOperations(auth.createAPIConnection());
         JsonObject obj;
         try {
-            ops.getFileDirect(fileId, tmpFile);
+            ops.getFileDirect(config.getId(fileId), tmpFile);
             obj = Json.parse(new InputStreamReader(Files.newInputStream(tmpFile), StandardCharsets.UTF_8)).asObject();
         } finally {
             auth.saveTokens(ops.getApiConnection());
@@ -118,6 +115,7 @@ public final class BoxTools
             note.setSpacesPerIndentLevel(spaces);
         final String text = note.getFormattedText();
         Files.write(outPath, text.getBytes(StandardCharsets.UTF_8));
+        System.out.println("Box Note text written to: " + outPath.getFileName());
     }
 
     // -oauth
@@ -138,7 +136,7 @@ public final class BoxTools
         BoxAuth auth = new BoxAuth(config);
         BoxOperations ops = new BoxOperations(auth.createAPIConnection());
         try {
-            ops.listFolder(id);
+            ops.listFolder(config.getId(id));
         } finally {
             auth.saveTokens(ops.getApiConnection());
         }
@@ -157,7 +155,7 @@ public final class BoxTools
         BoxOperations ops = new BoxOperations(auth.createAPIConnection());
         try {
             for (String id : fileIds)
-                System.out.println("Retrieved: " + ops.getFile(id, localDir));
+                System.out.println("Retrieved: " + ops.getFile(config.getId(id), localDir));
         } finally {
             auth.saveTokens(ops.getApiConnection());
         }
@@ -181,7 +179,7 @@ public final class BoxTools
                 while (args.size() >= 2) {
                     final String id = args.removeFirst();
                     final Path localPath = Paths.get(args.removeFirst());
-                    System.out.println("Uploaded: " + ops.putVersion(id, localPath));
+                    System.out.println("Uploaded: " + ops.putVersion(config.getId(id), localPath));
                 }
             } finally {
                 auth.saveTokens(ops.getApiConnection());
@@ -195,7 +193,7 @@ public final class BoxTools
                 final List<Path> localPaths = new ArrayList<>(args.size());
                 for (String name : args)
                     localPaths.add(Paths.get(name));
-                final String name = ops.putFolder(id, localPaths);
+                final String name = ops.putFolder(config.getId(id), localPaths);
                 System.out.printf("Uploaded %d files to folder: %s\n", localPaths.size(), name);
             } finally {
                 auth.saveTokens(ops.getApiConnection());
@@ -233,7 +231,7 @@ public final class BoxTools
         BoxAuth auth = new BoxAuth(config);
         BoxOperations ops = new BoxOperations(auth.createAPIConnection());
         try {
-            String oldName = ops.rename(id, isFolder, newName);
+            String oldName = ops.rename(config.getId(id), isFolder, newName);
             System.out.printf("Rename %s: %s -> %s\n", itemType, oldName, newName);
         } finally {
             auth.saveTokens(ops.getApiConnection());
@@ -244,5 +242,29 @@ public final class BoxTools
     {
         public Properties props;
         public Path propsPath;
+        public Map<String,String> aliasMap;
+
+        public Config(Path propsPath) throws IOException {
+            this.propsPath = propsPath;
+            this.props = Utils.loadProps(propsPath);
+            loadAliases();
+        }
+
+        private void loadAliases() throws IOException {
+            final String aliases = props.getProperty("id-aliases");
+            if (aliases != null) {
+                aliasMap = new HashMap<>();
+                Properties aliasProps = Utils.loadProps(propsPath.resolveSibling(aliases));
+                for (String name : aliasProps.stringPropertyNames())
+                    aliasMap.put(name, aliasProps.getProperty(name));
+            }
+        }
+
+        public String getId(String idOrAlias) {
+            if (aliasMap == null)
+                return idOrAlias;
+            String id = aliasMap.get(idOrAlias);
+            return id != null ? id : idOrAlias;
+        }
     }
 }
