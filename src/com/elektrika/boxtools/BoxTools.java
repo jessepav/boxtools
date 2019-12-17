@@ -48,6 +48,9 @@ public final class BoxTools
         case "-rename":
             boxRename(argsList);
             break;
+        case "-notetxt":
+            retrieveBoxNoteText(argsList);
+            break;
         default:
             showHelpAndExit();
         }
@@ -65,6 +68,7 @@ public final class BoxTools
             "   -put version <file ID> <local file> [<file ID> <local file> ...]\n" +
             "                                folder <folder ID> <local file> [<local file> ...]\n" +
             "   -rename file|folder <file or folder ID> <new name>\n" +
+            "   -notetxt <file ID> <filename.txt>\n" +
             "\n" +
             " Use '/' as folder ID to indicate root folder."
         );
@@ -80,6 +84,34 @@ public final class BoxTools
         final Path inPath = Paths.get(args.removeFirst());
         final Path outPath = Paths.get(args.removeFirst());
         final JsonObject obj = Json.parse(new InputStreamReader(Files.newInputStream(inPath), StandardCharsets.UTF_8)).asObject();
+        final BoxNote note = new BoxNote(obj);
+        final int spaces = Utils.parseInt(config.props.getProperty("list-indent-spaces"), -1);
+        if (spaces != -1)
+            note.setSpacesPerIndentLevel(spaces);
+        final String text = note.getFormattedText();
+        Files.write(outPath, text.getBytes(StandardCharsets.UTF_8));
+    }
+
+    // -notetxt <file ID> <filename.txt>
+    //
+    private static void retrieveBoxNoteText(LinkedList<String> args) throws IOException {
+        if (args.size() != 2)
+            showHelpAndExit();
+
+        final String fileId = args.removeFirst();
+        final Path outPath = Paths.get(args.removeFirst());
+
+        final Path tmpFile = Files.createTempFile(outPath.getParent(), "boxtools-", ".boxnote");
+        final BoxAuth auth = new BoxAuth(config);
+        final BoxOperations ops = new BoxOperations(auth.createAPIConnection());
+        JsonObject obj;
+        try {
+            ops.getFileDirect(fileId, tmpFile);
+            obj = Json.parse(new InputStreamReader(Files.newInputStream(tmpFile), StandardCharsets.UTF_8)).asObject();
+        } finally {
+            auth.saveTokens(ops.getApiConnection());
+            Files.delete(tmpFile);
+        }
         final BoxNote note = new BoxNote(obj);
         final int spaces = Utils.parseInt(config.props.getProperty("list-indent-spaces"), -1);
         if (spaces != -1)

@@ -45,6 +45,13 @@ public class BoxOperations
         return name;
     }
 
+    public void getFileDirect(String id, Path localPath) throws IOException {
+        final BoxFile file = new BoxFile(api, id);
+        try (BufferedOutputStream out = new BufferedOutputStream(Files.newOutputStream(localPath))) {
+            file.download(out);
+        }
+    }
+
     public String putVersion(String id, Path localPath) throws IOException, InterruptedException {
         final long size = Files.size(localPath);
         final boolean large = size > LARGE_FILE_THRESHOLD;
