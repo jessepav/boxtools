@@ -63,7 +63,7 @@ public final class BoxTools
             "   -list <folder ID>\n" +
             "   -get <file ID> [<file ID> ...] <local dir>\n" +
             "   -put version <file ID> <local file> [<file ID> <local file> ...]\n" +
-            "                                folder <folder ID> <local file> [<local file> ...]\n" +
+            "         folder <folder ID> <local file> [<local file> ...]\n" +
             "   -rename file|folder <file or folder ID> <new name>\n" +
             "   -notetxt <file ID> <filename.txt>\n" +
             "\n" +
