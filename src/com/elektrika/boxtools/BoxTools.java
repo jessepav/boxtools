@@ -2,11 +2,13 @@ package com.elektrika.boxtools;
 
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -67,7 +69,8 @@ public final class BoxTools
             "   -rename file|folder <file or folder ID> <new name>\n" +
             "   -notetxt <file ID> <filename.txt>\n" +
             "\n" +
-            " Use '/' as folder ID to indicate root folder."
+            " Use '/' as folder ID to indicate root folder.\n" +
+            " For '-put folder', local files may use glob patterns '*', '?', etc."
         );
         System.exit(1);
     }
@@ -186,17 +189,27 @@ public final class BoxTools
             }
             break;
         case "folder":
-            auth = new BoxAuth(config);
-            ops = new BoxOperations(auth.createAPIConnection());
-            try {
-                final String id = args.removeFirst();
-                final List<Path> localPaths = new ArrayList<>(args.size());
-                for (String name : args)
+            final String id = args.removeFirst();
+            final List<Path> localPaths = new ArrayList<>();
+            for (String name : args) {
+                if (StringUtils.containsAny(name, '*', '?', '[', ']', '{', '}')) {
+                    try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(Paths.get(""), name)) {
+                        for (Path p : dirStream)
+                            localPaths.add(p);
+                    }
+                } else {
                     localPaths.add(Paths.get(name));
-                final String name = ops.putFolder(config.getId(id), localPaths);
-                System.out.printf("Uploaded %d files to folder: %s\n", localPaths.size(), name);
-            } finally {
-                auth.saveTokens(ops.getApiConnection());
+                }
+            }
+            if (!localPaths.isEmpty()) {
+                auth = new BoxAuth(config);
+                ops = new BoxOperations(auth.createAPIConnection());
+                try {
+                    final String name = ops.putFolder(config.getId(id), localPaths);
+                    System.out.printf("Uploaded %d files to folder: %s\n", localPaths.size(), name);
+                } finally {
+                    auth.saveTokens(ops.getApiConnection());
+                }
             }
             break;
         default:
