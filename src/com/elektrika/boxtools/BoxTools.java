@@ -100,8 +100,10 @@ public final class BoxTools
 
         final String fileId = args.removeFirst();
         final Path outPath = Paths.get(args.removeFirst());
-
-        final Path tmpFile = Files.createTempFile(outPath.getParent(), "boxtools-", ".boxnote");
+        Path parent = outPath.getParent();
+        if (parent == null)
+            parent = Paths.get("");
+        final Path tmpFile = Files.createTempFile(parent, "boxtools-", ".boxnote");
         final BoxAuth auth = new BoxAuth(config);
         final BoxOperations ops = new BoxOperations(auth.createAPIConnection());
         JsonObject obj;
