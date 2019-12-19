@@ -55,6 +55,7 @@ In the .boxnote JSON, the various keys of concern are:
 public class BoxNote
 {
     private int spacesPerIndentLevel;
+    private boolean bomFound;
 
     private JsonObject noteObj;
 
@@ -69,6 +70,7 @@ public class BoxNote
 
     public void setNoteObj(JsonObject noteObj) {
         this.noteObj = noteObj;
+        bomFound = false;
     }
 
     public void setSpacesPerIndentLevel(int spacesPerIndentLevel) {
@@ -76,13 +78,16 @@ public class BoxNote
     }
 
     public String getRawText() {
-        return noteObj.get("atext").asObject().get("text").asString();
+        final String s = noteObj.get("atext").asObject().get("text").asString();
+        if (s.codePointAt(0) == 0xFEFF)  // Unicode byte-order mark
+            bomFound = true;
+        return s;
     }
 
     public String getFormattedText() {
-        final String text = getRawText();
         final Map<Integer,Attribute> attributeMap = getAttributeMap();
         final List<AttributeChunk> chunks = getAttributeChunks(attributeMap);
+        final String text = getRawText();
         final String ftext = formatText(text, chunks);
         return ftext;
     }
@@ -93,6 +98,10 @@ public class BoxNote
         int n = 0;  // position in text
         int listNum = 1;
         for (AttributeChunk chunk : chunks) {
+            if (n == 0 && bomFound && chunk.numChars == 1) {
+                n = 1;
+                continue;  // don't write out the BOM
+            }
             int numberedListLevel = 0;
             int bulletedListLevel = 0;
             int indentLevel = 0;
