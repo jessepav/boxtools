@@ -220,7 +220,7 @@
     </copy>
     <copy file="${basedir}/scripts/boxtools.cmd" tofile="${artifact.output.dist}/boxtools.cmd"/>
     <mkdir dir="${artifact.output.dist}/config"/>
-    <copy file="${basedir}/config/sample-box-auth.properties" tofile="${artifact.output.dist}/config/sample-box-auth.properties"/>
+    <copy file="${basedir}/config/sample-boxtools.properties" tofile="${artifact.output.dist}/config/sample-boxtools.properties"/>
   </target>
   
   <target name="build.all.artifacts" depends="artifact.dist" description="Build all artifacts">

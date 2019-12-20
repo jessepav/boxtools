@@ -18,6 +18,25 @@ public final class BoxTools
 {
     private static Config config;
 
+    private static void showHelpAndExit() {
+        System.out.println(
+            "Usage: BoxTools <config properties file> <command> [args]\n\n" +
+                "Commands:\n\n" +
+                "   -extract <filename.boxnote> <filename.txt> [<filename.boxnote> <filename.txt> ...]\n" +
+                "   -oauth\n" +
+                "   -list <folder ID>\n" +
+                "   -get <file ID> [<file ID> ...] <local dir>\n" +
+                "   -put version <file ID> <local file> [<file ID> <local file> ...]\n" +
+                "   -put folder <folder ID> <local file> [<local file> ...]\n" +
+                "   -rename file|folder <file or folder ID> <new name>\n" +
+                "   -notetxt <file ID> <filename.txt>\n" +
+                "\n" +
+                " Use '/' as folder ID to indicate root folder.\n" +
+                " For '-put folder', local files may use glob patterns '*', '?', etc."
+        );
+        System.exit(1);
+    }
+
     public static void main(String[] args) throws IOException, URISyntaxException, InterruptedException {
         if (args.length < 2)
             showHelpAndExit();
@@ -56,40 +75,24 @@ public final class BoxTools
         System.exit(0);
     }
 
-    private static void showHelpAndExit() {
-        System.out.println(
-            "Usage: BoxTools <config properties file> <command> [args]\n\n" +
-            "Commands:\n\n" +
-            "   -extract <filename.boxnote> <filename.txt>\n" +
-            "   -oauth\n" +
-            "   -list <folder ID>\n" +
-            "   -get <file ID> [<file ID> ...] <local dir>\n" +
-            "   -put version <file ID> <local file> [<file ID> <local file> ...]\n" +
-            "         folder <folder ID> <local file> [<local file> ...]\n" +
-            "   -rename file|folder <file or folder ID> <new name>\n" +
-            "   -notetxt <file ID> <filename.txt>\n" +
-            "\n" +
-            " Use '/' as folder ID to indicate root folder.\n" +
-            " For '-put folder', local files may use glob patterns '*', '?', etc."
-        );
-        System.exit(1);
-    }
-
-    // -extract <filename.boxnote> <filename.txt>
+    // -extract <filename.boxnote> <filename.txt> [<filename.boxnote> <filename.txt> ...]
     //
     private static void extractBoxNoteText(LinkedList<String> args) throws IOException {
-        if (args.size() != 2)
+        if (args.size() < 2)
             showHelpAndExit();
 
-        final Path inPath = Paths.get(args.removeFirst());
-        final Path outPath = Paths.get(args.removeFirst());
-        final JsonObject obj = Json.parse(new InputStreamReader(Files.newInputStream(inPath), StandardCharsets.UTF_8)).asObject();
-        final BoxNote note = new BoxNote(obj);
         final int spaces = Utils.parseInt(config.props.getProperty("list-indent-spaces"), -1);
-        if (spaces != -1)
-            note.setSpacesPerIndentLevel(spaces);
-        final String text = note.getFormattedText();
-        Files.write(outPath, text.getBytes(StandardCharsets.UTF_8));
+
+        while (args.size() >= 2) {
+            final Path inPath = Paths.get(args.removeFirst());
+            final Path outPath = Paths.get(args.removeFirst());
+            final JsonObject obj = Json.parse(new InputStreamReader(Files.newInputStream(inPath), StandardCharsets.UTF_8)).asObject();
+            final BoxNote note = new BoxNote(obj);
+            if (spaces != -1)
+                note.setSpacesPerIndentLevel(spaces);
+            final String text = note.getFormattedText();
+            Files.write(outPath, text.getBytes(StandardCharsets.UTF_8));
+        }
     }
 
     // -notetxt <file ID> <filename.txt>
