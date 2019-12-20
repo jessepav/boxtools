@@ -29,7 +29,7 @@ public final class BoxTools
                 "   -put version <file ID> <local file> [<file ID> <local file> ...]\n" +
                 "   -put folder <folder ID> <local file> [<local file> ...]\n" +
                 "   -rename file|folder <file or folder ID> <new name>\n" +
-                "   -notetxt <file ID> <filename.txt>\n" +
+                "   -notetext <file ID> <filename.txt> [<file ID> <filename.txt> ...]\n" +
                 "\n" +
                 " Use '/' as folder ID to indicate root folder.\n" +
                 " For '-put folder', local files may use glob patterns '*', '?', etc."
@@ -66,7 +66,7 @@ public final class BoxTools
         case "-rename":
             boxRename(argsList);
             break;
-        case "-notetxt":
+        case "-notetext":
             retrieveBoxNoteText(argsList);
             break;
         default:
@@ -95,35 +95,41 @@ public final class BoxTools
         }
     }
 
-    // -notetxt <file ID> <filename.txt>
+    // -notetext <file ID> <filename.txt> [<file ID> <filename.txt> ...]
     //
     private static void retrieveBoxNoteText(LinkedList<String> args) throws IOException {
-        if (args.size() != 2)
+        if (args.size() < 2)
             showHelpAndExit();
 
-        final String fileId = args.removeFirst();
-        final Path outPath = Paths.get(args.removeFirst());
-        Path parent = outPath.getParent();
-        if (parent == null)
-            parent = Paths.get("");
-        final Path tmpFile = Files.createTempFile(parent, "boxtools-", ".boxnote");
+        final int spaces = Utils.parseInt(config.props.getProperty("list-indent-spaces"), -1);
         final BoxAuth auth = new BoxAuth(config);
         final BoxOperations ops = new BoxOperations(auth.createAPIConnection());
-        JsonObject obj;
+
         try {
-            ops.getFileDirect(config.getId(fileId), tmpFile);
-            obj = Json.parse(new InputStreamReader(Files.newInputStream(tmpFile), StandardCharsets.UTF_8)).asObject();
+            while (args.size() >= 2) {
+                final String fileId = args.removeFirst();
+                final Path outPath = Paths.get(args.removeFirst());
+                Path parent = outPath.getParent();
+                if (parent == null)
+                    parent = Paths.get("");
+                final Path tmpFile = Files.createTempFile(parent, "boxtools-", ".boxnote");
+                JsonObject obj;
+                try {
+                    ops.getFileDirect(config.getId(fileId), tmpFile);
+                    obj = Json.parse(new InputStreamReader(Files.newInputStream(tmpFile), StandardCharsets.UTF_8)).asObject();
+                } finally {
+                    Files.delete(tmpFile);
+                }
+                final BoxNote note = new BoxNote(obj);
+                if (spaces != -1)
+                    note.setSpacesPerIndentLevel(spaces);
+                final String text = note.getFormattedText();
+                Files.write(outPath, text.getBytes(StandardCharsets.UTF_8));
+                System.out.println("Box Note text written to: " + outPath.getFileName());
+            }
         } finally {
             auth.saveTokens(ops.getApiConnection());
-            Files.delete(tmpFile);
         }
-        final BoxNote note = new BoxNote(obj);
-        final int spaces = Utils.parseInt(config.props.getProperty("list-indent-spaces"), -1);
-        if (spaces != -1)
-            note.setSpacesPerIndentLevel(spaces);
-        final String text = note.getFormattedText();
-        Files.write(outPath, text.getBytes(StandardCharsets.UTF_8));
-        System.out.println("Box Note text written to: " + outPath.getFileName());
     }
 
     // -oauth
