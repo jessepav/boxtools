@@ -4,6 +4,7 @@ import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URISyntaxException;
@@ -29,7 +30,8 @@ public final class BoxTools
                 "   -put version <file ID> <local file> [<file ID> <local file> ...]\n" +
                 "   -put folder <folder ID> <local file> [<local file> ...]\n" +
                 "   -rename file|folder <file or folder ID> <new name>\n" +
-                "   -notetext <file ID> <filename.txt> [<file ID> <filename.txt> ...]\n" +
+                "   -notetext <note ID> <filename.txt> [<note ID> <filename.txt> ...]\n" +
+                "   -savetext [-folder <destination folder ID>] <note ID> [<note ID> ...]\n" +
                 "\n" +
                 " Use '/' as folder ID to indicate root folder.\n" +
                 " For '-put folder', local files may use glob patterns '*', '?', etc."
@@ -68,6 +70,9 @@ public final class BoxTools
             break;
         case "-notetext":
             retrieveBoxNoteText(argsList);
+            break;
+        case "-savetext":
+            convertNoteToText(argsList);
             break;
         default:
             showHelpAndExit();
@@ -126,6 +131,62 @@ public final class BoxTools
                 final String text = note.getFormattedText();
                 Files.write(outPath, text.getBytes(StandardCharsets.UTF_8));
                 System.out.println("Box Note text written to: " + outPath.getFileName());
+            }
+        } finally {
+            auth.saveTokens(ops.getApiConnection());
+        }
+    }
+
+    // -savetext [-folder <destination folder ID>] <file ID> [<file ID> ...]
+    //
+    private static void convertNoteToText(LinkedList<String> args) throws IOException {
+        String destFolderId = null;
+        do {
+            String flag = args.peekFirst();
+            if (flag != null && flag.startsWith("-")) {
+                args.removeFirst();  // pop off the flag
+                switch (flag) {
+                case "-folder":
+                    destFolderId = args.removeFirst();
+                    break;
+                default:
+                    showHelpAndExit();
+                    break;
+                }
+            } else {
+                break;
+            }
+        } while (true);
+
+        final LinkedList<String> ids = args;
+        if (ids.isEmpty())
+            showHelpAndExit();
+
+        int spaces = Utils.parseInt(config.props.getProperty("list-indent-spaces"), -1);
+
+        final BoxAuth auth = new BoxAuth(config);
+        final BoxOperations ops = new BoxOperations(auth.createAPIConnection());
+        try {
+            for (String id : ids) {
+                id = config.getId(id);
+                String noteName = ops.getFileName(id);
+                byte[] noteContent = ops.getFileContent(id);
+                InputStreamReader reader = new InputStreamReader(new ByteArrayInputStream(noteContent), StandardCharsets.UTF_8);
+                BoxNote note = new BoxNote(Json.parse(reader).asObject());
+                if (spaces != -1)
+                    note.setSpacesPerIndentLevel(spaces);
+                byte[] textContent = note.getFormattedText().getBytes(StandardCharsets.UTF_8);
+                String basename;
+                int idx = noteName.lastIndexOf(".boxnote");
+                if (idx != -1)
+                    basename = noteName.substring(0, idx);
+                else
+                    basename = noteName;
+                String textName = basename + ".txt";
+                ops.uploadBytesToFolder(
+                    destFolderId != null ? config.getId(destFolderId) : ops.getParentFolderId(id),
+                    textContent, textName);
+                System.out.printf("Saved text of '%s' to '%s'\n", noteName, textName);
             }
         } finally {
             auth.saveTokens(ops.getApiConnection());
