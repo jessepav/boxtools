@@ -2,16 +2,18 @@ package com.elektrika.boxtools;
 
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 
-import static org.apache.commons.lang3.StringUtils.startsWith;
-
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static org.apache.commons.lang3.StringUtils.startsWith;
 
 /**
  * A class that handles the conversion of Box Notes to text. The only attributes that it takes into
@@ -97,6 +99,8 @@ public class BoxNote
 
         int n = 0;  // position in text
         int listNum = 1;
+        List<String> urls = new ArrayList<>();
+        int runningUrlNo = 0;
         for (AttributeChunk chunk : chunks) {
             if (n == 0 && bomFound && chunk.numChars == 1) {
                 n = 1;
@@ -105,6 +109,7 @@ public class BoxNote
             int numberedListLevel = 0;
             int bulletedListLevel = 0;
             int indentLevel = 0;
+            int urlNo = 0;
             for (Attribute attr : chunk.attributes) {
                 if (attr.startListNumbering != 0)
                     listNum = attr.startListNumbering;
@@ -114,6 +119,18 @@ public class BoxNote
                     bulletedListLevel = attr.bulletedListLevel;
                 else if (attr.indentLevel != 0)
                     indentLevel = attr.indentLevel;
+                else if (attr.url != null) {
+                    if (attr.urlNo == 0) {
+                        urls.add(attr.url);
+                        attr.urlNo = urls.size();
+                    }
+                    urlNo = attr.urlNo;
+                }
+            }
+            if (urlNo != runningUrlNo) {
+                if (runningUrlNo != 0)
+                    sb.append(" [").append(runningUrlNo).append("]");
+                runningUrlNo = urlNo;
             }
             if (numberedListLevel != 0) {
                 insertIndent(sb, numberedListLevel - 1);
@@ -129,6 +146,15 @@ public class BoxNote
                 sb.append(text.substring(n, n + chunk.numChars));
             }
             n += chunk.numChars;
+        }
+        if (runningUrlNo != 0)
+            sb.append(" [").append(runningUrlNo).append("]");
+
+        if (!urls.isEmpty()) {
+            sb.append('\n');
+            int urlNo = 1;
+            for (String url : urls)
+                sb.append('[').append(urlNo++).append("] ").append(url).append('\n');
         }
         return sb.toString();
     }
@@ -193,6 +219,8 @@ public class BoxNote
                     attr.indentLevel = Utils.parseInt(val2.substring(6));
             } else if (val1.equals("start")) {
                 attr.startListNumbering = Utils.parseInt(val2);
+            } else if (startsWith(val1, "link-")) {
+                attr.url = StringUtils.split(new String(Base64.decodeBase64(val1.substring(5)), StandardCharsets.UTF_8), '-')[1];
             } else {
                 recognized = false;
             }
@@ -241,5 +269,7 @@ public class BoxNote
         public int bulletedListLevel;
         public int indentLevel;
         public int startListNumbering;
+        public String url;
+        public int urlNo;
     }
 }
