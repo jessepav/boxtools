@@ -30,6 +30,7 @@ public final class BoxTools
                 "   -put version <file ID> <local file> [<file ID> <local file> ...]\n" +
                 "   -put folder <folder ID> <local file> [<local file> ...]\n" +
                 "   -rename file|folder <file or folder ID> <new name>\n" +
+                "   -moveall <source folder ID> <destination folder ID>\n" +
                 "   -notetext <note ID> <filename.txt> [<note ID> <filename.txt> ...]\n" +
                 "   -convertnote [-folder <destination folder ID>] <note ID> [<note ID> ...]\n" +
                 "\n" +
@@ -67,6 +68,9 @@ public final class BoxTools
             break;
         case "-rename":
             boxRename(argsList);
+            break;
+        case "-moveall":
+            boxMoveAll(argsList);
             break;
         case "-notetext":
             retrieveBoxNoteText(argsList);
@@ -318,6 +322,22 @@ public final class BoxTools
         try {
             String oldName = ops.rename(config.getId(id), isFolder, newName);
             System.out.printf("Rename %s: %s -> %s\n", itemType, oldName, newName);
+        } finally {
+            auth.saveTokens(ops.getApiConnection());
+        }
+    }
+
+    // -moveall <source folder ID> <destination folder ID>
+    //
+    private static void boxMoveAll(LinkedList<String> args) throws IOException {
+        if (args.size() != 2)
+            showHelpAndExit();
+        final String sourceId = args.removeFirst();
+        final String destId = args.removeFirst();
+        BoxAuth auth = new BoxAuth(config);
+        BoxOperations ops = new BoxOperations(auth.createAPIConnection());
+        try {
+            ops.moveAll(config.getId(sourceId), config.getId(destId), true);
         } finally {
             auth.saveTokens(ops.getApiConnection());
         }

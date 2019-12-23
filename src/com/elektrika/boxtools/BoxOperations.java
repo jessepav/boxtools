@@ -8,6 +8,7 @@ import com.box.sdk.BoxItem;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -146,6 +147,27 @@ public class BoxOperations
 
     public String getFileName(String id) {
         return new BoxFile(api, id).getInfo("name").getName();
+    }
+
+    public String getFolderName(String id) {
+        return new BoxFolder(api, id).getInfo("name").getName();
+    }
+
+    public void moveAll(String sourceId, String destId, boolean verbose) {
+        final BoxFolder sourceFolder = sourceId.equals("/") ? BoxFolder.getRootFolder(api) : new BoxFolder(api, sourceId);
+        final BoxFolder destFolder = destId.equals("/") ? BoxFolder.getRootFolder(api) : new BoxFolder(api, destId);
+        List<String> fileIds = new ArrayList<>(256);
+        for (BoxItem.Info info : sourceFolder.getChildren("id"))
+            fileIds.add(info.getID());
+        if (verbose)
+            System.out.printf("Moving all items from %s to %s...\n",
+                sourceFolder.getInfo("name").getName(), destFolder.getInfo("name").getName());
+        for (String id : fileIds) {
+            BoxFile f = new BoxFile(api, id);
+            BoxItem.Info info = f.move(destFolder);
+            if (verbose)
+                System.out.println(info.getName());
+        }
     }
 
     private void ensureFolderCached(String folderId) {
