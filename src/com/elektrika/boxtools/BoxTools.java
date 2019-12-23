@@ -31,7 +31,7 @@ public final class BoxTools
                 "   -put folder <folder ID> <local file> [<local file> ...]\n" +
                 "   -rename file|folder <file or folder ID> <new name>\n" +
                 "   -notetext <note ID> <filename.txt> [<note ID> <filename.txt> ...]\n" +
-                "   -savetext [-folder <destination folder ID>] <note ID> [<note ID> ...]\n" +
+                "   -convertnote [-folder <destination folder ID>] <note ID> [<note ID> ...]\n" +
                 "\n" +
                 " Use '/' as folder ID to indicate root folder.\n" +
                 " For '-put folder', local files may use glob patterns '*', '?', etc."
@@ -71,7 +71,7 @@ public final class BoxTools
         case "-notetext":
             retrieveBoxNoteText(argsList);
             break;
-        case "-savetext":
+        case "-convertnote":
             convertNoteToText(argsList);
             break;
         default:
@@ -137,7 +137,7 @@ public final class BoxTools
         }
     }
 
-    // -savetext [-folder <destination folder ID>] <file ID> [<file ID> ...]
+    // -convertnote [-folder <destination folder ID>] <note ID> [<note ID> ...]
     //
     private static void convertNoteToText(LinkedList<String> args) throws IOException {
         String destFolderId = null;
