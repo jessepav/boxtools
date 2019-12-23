@@ -1,9 +1,6 @@
 package com.elektrika.boxtools;
 
-import com.box.sdk.BoxAPIConnection;
-import com.box.sdk.BoxFile;
-import com.box.sdk.BoxFolder;
-import com.box.sdk.BoxItem;
+import com.box.sdk.*;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -77,14 +74,18 @@ public class BoxOperations
         return name;
     }
 
-    public String putFolder(String id, List<Path> localPaths) throws IOException, InterruptedException {
+    public String putFolder(String id, List<Path> localPaths, boolean verbose) throws IOException, InterruptedException {
         final BoxFolder folder = id.equals("/") ? BoxFolder.getRootFolder(api) : new BoxFolder(api, id);
         final BoxFolder.Info folderInfo = folder.getInfo("id", "name");
         final String folderId = folderInfo.getID();
+        if (verbose)
+            System.out.println("Uploading to folder: " + folderInfo.getName());
         ensureFolderCached(folderId);
         for (Path p : localPaths) {
             final String name = p.getFileName().toString();
             final String existingId = getCachedFileId(folderId, name);
+            if (verbose)
+                System.out.println(name);
             if (existingId != null) {
                 if (!existingId.isEmpty())
                     putVersion(existingId, p);
@@ -156,15 +157,36 @@ public class BoxOperations
     public void moveAll(String sourceId, String destId, boolean verbose) {
         final BoxFolder sourceFolder = sourceId.equals("/") ? BoxFolder.getRootFolder(api) : new BoxFolder(api, sourceId);
         final BoxFolder destFolder = destId.equals("/") ? BoxFolder.getRootFolder(api) : new BoxFolder(api, destId);
-        List<String> fileIds = new ArrayList<>(256);
-        for (BoxItem.Info info : sourceFolder.getChildren("id"))
-            fileIds.add(info.getID());
+        List<String> itemIds = new ArrayList<>(256);
+        List<String> itemTypes = new ArrayList<>(256);
+        for (BoxItem.Info info : sourceFolder.getChildren("id", "type")) {
+            itemIds.add(info.getID());
+            itemTypes.add(info.getType());
+        }
         if (verbose)
-            System.out.printf("Moving all items from %s to %s...\n",
+            System.out.printf("Moving all items from \"%s\" to \"%s\"...\n",
                 sourceFolder.getInfo("name").getName(), destFolder.getInfo("name").getName());
-        for (String id : fileIds) {
-            BoxFile f = new BoxFile(api, id);
-            BoxItem.Info info = f.move(destFolder);
+        for (int i = 0; i < itemIds.size(); i++) {
+            String id = itemIds.get(i);
+            String type = itemTypes.get(i);
+            BoxItem item = null;
+            switch (type) {
+            case "file":
+                item = new BoxFile(api, id);
+                break;
+            case "folder":
+                item = new BoxFolder(api, id);
+                break;
+            case "web_link":
+                item = new BoxWebLink(api, id);
+                break;
+            }
+            if (item == null) {
+                if (verbose)
+                    System.out.println("Skipping item of unknown type: " + type);
+                continue;
+            }
+            BoxItem.Info info = item.move(destFolder);
             if (verbose)
                 System.out.println(info.getName());
         }

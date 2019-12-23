@@ -281,7 +281,7 @@ public final class BoxTools
                 auth = new BoxAuth(config);
                 ops = new BoxOperations(auth.createAPIConnection());
                 try {
-                    final String name = ops.putFolder(config.getId(id), localPaths);
+                    final String name = ops.putFolder(config.getId(id), localPaths, true);
                     System.out.printf("Uploaded %d files to folder: %s\n", localPaths.size(), name);
                 } finally {
                     auth.saveTokens(ops.getApiConnection());
