@@ -5,10 +5,7 @@ import com.box.sdk.*;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -243,5 +240,16 @@ public class BoxOperations
             folderContentIdCache.put(folderId, nameIdMap);
         }
         nameIdMap.put(filename, fileId);
+    }
+
+    public void searchName(String query, String type, int limit) {
+        BoxSearch search = new BoxSearch(api);
+        BoxSearchParameters bsp = new BoxSearchParameters();
+        bsp.setQuery(query);
+        bsp.setType(type);
+        bsp.setContentTypes(Arrays.asList("name"));
+        PartialCollection<BoxItem.Info> results = search.searchRange(0, limit, bsp);
+        for (BoxItem.Info info : results)
+            System.out.printf("%8s %15s    %s (in %s)\n", info.getType(), info.getID(), info.getName(), info.getParent().getName());
     }
 }

@@ -2,6 +2,7 @@ package com.elektrika.boxtools;
 
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.ByteArrayInputStream;
@@ -33,6 +34,7 @@ public final class BoxTools
                 "   -moveall <source folder ID> <destination folder ID> [<name match regex>]\n" +
                 "   -notetext <note ID> <filename.txt> [<note ID> <filename.txt> ...]\n" +
                 "   -convertnote [-folder <destination folder ID>] <note ID> [<note ID> ...]\n" +
+                "   -search [-limit n] file|folder|web_link <item name>\n" +
                 "\n" +
                 " Use '/' as folder ID to indicate root folder.\n" +
                 " For '-put folder', local files may use glob patterns '*', '?', etc."
@@ -77,6 +79,9 @@ public final class BoxTools
             break;
         case "-convertnote":
             convertNoteToText(argsList);
+            break;
+        case "-search":
+            boxSearch(argsList);
             break;
         default:
             showHelpAndExit();
@@ -340,6 +345,44 @@ public final class BoxTools
         BoxOperations ops = new BoxOperations(auth.createAPIConnection());
         try {
             ops.moveAll(config.getId(sourceId), config.getId(destId), regex, true);
+        } finally {
+            auth.saveTokens(ops.getApiConnection());
+        }
+    }
+
+    // -search [-limit n] file|folder|web_link <item name>
+    //
+    private static void boxSearch(LinkedList<String> args) throws IOException {
+        int limit = 10;
+        do {
+            String flag = args.peekFirst();
+            if (flag != null && flag.startsWith("-")) {
+                args.removeFirst();  // pop off the flag
+                switch (flag) {
+                case "-limit":
+                    limit = Utils.parseInt(args.removeFirst(), 10);
+                    break;
+                default:
+                    showHelpAndExit();
+                    break;
+                }
+            } else {
+                break;
+            }
+        } while (true);
+
+        if (args.size() != 2)
+            showHelpAndExit();
+
+        final String type = args.removeFirst();
+        if (!Arrays.asList("file", "folder", "web_link").contains(type))
+            showHelpAndExit();
+        final String query = args.removeFirst();
+
+        BoxAuth auth = new BoxAuth(config);
+        BoxOperations ops = new BoxOperations(auth.createAPIConnection());
+        try {
+            ops.searchName(query, type, limit);
         } finally {
             auth.saveTokens(ops.getApiConnection());
         }
