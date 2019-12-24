@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class BoxOperations
 {
@@ -154,17 +156,25 @@ public class BoxOperations
         return new BoxFolder(api, id).getInfo("name").getName();
     }
 
-    public void moveAll(String sourceId, String destId, boolean verbose) {
+    public void moveAll(String sourceId, String destId, String regex, boolean verbose) {
         final BoxFolder sourceFolder = sourceId.equals("/") ? BoxFolder.getRootFolder(api) : new BoxFolder(api, sourceId);
         final BoxFolder destFolder = destId.equals("/") ? BoxFolder.getRootFolder(api) : new BoxFolder(api, destId);
         List<String> itemIds = new ArrayList<>(256);
         List<String> itemTypes = new ArrayList<>(256);
-        for (BoxItem.Info info : sourceFolder.getChildren("id", "type")) {
+        Pattern pattern = null;
+        if (regex != null && !regex.isEmpty())
+            pattern = Pattern.compile(regex);
+        for (BoxItem.Info info : sourceFolder.getChildren("id", "type", "name")) {
+            if (pattern != null) {
+                Matcher m = pattern.matcher(info.getName());
+                if (!m.matches())
+                    continue;  // skip items whose names don't match the regex
+            }
             itemIds.add(info.getID());
             itemTypes.add(info.getType());
         }
         if (verbose)
-            System.out.printf("Moving all items from \"%s\" to \"%s\"...\n",
+            System.out.printf("Moving items from \"%s\" to \"%s\"...\n",
                 sourceFolder.getInfo("name").getName(), destFolder.getInfo("name").getName());
         for (int i = 0; i < itemIds.size(); i++) {
             String id = itemIds.get(i);
