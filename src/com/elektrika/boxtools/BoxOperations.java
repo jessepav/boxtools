@@ -3,7 +3,7 @@ package com.elektrika.boxtools;
 import com.box.sdk.*;
 
 import java.io.*;
-import java.nio.charset.*;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -247,6 +247,92 @@ public class BoxOperations
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
+                }
+            }
+
+        }
+    }
+
+    public void rput(String folderId, Path localDir, String regex, boolean verbose) throws InterruptedException {
+        Pattern pattern = null;
+        if (regex != null && !regex.isEmpty())
+            pattern = Pattern.compile(regex);
+
+        final LinkedList<BoxFolder> pendingFolders = new LinkedList<>();
+        final LinkedList<Path> localPaths = new LinkedList<>();
+
+        final BoxFolder.Info baseFolderInfo = new BoxFolder(api, folderId).createFolder(localDir.getFileName().toString());
+        pendingFolders.addFirst(baseFolderInfo.getResource());
+        localPaths.addFirst(localDir);
+        while (!pendingFolders.isEmpty()) {
+            final BoxFolder folder = pendingFolders.removeFirst();
+            final Path currentDir = localPaths.removeFirst();
+            if (verbose)
+                System.out.println("\n== Entering directory: " + currentDir.getFileName().toString());
+            try {
+                try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(currentDir)) {
+                    for (Path entry : dirStream) {
+                        final String name = entry.getFileName().toString();
+                        if (Files.isRegularFile(entry)) {
+                            if (pattern != null && !pattern.matcher(name).matches())
+                                continue;
+                            if (verbose)
+                                System.out.println(name);
+                            final long size = Files.size(entry);
+                            try (BufferedInputStream in = new BufferedInputStream(Files.newInputStream(entry))) {
+                                if (size > LARGE_FILE_THRESHOLD)
+                                    folder.uploadLargeFile(in, name, size);
+                                else
+                                    folder.uploadFile(in, name);
+                            }
+                        } else if (Files.isDirectory(entry)) {
+                            if (verbose)
+                                System.out.println("Queuing directory: " + name);
+                            pendingFolders.addFirst(folder.createFolder(name).getResource());
+                            localPaths.addFirst(entry);
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void rdel(String folderId, String regex, boolean verbose) {
+        final LinkedList<String> pendingFolderIds = new LinkedList<>();
+        pendingFolderIds.addFirst(folderId);
+        final Pattern pattern = Pattern.compile(regex);
+
+        while (!pendingFolderIds.isEmpty()) {
+            final BoxFolder folder = new BoxFolder(api, pendingFolderIds.removeFirst());
+            if (verbose)
+                System.out.println("\n== Entering folder: " + folder.getInfo("name").getName());
+            for (BoxItem.Info info : folder.getChildren("type", "name", "id")) {
+                final String name = info.getName();
+                final String type = info.getType();
+                if (!type.equals("folder") && !pattern.matcher(name).matches())
+                    continue;
+                switch (type) {
+                case "file":
+                    if (verbose)
+                        System.out.println(name);
+                    BoxFile file = new BoxFile(api, info.getID());
+                    file.delete();
+                    break;
+                case "folder":
+                    if (verbose)
+                        System.out.println("Queuing folder: " + name);
+                    pendingFolderIds.addLast(info.getID());
+                    break;
+                case "web_link":
+                    if (verbose)
+                        System.out.println("Web Link: " + name);
+                    BoxWebLink link = new BoxWebLink(api, info.getID());
+                    link.delete();
+                    break;
+                default:  // skip the item
+                    break;
                 }
             }
 

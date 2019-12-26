@@ -32,12 +32,15 @@ public final class BoxTools
                 "   -rename file|folder <file or folder ID> <new name>\n" +
                 "   -moveall <source folder ID> <destination folder ID> [<name match regex>]\n" +
                 "   -rget <folder ID> <local dir> [<name match regex>]\n" +
+                "   -rput <parent folder ID> <local dir> [<name match regex>]\n" +
+                "   -rdel <parent folder ID> <name match regex>\n" +
                 "   -notetext <note ID> <filename.txt> [<note ID> <filename.txt> ...]\n" +
                 "   -convertnote [-folder <destination folder ID>] <note ID> [<note ID> ...]\n" +
                 "   -search [-limit n] file|folder|web_link <item name>\n" +
                 "\n" +
                 " Use '0' as folder ID to indicate root folder.\n" +
-                " For '-put folder', local files may use glob patterns '*', '?', etc."
+                " For '-put folder', local files may use glob patterns '*', '?', etc., but only\n" +
+                "     for the current working directory."
         );
         System.exit(1);
     }
@@ -76,6 +79,12 @@ public final class BoxTools
             break;
         case "-rget":
             rget(argsList);
+            break;
+        case "-rput":
+            rput(argsList);
+            break;
+        case "-rdel":
+            rdel(argsList);
             break;
         case "-notetext":
             retrieveBoxNoteText(argsList);
@@ -366,6 +375,41 @@ public final class BoxTools
         BoxOperations ops = new BoxOperations(auth.createAPIConnection());
         try {
             ops.rget(config.getId(folderId), localDir, regex, true);
+        } finally {
+            auth.saveTokens(ops.getApiConnection());
+        }
+    }
+
+    // -rput <parent folder ID> <local dir> [<name match regex>]
+    //
+    private static void rput(LinkedList<String> args) throws IOException, InterruptedException {
+        if (args.size() < 2)
+            showHelpAndExit();
+        final String folderId = args.removeFirst();
+        final Path localDir = Paths.get(args.removeFirst());
+        final String regex = args.isEmpty() ? null : args.removeFirst();
+
+        BoxAuth auth = new BoxAuth(config);
+        BoxOperations ops = new BoxOperations(auth.createAPIConnection());
+        try {
+            ops.rput(config.getId(folderId), localDir, regex, true);
+        } finally {
+            auth.saveTokens(ops.getApiConnection());
+        }
+    }
+
+    // -rdel <parent folder ID> <name match regex>
+    //
+    private static void rdel(LinkedList<String> args) throws IOException {
+        if (args.size() != 2)
+            showHelpAndExit();
+        final String folderId = args.removeFirst();
+        final String regex = args.removeFirst();
+
+        BoxAuth auth = new BoxAuth(config);
+        BoxOperations ops = new BoxOperations(auth.createAPIConnection());
+        try {
+            ops.rdel(config.getId(folderId), regex, true);
         } finally {
             auth.saveTokens(ops.getApiConnection());
         }
