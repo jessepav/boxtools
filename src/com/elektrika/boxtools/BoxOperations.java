@@ -3,6 +3,7 @@ package com.elektrika.boxtools;
 import com.box.sdk.*;
 
 import java.io.*;
+import java.nio.charset.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -26,7 +27,7 @@ public class BoxOperations
     }
 
     public void listFolder(String id) {
-        final BoxFolder folder = id.equals("/") ? BoxFolder.getRootFolder(api) : new BoxFolder(api, id);
+        final BoxFolder folder = new BoxFolder(api, id);
         System.out.printf("\n=== %s =======================\n\n", folder.getInfo("name").getName());
         for (BoxItem.Info info : folder.getChildren("type", "id", "name"))
             System.out.printf("%-6s %-14s %s\n", info.getType(), info.getID(), info.getName());
@@ -74,7 +75,7 @@ public class BoxOperations
     }
 
     public String putFolder(String id, List<Path> localPaths, boolean verbose) throws IOException, InterruptedException {
-        final BoxFolder folder = id.equals("/") ? BoxFolder.getRootFolder(api) : new BoxFolder(api, id);
+        final BoxFolder folder = new BoxFolder(api, id);
         final BoxFolder.Info folderInfo = folder.getInfo("id", "name");
         final String folderId = folderInfo.getID();
         if (verbose)
@@ -105,13 +106,7 @@ public class BoxOperations
 
     // This assumes that the size of bytes is not greater than 30MB.
     public void uploadBytesToFolder(String id, byte[] bytes, String name) {
-        BoxFolder folder;
-        if (id.equals("/")) {
-            folder = BoxFolder.getRootFolder(api);
-            id = folder.getInfo("id").getID();
-        } else {
-            folder = new BoxFolder(api, id);
-        }
+        final BoxFolder folder = new BoxFolder(api, id);
         ensureFolderCached(id);
         final ByteArrayInputStream in = new ByteArrayInputStream(bytes);
         final String existingId = getCachedFileId(id, name);
@@ -154,8 +149,8 @@ public class BoxOperations
     }
 
     public void moveAll(String sourceId, String destId, String regex, boolean verbose) {
-        final BoxFolder sourceFolder = sourceId.equals("/") ? BoxFolder.getRootFolder(api) : new BoxFolder(api, sourceId);
-        final BoxFolder destFolder = destId.equals("/") ? BoxFolder.getRootFolder(api) : new BoxFolder(api, destId);
+        final BoxFolder sourceFolder = new BoxFolder(api, sourceId);
+        final BoxFolder destFolder = new BoxFolder(api, destId);
         List<String> itemIds = new ArrayList<>(256);
         List<String> itemTypes = new ArrayList<>(256);
         Pattern pattern = null;
@@ -196,6 +191,65 @@ public class BoxOperations
             BoxItem.Info info = item.move(destFolder);
             if (verbose)
                 System.out.println(info.getName());
+        }
+    }
+
+    public void rget(String folderId, Path localRoot, String regex, boolean verbose) {
+        Pattern pattern = null;
+        if (regex != null && !regex.isEmpty())
+            pattern = Pattern.compile(regex);
+
+        final LinkedList<String> pendingFolderIds = new LinkedList<>();
+        final LinkedList<Path> localPaths = new LinkedList<>();
+        pendingFolderIds.addFirst(folderId);
+        localPaths.addFirst(localRoot);
+
+        while (!pendingFolderIds.isEmpty()) {
+            final BoxFolder folder = new BoxFolder(api, pendingFolderIds.removeFirst());
+            final Path currentDir = localPaths.removeFirst();
+            if (verbose)
+                System.out.println("\n== Entering folder: " + folder.getInfo("name").getName());
+            for (BoxItem.Info info : folder.getChildren("type", "name", "id")) {
+                final String name = info.getName();
+                final String type = info.getType();
+                if (pattern != null && !type.equals("folder")) {
+                    Matcher m = pattern.matcher(name);
+                    if (!m.matches())
+                        continue;  // skip items whose names don't match the regex
+                }
+                try {
+                    switch (type) {
+                    case "file":
+                        BoxFile file = new BoxFile(api, info.getID());
+                        if (verbose)
+                            System.out.println(name);
+                        if (!Files.exists(currentDir))
+                            Files.createDirectories(currentDir);
+                        try (BufferedOutputStream out = new BufferedOutputStream(Files.newOutputStream(currentDir.resolve(name)))) {
+                            file.download(out);
+                        }
+                        break;
+                    case "folder":
+                        if (verbose)
+                            System.out.println("Queuing folder: " + name);
+                        pendingFolderIds.addLast(info.getID());
+                        localPaths.addLast(currentDir.resolve(name));
+                        break;
+                    case "web_link":
+                        if (verbose)
+                            System.out.println("Web Link: " + name);
+                        BoxWebLink link = new BoxWebLink(api, info.getID());
+                        String url = link.getInfo("url").getLinkURL().toString();
+                        Files.write(currentDir.resolve(name + ".weblink"), url.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                        break;
+                    default:  // skip the item
+                        break;
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
         }
     }
 

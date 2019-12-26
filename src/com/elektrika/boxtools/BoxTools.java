@@ -2,7 +2,6 @@ package com.elektrika.boxtools;
 
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.ByteArrayInputStream;
@@ -32,11 +31,12 @@ public final class BoxTools
                 "   -put folder <folder ID> <local file> [<local file> ...]\n" +
                 "   -rename file|folder <file or folder ID> <new name>\n" +
                 "   -moveall <source folder ID> <destination folder ID> [<name match regex>]\n" +
+                "   -rget <folder ID> <local dir> [<name match regex>]\n" +
                 "   -notetext <note ID> <filename.txt> [<note ID> <filename.txt> ...]\n" +
                 "   -convertnote [-folder <destination folder ID>] <note ID> [<note ID> ...]\n" +
                 "   -search [-limit n] file|folder|web_link <item name>\n" +
                 "\n" +
-                " Use '/' as folder ID to indicate root folder.\n" +
+                " Use '0' as folder ID to indicate root folder.\n" +
                 " For '-put folder', local files may use glob patterns '*', '?', etc."
         );
         System.exit(1);
@@ -73,6 +73,9 @@ public final class BoxTools
             break;
         case "-moveall":
             boxMoveAll(argsList);
+            break;
+        case "-rget":
+            rget(argsList);
             break;
         case "-notetext":
             retrieveBoxNoteText(argsList);
@@ -345,6 +348,24 @@ public final class BoxTools
         BoxOperations ops = new BoxOperations(auth.createAPIConnection());
         try {
             ops.moveAll(config.getId(sourceId), config.getId(destId), regex, true);
+        } finally {
+            auth.saveTokens(ops.getApiConnection());
+        }
+    }
+
+    // -rget <folder ID> <local dir> [<name match regex>]
+    //
+    private static void rget(LinkedList<String> args) throws IOException {
+        if (args.size() < 2)
+            showHelpAndExit();
+        final String folderId = args.removeFirst();
+        final Path localDir = Paths.get(args.removeFirst());
+        final String regex = args.isEmpty() ? null : args.removeFirst();
+
+        BoxAuth auth = new BoxAuth(config);
+        BoxOperations ops = new BoxOperations(auth.createAPIConnection());
+        try {
+            ops.rget(config.getId(folderId), localDir, regex, true);
         } finally {
             auth.saveTokens(ops.getApiConnection());
         }
