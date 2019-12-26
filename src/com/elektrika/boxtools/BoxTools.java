@@ -33,7 +33,7 @@ public final class BoxTools
                 "   -moveall <source folder ID> <destination folder ID> [<name match regex>]\n" +
                 "   -rget <folder ID> <local dir> [<name match regex>]\n" +
                 "   -rput <parent folder ID> <local dir> [<name match regex>]\n" +
-                "   -rdel <parent folder ID> <name match regex>\n" +
+                "   -rdel <folder ID> <name match regex>\n" +
                 "   -notetext <note ID> <filename.txt> [<note ID> <filename.txt> ...]\n" +
                 "   -convertnote [-folder <destination folder ID>] <note ID> [<note ID> ...]\n" +
                 "   -search [-limit n] file|folder|web_link <item name>\n" +
@@ -398,7 +398,7 @@ public final class BoxTools
         }
     }
 
-    // -rdel <parent folder ID> <name match regex>
+    // -rdel <folder ID> <name match regex>
     //
     private static void rdel(LinkedList<String> args) throws IOException {
         if (args.size() != 2)
