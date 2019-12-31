@@ -288,8 +288,8 @@ public class BoxOperations
                         } else if (Files.isDirectory(entry)) {
                             if (verbose)
                                 System.out.println("Queuing directory: " + name);
-                            pendingFolders.addFirst(folder.createFolder(name).getResource());
-                            localPaths.addFirst(entry);
+                            pendingFolders.addLast(folder.createFolder(name).getResource());
+                            localPaths.addLast(entry);
                         }
                     }
                 }
