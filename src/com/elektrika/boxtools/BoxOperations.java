@@ -201,9 +201,13 @@ public class BoxOperations
 
         final LinkedList<String> pendingFolderIds = new LinkedList<>();
         final LinkedList<Path> localPaths = new LinkedList<>();
+
+        int numFiles = 0;
+        long totalSize = 0;
+        final long startTime = System.currentTimeMillis();
+
         pendingFolderIds.addFirst(folderId);
         localPaths.addFirst(localRoot);
-
         while (!pendingFolderIds.isEmpty()) {
             final BoxFolder folder = new BoxFolder(api, pendingFolderIds.removeFirst());
             final Path currentDir = localPaths.removeFirst();
@@ -225,9 +229,12 @@ public class BoxOperations
                             System.out.println(name);
                         if (!Files.exists(currentDir))
                             Files.createDirectories(currentDir);
-                        try (BufferedOutputStream out = new BufferedOutputStream(Files.newOutputStream(currentDir.resolve(name)))) {
+                        final Path filePath = currentDir.resolve(name);
+                        try (BufferedOutputStream out = new BufferedOutputStream(Files.newOutputStream(filePath))) {
                             file.download(out);
                         }
+                        totalSize += Files.size(filePath);
+                        numFiles++;
                         break;
                     case "folder":
                         if (verbose)
@@ -241,6 +248,7 @@ public class BoxOperations
                         BoxWebLink link = new BoxWebLink(api, info.getID());
                         String url = link.getInfo("url").getLinkURL().toString();
                         Files.write(currentDir.resolve(name + ".weblink"), url.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                        numFiles++;
                         break;
                     default:  // skip the item
                         break;
@@ -249,8 +257,11 @@ public class BoxOperations
                     e.printStackTrace();
                 }
             }
-
         }
+        final long endTime = System.currentTimeMillis();
+        if (verbose)
+            System.out.printf("\nFinished! Downloaded %d files (%d bytes) in %ds.\n",
+                numFiles, totalSize, (endTime - startTime) / 1000);
     }
 
     public void rput(String folderId, Path localDir, String regex, boolean verbose) throws InterruptedException {
@@ -260,6 +271,10 @@ public class BoxOperations
 
         final LinkedList<BoxFolder> pendingFolders = new LinkedList<>();
         final LinkedList<Path> localPaths = new LinkedList<>();
+
+        int numFiles = 0;
+        final long startTime = System.currentTimeMillis();
+        long totalSize = 0L;
 
         final BoxFolder.Info baseFolderInfo = new BoxFolder(api, folderId).createFolder(localDir.getFileName().toString());
         pendingFolders.addFirst(baseFolderInfo.getResource());
@@ -285,6 +300,8 @@ public class BoxOperations
                                 else
                                     folder.uploadFile(in, name);
                             }
+                            totalSize += size;
+                            numFiles++;
                         } else if (Files.isDirectory(entry)) {
                             if (verbose)
                                 System.out.println("Queuing directory: " + name);
@@ -297,6 +314,10 @@ public class BoxOperations
                 e.printStackTrace();
             }
         }
+        final long endTime = System.currentTimeMillis();
+        if (verbose)
+            System.out.printf("\nFinished! Uploaded %d files (%d bytes) in %ds.\n",
+                numFiles, totalSize, (endTime - startTime) / 1000);
     }
 
     public void rdel(String folderId, String regex, boolean verbose) {
