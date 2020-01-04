@@ -26,12 +26,14 @@ public class BoxOperations
         return api;
     }
 
-    public void listFolder(String id) {
-        final BoxFolder folder = new BoxFolder(api, id);
-        System.out.printf("\n=== %s =======================\n\n", folder.getInfo("name").getName());
-        for (BoxItem.Info info : folder.getChildren("type", "id", "name"))
-            System.out.printf("%-6s %-14s %s\n", info.getType(), info.getID(), info.getName());
-        System.out.println();
+    public void listFolders(List<String> ids) {
+        for (String id : ids) {
+            final BoxFolder folder = new BoxFolder(api, id);
+            System.out.printf("\n=== %s =======================\n\n", folder.getInfo("name").getName());
+            for (BoxItem.Info info : folder.getChildren("type", "id", "name"))
+                System.out.printf("%-6s %-14s %s\n", info.getType(), info.getID(), info.getName());
+            System.out.println();
+        }
     }
 
     public String getFile(String id, Path localDir) throws IOException {

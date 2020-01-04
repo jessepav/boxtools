@@ -25,7 +25,7 @@ public final class BoxTools
                 "Commands:\n\n" +
                 "   -extract <filename.boxnote> <filename.txt> [<filename.boxnote> <filename.txt> ...]\n" +
                 "   -oauth\n" +
-                "   -list <folder ID>\n" +
+                "   -list <folder ID> [<folder ID> ...]\n" +
                 "   -get <file ID> [<file ID> ...] <local dir>\n" +
                 "   -put version <file ID> <local file> [<file ID> <local file> ...]\n" +
                 "   -put folder <folder ID> <local file> [<local file> ...]\n" +
@@ -222,17 +222,19 @@ public final class BoxTools
         System.out.println("Tokens retrieved.");
     }
 
-    // -list <folder ID>
+    // -list <folder ID> [<folder ID> ...]
     //
     private static void boxList(LinkedList<String> args) throws IOException {
-        if (args.size() != 1)
+        if (args.size() < 1)
             showHelpAndExit();
 
-        final String id = args.removeFirst();
+        final List<String> folderIds = new ArrayList<>(args.size());
+        for (String id : args)
+            folderIds.add(config.getId(id));
         BoxAuth auth = new BoxAuth(config);
         BoxOperations ops = new BoxOperations(auth.createAPIConnection());
         try {
-            ops.listFolder(config.getId(id));
+            ops.listFolders(folderIds);
         } finally {
             auth.saveTokens(ops.getApiConnection());
         }
