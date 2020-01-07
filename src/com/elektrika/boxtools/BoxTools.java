@@ -39,8 +39,7 @@ public final class BoxTools
                 "   -search [-limit n] file|folder|web_link <item name>\n" +
                 "\n" +
                 " Use '0' as folder ID to indicate root folder.\n" +
-                " For '-put folder', local files may use glob patterns '*', '?', etc., but only\n" +
-                "     for the current working directory."
+                " For '-put folder', local files may use glob patterns '*', '?', etc."
         );
         System.exit(1);
     }
@@ -288,7 +287,16 @@ public final class BoxTools
             final List<Path> localPaths = new ArrayList<>();
             for (String name : args) {
                 if (StringUtils.containsAny(name, '*', '?', '[', ']', '{', '}')) {
-                    try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(Paths.get(""), name)) {
+                    int lastSepIdx = StringUtils.lastIndexOfAny(name, "/", "\\");
+                    String path, glob;
+                    if (lastSepIdx != -1) {
+                        path = name.substring(0, lastSepIdx);
+                        glob = name.substring(lastSepIdx + 1, name.length());
+                    } else {
+                        path = "";
+                        glob = name;
+                    }
+                    try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(Paths.get(path), glob)) {
                         for (Path p : dirStream)
                             localPaths.add(p);
                     }
