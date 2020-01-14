@@ -76,10 +76,6 @@
     <pathelement location="${basedir}/lib/commons-lang3-3.4.jar"/>
   </path>
   
-  <path id="library.ftp4j-1.7.2.classpath">
-    <pathelement location="${basedir}/lib/ftp4j-1.7.2.jar"/>
-  </path>
-  
   <path id="library.minimal-json-0.9.5.classpath">
     <pathelement location="${basedir}/lib/minimal-json-0.9.5.jar"/>
   </path>
@@ -110,7 +106,6 @@
     <path refid="library.minimal-json-0.9.5.classpath"/>
     <path refid="library.commons-codec-1.11.classpath"/>
     <path refid="library.commons-lang3-3.4.classpath"/>
-    <path refid="library.ftp4j-1.7.2.classpath"/>
     <path refid="library.box-java-sdk-2.41.0.classpath"/>
     <path refid="library.nanohttpd-2.3.1.classpath"/>
   </path>
@@ -120,7 +115,6 @@
     <path refid="library.minimal-json-0.9.5.classpath"/>
     <path refid="library.commons-codec-1.11.classpath"/>
     <path refid="library.commons-lang3-3.4.classpath"/>
-    <path refid="library.ftp4j-1.7.2.classpath"/>
     <path refid="library.box-java-sdk-2.41.0.classpath"/>
     <path refid="library.nanohttpd-2.3.1.classpath"/>
   </path>
@@ -130,7 +124,6 @@
     <path refid="library.minimal-json-0.9.5.classpath"/>
     <path refid="library.commons-codec-1.11.classpath"/>
     <path refid="library.commons-lang3-3.4.classpath"/>
-    <path refid="library.ftp4j-1.7.2.classpath"/>
     <path refid="library.box-java-sdk-2.41.0.classpath"/>
     <path refid="library.nanohttpd-2.3.1.classpath"/>
   </path>
@@ -141,7 +134,6 @@
     <path refid="library.minimal-json-0.9.5.classpath"/>
     <path refid="library.commons-codec-1.11.classpath"/>
     <path refid="library.commons-lang3-3.4.classpath"/>
-    <path refid="library.ftp4j-1.7.2.classpath"/>
     <path refid="library.box-java-sdk-2.41.0.classpath"/>
     <path refid="library.nanohttpd-2.3.1.classpath"/>
   </path>
