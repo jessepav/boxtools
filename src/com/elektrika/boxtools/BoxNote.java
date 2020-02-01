@@ -220,7 +220,7 @@ public class BoxNote
             } else if (val1.equals("start")) {
                 attr.startListNumbering = Utils.parseInt(val2);
             } else if (startsWith(val1, "link-")) {
-                attr.url = StringUtils.split(new String(Base64.decodeBase64(val1.substring(5)), StandardCharsets.UTF_8), '-')[1];
+                attr.url = StringUtils.split(new String(Base64.decodeBase64(val1.substring(5)), StandardCharsets.UTF_8), "-", 2)[1];
             } else {
                 recognized = false;
             }
