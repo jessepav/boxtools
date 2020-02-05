@@ -2,7 +2,9 @@
 
 SETLOCAL ENABLEEXTENSIONS
 
-java -cp "%~dp0boxtools.jar;%~dp0lib\*" com.elektrika.boxtools.BoxTools ^
-         "%~dp0config\sample-boxtools.properties"  %*
+set "BOXTOOLS_DIR=%~dp0"
+
+java -cp "%BOXTOOLS_DIR%boxtools.jar;%BOXTOOLS_DIR%lib\*" com.elektrika.boxtools.BoxTools ^
+         "%BOXTOOLS_DIR%config\sample-boxtools.properties"  %*
 
 ENDLOCAL
