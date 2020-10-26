@@ -16,9 +16,10 @@ import java.util.regex.Pattern;
 import static org.apache.commons.lang3.StringUtils.startsWith;
 
 /**
- * A class that handles the conversion of Box Notes to text. The only attributes that it takes into
+ * A class that handles the conversion of Box Notes to text. The attributes that it takes into
  * account are lists, so that list numbers, bullets, and indentation are not lost, as they are if you
- * select-all and copy-paste out of the Box web app.
+ * select-all and copy-paste out of the Box web app; indent levels (ex. by hitting tab in the web app);
+ * and links.
  * <hr/>
  * <b>Box Note JSON format</b>
  * <pre>{@code
