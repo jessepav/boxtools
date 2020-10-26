@@ -34,7 +34,7 @@ public final class BoxTools
                 "   -rget <folder ID> <local dir> [<name match regex>]\n" +
                 "   -rput <parent folder ID> <local dir> [<name match regex>]\n" +
                 "   -rdel <folder ID> <name match regex>\n" +
-                "   -notetext <note ID> <filename.txt> [<note ID> <filename.txt> ...]\n" +
+                "   -notetext <note ID> <filename.txt|local dir> [<note ID> <filename.txt|local dir> ...]\n" +
                 "   -convertnote [-folder <destination folder ID>] <note ID> [<note ID> ...]\n" +
                 "   -search [-limit n] file|folder|web_link <item name>\n" +
                 "\n" +
@@ -133,8 +133,17 @@ public final class BoxTools
         try {
             while (args.size() >= 2) {
                 final String fileId = args.removeFirst();
-                final Path outPath = Paths.get(args.removeFirst());
-                Path parent = outPath.getParent();
+                Path outPath = Paths.get(args.removeFirst());
+                Path parent;
+                if (Files.isDirectory(outPath)) {
+                    parent = outPath;
+                    String filename = ops.getFileName(fileId);
+                    if (StringUtils.endsWithIgnoreCase(filename, ".boxnote"))
+                        filename = filename.substring(0, filename.length() - 8) + ".txt";
+                    outPath = parent.resolve(filename);
+                } else {
+                    parent = outPath.getParent();
+                }
                 if (parent == null)
                     parent = Paths.get("");
                 final Path tmpFile = Files.createTempFile(parent, "boxtools-", ".boxnote");
