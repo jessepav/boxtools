@@ -39,7 +39,7 @@ public class BoxOperations
     public String getFile(String id, Path localDir) throws IOException {
         final BoxFile file = new BoxFile(api, id);
         final String name = file.getInfo("name").getName();
-        try (BufferedOutputStream out = new BufferedOutputStream(Files.newOutputStream(localDir.resolve(name)))) {
+        try (BufferedOutputStream out = new BufferedOutputStream(Files.newOutputStream(localDir.resolve(Utils.sanitizeFileName(name))))) {
             file.download(out);
         }
         return name;
@@ -249,7 +249,7 @@ public class BoxOperations
                             System.out.println("Web Link: " + name);
                         BoxWebLink link = new BoxWebLink(api, info.getID());
                         String url = link.getInfo("url").getLinkURL().toString();
-                        Files.write(currentDir.resolve(name + ".weblink"), url.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                        Files.write(currentDir.resolve(Utils.sanitizeFileName(name) + ".weblink"), url.getBytes(java.nio.charset.StandardCharsets.UTF_8));
                         numFiles++;
                         break;
                     default:  // skip the item

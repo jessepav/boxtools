@@ -1,9 +1,12 @@
 package com.elektrika.boxtools;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Properties;
 import java.util.logging.*;
 
@@ -71,5 +74,18 @@ public final class Utils
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
         }
+    }
+
+    public static final String DISCOURAGED_FILENAME_CHARS = "<>:\"/\\|?* ";
+    private static final String UNDERSCORE_REPLACEMENT_CHARS;
+
+    static {
+        char[] chars = new char[DISCOURAGED_FILENAME_CHARS.length()];
+        Arrays.fill(chars, '_');
+        UNDERSCORE_REPLACEMENT_CHARS = new String(chars);
+    }
+
+    public static String sanitizeFileName(String name) {
+        return StringUtils.replaceChars(name, DISCOURAGED_FILENAME_CHARS, UNDERSCORE_REPLACEMENT_CHARS);
     }
 }
