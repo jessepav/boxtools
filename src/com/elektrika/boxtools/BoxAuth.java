@@ -64,12 +64,11 @@ public final class BoxAuth
         final String jwtConfig = config.props.getProperty("config-json");
         if (jwtConfig == null) { // use OAuth
             usingJwt = false;
-            final Properties tokenProps = Utils.loadProps(config.propsPath.resolveSibling(config.props.getProperty("token-file")));
             final String clientId = config.props.getProperty("client-id");
             final String clientSecret = config.props.getProperty("client-secret");
-            final String accessToken = tokenProps.getProperty("access-token");
-            final String refreshToken = tokenProps.getProperty("refresh-token");
-            return new BoxAPIConnection(clientId, clientSecret, accessToken, refreshToken);
+            final Properties tokenProps = Utils.loadProps(config.propsPath.resolveSibling(config.props.getProperty("token-file")));
+            final String jsonState = tokenProps.getProperty("json-state");
+            return BoxAPIConnection.restore(clientId, clientSecret, jsonState);
         } else {
             usingJwt = true;
             BoxConfig boxConfig;
@@ -90,10 +89,7 @@ public final class BoxAuth
 
         final Path tokenFilePath = config.propsPath.resolveSibling(config.props.getProperty("token-file"));
         Properties tokenProps = new Properties();
-        tokenProps.setProperty("access-token", client.getAccessToken());
-        tokenProps.setProperty("refresh-token", client.getRefreshToken());
-        tokenProps.setProperty("can-refresh", Boolean.toString(client.canRefresh()));
-        tokenProps.setProperty("expires", Long.toString(client.getExpires()));
+        tokenProps.setProperty("json-state", client.save());
         try (FileWriter w = new FileWriter(tokenFilePath.toFile())) {
             tokenProps.store(w, "BoxAPIConnection tokens");
         }
