@@ -76,7 +76,7 @@ public final class Utils
         }
     }
 
-    public static final String DISCOURAGED_FILENAME_CHARS = "<>:\"/\\|?* ";
+    public static final String DISCOURAGED_FILENAME_CHARS = "<>:\"/\\|?*";
     private static final String UNDERSCORE_REPLACEMENT_CHARS;
 
     static {
