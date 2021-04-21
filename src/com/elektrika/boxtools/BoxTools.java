@@ -21,14 +21,17 @@ public final class BoxTools
 
     private static void showHelpAndExit() {
         System.out.println(
-            "Usage: BoxTools <config properties file> <command> [args]\n\n" +
-                "Commands:\n\n" +
+            "Usage: BoxTools <config properties file> <command> [args]\n" +
+                "\n" +
+                "Commands:\n" +
+                "\n" +
                 "   -extract <filename.boxnote> <filename.txt> [<filename.boxnote> <filename.txt> ...]\n" +
                 "   -oauth\n" +
                 "   -list <folder ID> [<folder ID> ...]\n" +
                 "   -get <file ID> [<file ID> ...] <local dir>\n" +
                 "   -put version <file ID> <local file> [<file ID> <local file> ...]\n" +
                 "   -put folder <folder ID> <local file> [<local file> ...]\n" +
+                "   -del file|folder <ID> [<ID> ...] \n" +
                 "   -rename file|folder <file or folder ID> <new name>\n" +
                 "   -moveall <source folder ID> <destination folder ID> [<name match regex>]\n" +
                 "   -rget <folder ID> <local dir> [<name match regex>]\n" +
@@ -69,6 +72,9 @@ public final class BoxTools
             break;
         case "-put":
             boxPut(argsList);
+            break;
+        case "-del":
+            boxDelete(argsList);
             break;
         case "-rename":
             boxRename(argsList);
@@ -322,6 +328,42 @@ public final class BoxTools
                 } finally {
                     auth.saveTokens(ops.getApiConnection());
                 }
+            }
+            break;
+        default:
+            showHelpAndExit();
+            break;
+        }
+    }
+
+    // -del file|folder <ID> [<ID> ...]
+    //
+    private static void boxDelete(LinkedList<String> args) throws IOException {
+        if (args.size() < 2)
+            showHelpAndExit();
+
+        BoxAuth auth;
+        BoxOperations ops;
+
+        switch (args.removeFirst()) {
+        case "file":
+            auth = new BoxAuth(config);
+            ops = new BoxOperations(auth.createAPIConnection());
+            try {
+                for (String id : args)
+                    System.out.println("Deleted file: " + ops.deleteFile(config.getId(id)));
+            } finally {
+                auth.saveTokens(ops.getApiConnection());
+            }
+            break;
+        case "folder":
+            auth = new BoxAuth(config);
+            ops = new BoxOperations(auth.createAPIConnection());
+            try {
+                for (String id : args)
+                    System.out.println("Deleted folder: " + ops.deleteFolder(config.getId(id), true));
+            } finally {
+                auth.saveTokens(ops.getApiConnection());
             }
             break;
         default:

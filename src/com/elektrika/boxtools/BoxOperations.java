@@ -45,6 +45,20 @@ public class BoxOperations
         return name;
     }
 
+    public String deleteFile(String id) {
+        final BoxFile file = new BoxFile(api, id);
+        final String name = file.getInfo("name").getName();
+        file.delete();
+        return name;
+    }
+
+    public String deleteFolder(String id, boolean recursive) {
+        final BoxFolder folder = new BoxFolder(api, id);
+        final String name = folder.getInfo("name").getName();
+        folder.delete(recursive);
+        return name;
+    }
+
     public void getFileDirect(String id, Path localPath) throws IOException {
         final BoxFile file = new BoxFile(api, id);
         try (BufferedOutputStream out = new BufferedOutputStream(Files.newOutputStream(localPath))) {
