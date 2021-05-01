@@ -31,7 +31,8 @@ public final class BoxTools
                 "   -get <file ID> [<file ID> ...] <local dir>\n" +
                 "   -put version <file ID> <local file> [<file ID> <local file> ...]\n" +
                 "   -put folder <folder ID> <local file> [<local file> ...]\n" +
-                "   -del file|folder <ID> [<ID> ...] \n" +
+                "   -del file|folder <ID> [<ID> ...]\n" +
+                "   -link file|folder <ID>\n" +
                 "   -rename file|folder <file or folder ID> <new name>\n" +
                 "   -moveall <source folder ID> <destination folder ID> [<name match regex>]\n" +
                 "   -rget <folder ID> <local dir> [<name match regex>]\n" +
@@ -75,6 +76,9 @@ public final class BoxTools
             break;
         case "-del":
             boxDelete(argsList);
+            break;
+        case "-link":
+            boxSharedLink(argsList);
             break;
         case "-rename":
             boxRename(argsList);
@@ -342,15 +346,12 @@ public final class BoxTools
         if (args.size() < 2)
             showHelpAndExit();
 
-        BoxAuth auth;
-        BoxOperations ops;
-
         final String itemType = args.removeFirst();
         final boolean isFile = itemType.equals("file");
         final boolean isFolder = itemType.equals("folder");
         if (isFile || isFolder) {
-            auth = new BoxAuth(config);
-            ops = new BoxOperations(auth.createAPIConnection());
+            BoxAuth auth = new BoxAuth(config);
+            BoxOperations ops = new BoxOperations(auth.createAPIConnection());
             try {
                 for (String id : args) {
                     if (isFile)
@@ -358,6 +359,29 @@ public final class BoxTools
                     else
                         System.out.println("Deleted folder: " + ops.deleteFolder(config.getId(id), true));
                 }
+            } finally {
+                auth.saveTokens(ops.getApiConnection());
+            }
+        } else {
+            showHelpAndExit();
+        }
+    }
+
+    // -link file|folder <ID>
+    //
+    private static void boxSharedLink(LinkedList<String> args) throws IOException {
+        if (args.size() < 2)
+            showHelpAndExit();
+        final String itemType = args.removeFirst();
+        final boolean isFile = itemType.equals("file");
+        final boolean isFolder = itemType.equals("folder");
+        if (isFile || isFolder) {
+            BoxAuth auth = new BoxAuth(config);
+            BoxOperations ops = new BoxOperations(auth.createAPIConnection());
+            try {
+                String id = args.removeFirst();
+                String url = ops.createSharedLink(config.getId(id), isFolder);
+                System.out.println(url);
             } finally {
                 auth.saveTokens(ops.getApiConnection());
             }

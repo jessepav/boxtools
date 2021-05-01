@@ -429,4 +429,19 @@ public class BoxOperations
         for (BoxItem.Info info : results)
             System.out.printf("%8s %15s    %s (in %s)\n", info.getType(), info.getID(), info.getName(), info.getParent().getName());
     }
+
+    public String createSharedLink(String id, boolean isFolder) {
+        BoxSharedLink.Permissions permissions = new BoxSharedLink.Permissions();
+        permissions.setCanDownload(true);
+        permissions.setCanPreview(true);
+        BoxSharedLink link;
+        if (!isFolder) { // aka isFile
+            BoxFile file = new BoxFile(api, id);
+            link = file.createSharedLink(BoxSharedLink.Access.OPEN, null, permissions);
+        } else {
+            BoxFolder folder = new BoxFolder(api, id);
+            link = folder.createSharedLink(BoxSharedLink.Access.OPEN, null, permissions);
+        }
+        return link.getURL();
+    }
 }
