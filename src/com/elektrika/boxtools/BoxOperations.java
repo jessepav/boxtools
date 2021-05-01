@@ -31,7 +31,7 @@ public class BoxOperations
             final BoxFolder folder = new BoxFolder(api, id);
             System.out.printf("\n=== %s =======================\n\n", folder.getInfo("name").getName());
             for (BoxItem.Info info : folder.getChildren("type", "id", "name"))
-                System.out.printf("%-6s %-14s %s\n", info.getType(), info.getID(), info.getName());
+                System.out.printf("%-6s %-16s %s\n", info.getType(), info.getID(), info.getName());
             System.out.println();
         }
     }
@@ -427,7 +427,7 @@ public class BoxOperations
         bsp.setContentTypes(Arrays.asList("name"));
         PartialCollection<BoxItem.Info> results = search.searchRange(0, limit, bsp);
         for (BoxItem.Info info : results)
-            System.out.printf("%8s %15s    %s (in %s)\n", info.getType(), info.getID(), info.getName(), info.getParent().getName());
+            System.out.printf("%-6s %-16s %s (in %s)\n", info.getType(), info.getID(), info.getName(), info.getParent().getName());
     }
 
     public String createSharedLink(String id, boolean isFolder) {
