@@ -345,30 +345,24 @@ public final class BoxTools
         BoxAuth auth;
         BoxOperations ops;
 
-        switch (args.removeFirst()) {
-        case "file":
+        final String itemType = args.removeFirst();
+        final boolean isFile = itemType.equals("file");
+        final boolean isFolder = itemType.equals("folder");
+        if (isFile || isFolder) {
             auth = new BoxAuth(config);
             ops = new BoxOperations(auth.createAPIConnection());
             try {
-                for (String id : args)
-                    System.out.println("Deleted file: " + ops.deleteFile(config.getId(id)));
+                for (String id : args) {
+                    if (isFile)
+                        System.out.println("Deleted file: " + ops.deleteFile(config.getId(id)));
+                    else
+                        System.out.println("Deleted folder: " + ops.deleteFolder(config.getId(id), true));
+                }
             } finally {
                 auth.saveTokens(ops.getApiConnection());
             }
-            break;
-        case "folder":
-            auth = new BoxAuth(config);
-            ops = new BoxOperations(auth.createAPIConnection());
-            try {
-                for (String id : args)
-                    System.out.println("Deleted folder: " + ops.deleteFolder(config.getId(id), true));
-            } finally {
-                auth.saveTokens(ops.getApiConnection());
-            }
-            break;
-        default:
+        } else {
             showHelpAndExit();
-            break;
         }
     }
 
