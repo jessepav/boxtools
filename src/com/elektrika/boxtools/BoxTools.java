@@ -3,6 +3,7 @@ package com.elektrika.boxtools;
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -34,6 +35,7 @@ public final class BoxTools
                 "   -del file|folder <ID> [<ID> ...]\n" +
                 "   -link file|folder <ID>\n" +
                 "   -rename file|folder <file or folder ID> <new name>\n" +
+                "   -move file|folder <item ID> <destination folder ID>\n" +
                 "   -moveall <source folder ID> <destination folder ID> [<name match regex>]\n" +
                 "   -rget <folder ID> <local dir> [<name match regex>]\n" +
                 "   -rput <parent folder ID> <local dir> [<name match regex>]\n" +
@@ -85,6 +87,9 @@ public final class BoxTools
             break;
         case "-moveall":
             boxMoveAll(argsList);
+            break;
+        case "-move":
+            boxMove(argsList);
             break;
         case "-rget":
             rget(argsList);
@@ -420,6 +425,32 @@ public final class BoxTools
             System.out.printf("Rename %s: %s -> %s\n", itemType, oldName, newName);
         } finally {
             auth.saveTokens(ops.getApiConnection());
+        }
+    }
+
+    // -move file|folder <item ID> <destination folder ID>
+    //
+    private static void boxMove(LinkedList<String> args) throws IOException {
+        if (args.size() < 3)
+            showHelpAndExit();
+
+        final String itemType = args.removeFirst();
+        final boolean isFile = itemType.equals("file");
+        final boolean isFolder = itemType.equals("folder");
+        if (isFile || isFolder) {
+            final String sourceId = args.removeFirst();
+            final String destId = args.removeFirst();
+            BoxAuth auth = new BoxAuth(config);
+            BoxOperations ops = new BoxOperations(auth.createAPIConnection());
+            try {
+                Pair<String,String> names = ops.moveItem(isFolder, config.getId(sourceId), config.getId(destId));
+                System.out.printf("Moved %s \"%s\" to folder \"%s\"",
+                    isFile ? "file" : "folder", names.getLeft(), names.getRight());
+            } finally {
+                auth.saveTokens(ops.getApiConnection());
+            }
+        } else {
+            showHelpAndExit();
         }
     }
 

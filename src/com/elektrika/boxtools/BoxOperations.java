@@ -1,6 +1,7 @@
 package com.elektrika.boxtools;
 
 import com.box.sdk.*;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.*;
 import java.nio.file.DirectoryStream;
@@ -443,5 +444,21 @@ public class BoxOperations
             link = folder.createSharedLink(BoxSharedLink.Access.OPEN, null, permissions);
         }
         return link.getURL();
+    }
+
+    public Pair<String,String> moveItem(boolean isFolder, String sourceId, String destId) {
+        String sourceName, destName;
+        final BoxFolder destFolder = new BoxFolder(api, destId);
+        destName = destFolder.getInfo("name").getName();
+        if (!isFolder) { // aka isFile
+            BoxFile file = new BoxFile(api, sourceId);
+            sourceName = file.getInfo("name").getName();
+            file.move(destFolder);
+        } else {
+            BoxFolder folder = new BoxFolder(api, sourceId);
+            sourceName = folder.getInfo("name").getName();
+            folder.move(destFolder);
+        }
+        return Pair.of(sourceName, destName);
     }
 }
