@@ -424,15 +424,19 @@ public class BoxOperations
         nameIdMap.put(filename, fileId);
     }
 
-    public void searchName(String query, String type, int limit) {
+    public List<SearchResult> searchName(String query, String type, int limit) {
         BoxSearch search = new BoxSearch(api);
         BoxSearchParameters bsp = new BoxSearchParameters();
         bsp.setQuery(query);
         bsp.setType(type);
         bsp.setContentTypes(Arrays.asList("name"));
         PartialCollection<BoxItem.Info> results = search.searchRange(0, limit, bsp);
-        for (BoxItem.Info info : results)
-            System.out.printf("%-8s %-16s %s (in %s)\n", info.getType(), info.getID(), info.getName(), info.getParent().getName());
+        List<SearchResult> sr = new ArrayList<>(results.size());
+        for (BoxItem.Info info : results) {
+            sr.add(new SearchResult(info.getType(), info.getID(), info.getName(),
+                                    info.getParent().getID(), info.getParent().getName()));
+        }
+        return sr;
     }
 
     /* Returns Triple(name, shared link, direct download link) */
@@ -492,5 +496,22 @@ public class BoxOperations
             folder.move(destFolder);
         }
         return Pair.of(sourceName, destName);
+    }
+
+    public static class SearchResult
+    {
+        public SearchResult(String type, String id, String name, String parentId, String parentName) {
+            this.type = type;
+            this.id = id;
+            this.name = name;
+            this.parentId = parentId;
+            this.parentName = parentName;
+        }
+
+        public String type;
+        public String id;
+        public String name;
+        public String parentId;
+        public String parentName;
     }
 }

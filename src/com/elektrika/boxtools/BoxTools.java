@@ -579,7 +579,21 @@ public final class BoxTools
         BoxAuth auth = new BoxAuth(config);
         BoxOperations ops = new BoxOperations(auth.createAPIConnection());
         try {
-            ops.searchName(query, type, limit);
+            List<BoxOperations.SearchResult> sr = ops.searchName(query, type, limit);
+
+            // Okay, okay, let's make the table look pretty
+            int idLen = 12, nameLen = 12, parentNameLen = 12, parentIdLen = 12;
+            for (BoxOperations.SearchResult r : sr) {
+                idLen = Math.max(idLen, r.id.length());
+                nameLen = Math.max(nameLen, r.name.length());
+                parentNameLen = Math.max(parentNameLen, r.parentName.length());
+                parentIdLen = Math.max(parentIdLen, r.parentId.length());
+            }
+            String fmt = String.format("%%-%ds %%-%ds %%-%ds %%-%ds\n", idLen, nameLen, parentNameLen, parentIdLen);
+            System.out.printf(fmt, "ID", StringUtils.capitalize(type) + " Name", "Parent", "Parent ID");
+            System.out.println(StringUtils.repeat('-', idLen + nameLen + parentNameLen + parentIdLen + 3));
+            for (BoxOperations.SearchResult r : sr)
+                System.out.printf(fmt, r.id, r.name, r.parentName, r.parentId);
         } finally {
             auth.saveTokens(ops.getApiConnection());
         }
