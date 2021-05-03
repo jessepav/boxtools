@@ -38,8 +38,8 @@ public final class BoxTools
                 "   -rename file|folder <file or folder ID> <new name>\n" +
                 "   -move file|folder <item ID> <destination folder ID>\n" +
                 "   -moveall <source folder ID> <destination folder ID> [<name match regex>]\n" +
-                "   -rget <folder ID> <local dir> [<name match regex>]\n" +
-                "   -rput <parent folder ID> <local dir> [<name match regex>]\n" +
+                "   -rget [norecurse] <folder ID> <local dir> [<name match regex>]\n" +
+                "   -rput [norecurse] <parent folder ID> <local dir> [<name match regex>]\n" +
                 "   -rdel <folder ID> <name match regex>\n" +
                 "   -notetext <note ID> <filename.txt|local dir> [<note ID> <filename.txt|local dir> ...]\n" +
                 "   -convertnote [-folder <destination folder ID>] <note ID> [<note ID> ...]\n" +
@@ -486,37 +486,45 @@ public final class BoxTools
         }
     }
 
-    // -rget <folder ID> <local dir> [<name match regex>]
+    // -rget [norecurse] <folder ID> <local dir> [<name match regex>]
     //
     private static void rget(LinkedList<String> args) throws IOException {
         if (args.size() < 2)
             showHelpAndExit();
+        boolean recurse = true;
+        if (args.peekFirst().equals("norecurse")) {
+            args.removeFirst();
+            recurse = false;
+        }
         final String folderId = args.removeFirst();
         final Path localDir = Paths.get(args.removeFirst());
         final String regex = args.isEmpty() ? null : args.removeFirst();
-
         BoxAuth auth = new BoxAuth(config);
         BoxOperations ops = new BoxOperations(auth.createAPIConnection());
         try {
-            ops.rget(config.getId(folderId), localDir, regex, true);
+            ops.rget(config.getId(folderId), localDir, regex, recurse, true);
         } finally {
             auth.saveTokens(ops.getApiConnection());
         }
     }
 
-    // -rput <parent folder ID> <local dir> [<name match regex>]
+    // -rput [norecurse] <parent folder ID> <local dir> [<name match regex>]
     //
     private static void rput(LinkedList<String> args) throws IOException, InterruptedException {
         if (args.size() < 2)
             showHelpAndExit();
+        boolean recurse = true;
+        if (args.peekFirst().equals("norecurse")) {
+            args.removeFirst();
+            recurse = false;
+        }
         final String folderId = args.removeFirst();
         final Path localDir = Paths.get(args.removeFirst());
         final String regex = args.isEmpty() ? null : args.removeFirst();
-
         BoxAuth auth = new BoxAuth(config);
         BoxOperations ops = new BoxOperations(auth.createAPIConnection());
         try {
-            ops.rput(config.getId(folderId), localDir, regex, true);
+            ops.rput(config.getId(folderId), localDir, regex, recurse, true);
         } finally {
             auth.saveTokens(ops.getApiConnection());
         }

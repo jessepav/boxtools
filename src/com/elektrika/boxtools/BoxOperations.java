@@ -212,7 +212,7 @@ public class BoxOperations
         }
     }
 
-    public void rget(String folderId, Path localRoot, String regex, boolean verbose) {
+    public void rget(String folderId, Path localRoot, String regex, boolean recurse, boolean verbose) {
         Pattern pattern = null;
         if (regex != null && !regex.isEmpty())
             pattern = Pattern.compile(regex);
@@ -255,17 +255,20 @@ public class BoxOperations
                         numFiles++;
                         break;
                     case "folder":
-                        if (verbose)
-                            System.out.println("Queuing folder: " + name);
-                        pendingFolderIds.addLast(info.getID());
-                        localPaths.addLast(currentDir.resolve(name));
+                        if (recurse) {
+                            if (verbose)
+                                System.out.println("Queuing folder: " + name);
+                            pendingFolderIds.addLast(info.getID());
+                            localPaths.addLast(currentDir.resolve(name));
+                        }
                         break;
                     case "web_link":
                         if (verbose)
                             System.out.println("Web Link: " + name);
                         BoxWebLink link = new BoxWebLink(api, info.getID());
                         String url = link.getInfo("url").getLinkURL().toString();
-                        Files.write(currentDir.resolve(Utils.sanitizeFileName(name) + ".weblink"), url.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                        Files.write(currentDir.resolve(Utils.sanitizeFileName(name) + ".weblink"),
+                            url.getBytes(java.nio.charset.StandardCharsets.UTF_8));
                         numFiles++;
                         break;
                     default:  // skip the item
@@ -282,7 +285,7 @@ public class BoxOperations
                 numFiles, totalSize, (endTime - startTime) / 1000);
     }
 
-    public void rput(String folderId, Path localDir, String regex, boolean verbose) throws InterruptedException {
+    public void rput(String folderId, Path localDir, String regex, boolean recurse, boolean verbose) throws InterruptedException {
         Pattern pattern = null;
         if (regex != null && !regex.isEmpty())
             pattern = Pattern.compile(regex);
@@ -320,7 +323,7 @@ public class BoxOperations
                             }
                             totalSize += size;
                             numFiles++;
-                        } else if (Files.isDirectory(entry)) {
+                        } else if (recurse && Files.isDirectory(entry)) {
                             if (verbose)
                                 System.out.println("Queuing directory: " + name);
                             pendingFolders.addLast(folder.createFolder(name).getResource());
