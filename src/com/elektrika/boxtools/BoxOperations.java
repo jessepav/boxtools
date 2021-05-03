@@ -2,6 +2,7 @@ package com.elektrika.boxtools;
 
 import com.box.sdk.*;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 
 import java.io.*;
 import java.nio.file.DirectoryStream;
@@ -32,7 +33,7 @@ public class BoxOperations
             final BoxFolder folder = new BoxFolder(api, id);
             System.out.printf("\n=== %s =======================\n\n", folder.getInfo("name").getName());
             for (BoxItem.Info info : folder.getChildren("type", "id", "name"))
-                System.out.printf("%-6s %-16s %s\n", info.getType(), info.getID(), info.getName());
+                System.out.printf("%-8s %-16s %s\n", info.getType(), info.getID(), info.getName());
             System.out.println();
         }
     }
@@ -428,22 +429,50 @@ public class BoxOperations
         bsp.setContentTypes(Arrays.asList("name"));
         PartialCollection<BoxItem.Info> results = search.searchRange(0, limit, bsp);
         for (BoxItem.Info info : results)
-            System.out.printf("%-6s %-16s %s (in %s)\n", info.getType(), info.getID(), info.getName(), info.getParent().getName());
+            System.out.printf("%-8s %-16s %s (in %s)\n", info.getType(), info.getID(), info.getName(), info.getParent().getName());
     }
 
-    public String createSharedLink(String id, boolean isFolder) {
+    /* Returns Triple(name, shared link, direct download link) */
+    public Triple<String,String,String> sharedLink(String id, boolean isFolder, boolean remove) {
         BoxSharedLink.Permissions permissions = new BoxSharedLink.Permissions();
         permissions.setCanDownload(true);
         permissions.setCanPreview(true);
         BoxSharedLink link;
+        String name;
+        String removeDisposition = "not found";
         if (!isFolder) { // aka isFile
             BoxFile file = new BoxFile(api, id);
-            link = file.createSharedLink(BoxSharedLink.Access.OPEN, null, permissions);
+            BoxFile.Info info = file.getInfo("name", "shared_link");
+            name = info.getName();
+            if (remove) {
+                link = info.getSharedLink();
+                if (link != null) {
+                    info.removeSharedLink();
+                    file.updateInfo(info);
+                    removeDisposition = "removed";
+                }
+            } else {
+                link = file.createSharedLink(BoxSharedLink.Access.OPEN, null, permissions);
+            }
         } else {
             BoxFolder folder = new BoxFolder(api, id);
-            link = folder.createSharedLink(BoxSharedLink.Access.OPEN, null, permissions);
+            BoxFolder.Info info = folder.getInfo("name", "shared_link");
+            name = info.getName();
+            if (remove) {
+                link = info.getSharedLink();
+                if (link != null) {
+                    info.removeSharedLink();
+                    folder.updateInfo(info);
+                    removeDisposition = "removed";
+                }
+            } else {
+                link = folder.createSharedLink(BoxSharedLink.Access.OPEN, null, permissions);
+            }
         }
-        return link.getURL();
+        if (remove)
+            return Triple.of(name, removeDisposition, null);
+        else
+            return Triple.of(name, link.getURL(), isFolder ? null : link.getDownloadURL());
     }
 
     public Pair<String,String> moveItem(boolean isFolder, String sourceId, String destId) {
