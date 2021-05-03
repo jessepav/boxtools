@@ -38,6 +38,32 @@ public class BoxOperations
         }
     }
 
+    private static final String[] SHOW_PATH_FIELDS = {"name", "parent"};
+
+    public void showPath(String id, boolean isFolder) {
+        BoxItem.Info info;
+        if (isFolder) {
+            info = new BoxFolder(api, id).getInfo(SHOW_PATH_FIELDS);
+        }
+        else
+            info = new BoxFile(api, id).getInfo(SHOW_PATH_FIELDS);
+
+        final LinkedList<BoxItem.Info> pathInfo = new LinkedList<>();
+        pathInfo.add(info);
+        while (!info.getID().equals("0")) {
+            BoxFolder parent = new BoxFolder(api, info.getParent().getID());
+            info = parent.getInfo(SHOW_PATH_FIELDS);
+            pathInfo.add(info);
+        }
+        StringBuilder spaces = new StringBuilder(32);
+        while (!pathInfo.isEmpty()) {
+            info = pathInfo.removeLast();
+            System.out.print(spaces.toString());
+            System.out.printf("%s [ %s ]\n", info.getName(), info.getID());
+            spaces.append("  ");
+        }
+    }
+
     public String getFile(String id, Path localDir) throws IOException {
         final BoxFile file = new BoxFile(api, id);
         final String name = file.getInfo("name").getName();

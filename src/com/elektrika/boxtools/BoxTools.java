@@ -30,6 +30,7 @@ public final class BoxTools
                 "   -extract <filename.boxnote> <filename.txt> [<filename.boxnote> <filename.txt> ...]\n" +
                 "   -oauth\n" +
                 "   -list <folder ID> [<folder ID> ...]\n" +
+                "   -showpath file|folder <ID> [<ID> ...]\n" +
                 "   -get <file ID> [<file ID> ...] <local dir>\n" +
                 "   -put version <file ID> <local file> [<file ID> <local file> ...]\n" +
                 "   -put folder <folder ID> <local file> [<local file> ...]\n" +
@@ -70,6 +71,9 @@ public final class BoxTools
             break;
         case "-list":
             boxList(argsList);
+            break;
+        case "-showpath":
+            boxShowPath(argsList);
             break;
         case "-get":
             boxGet(argsList);
@@ -261,6 +265,31 @@ public final class BoxTools
             ops.listFolders(folderIds);
         } finally {
             auth.saveTokens(ops.getApiConnection());
+        }
+    }
+
+    // -showpath file|folder <ID> [<ID> ...]
+    //
+    private static void boxShowPath(LinkedList<String> args) throws IOException {
+        if (args.size() < 2)
+            showHelpAndExit();
+
+        final String itemType = args.removeFirst();
+        final boolean isFile = itemType.equals("file");
+        final boolean isFolder = itemType.equals("folder");
+        if (isFile || isFolder) {
+            BoxAuth auth = new BoxAuth(config);
+            BoxOperations ops = new BoxOperations(auth.createAPIConnection());
+            try {
+                for (String id : args) {
+                    System.out.println();
+                    ops.showPath(config.getId(id), isFolder);
+                }
+            } finally {
+                auth.saveTokens(ops.getApiConnection());
+            }
+        } else {
+            showHelpAndExit();
         }
     }
 
