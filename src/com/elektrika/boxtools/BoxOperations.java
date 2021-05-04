@@ -273,7 +273,7 @@ public class BoxOperations
                             System.out.println(name);
                         if (!Files.exists(currentDir))
                             Files.createDirectories(currentDir);
-                        final Path filePath = currentDir.resolve(name);
+                        final Path filePath = currentDir.resolve(Utils.sanitizeFileName(name));
                         try (BufferedOutputStream out = new BufferedOutputStream(Files.newOutputStream(filePath))) {
                             file.download(out);
                         }
@@ -285,7 +285,7 @@ public class BoxOperations
                             if (verbose)
                                 System.out.println("Queuing folder: " + name);
                             pendingFolderIds.addLast(info.getID());
-                            localPaths.addLast(currentDir.resolve(name));
+                            localPaths.addLast(currentDir.resolve(Utils.sanitizeFileName(name)));
                         }
                         break;
                     case "web_link":
