@@ -524,6 +524,13 @@ public class BoxOperations
         return Pair.of(sourceName, destName);
     }
 
+    /* Returns (new folder ID, parent folder name) */
+    public Pair<String,String> newFolder(String parentId, String name) {
+        BoxFolder parent = new BoxFolder(api, parentId);
+        BoxFolder.Info newInfo = parent.createFolder(name);
+        return Pair.of(newInfo.getID(), parent.getInfo("name").getName());
+    }
+
     public static class SearchResult
     {
         public SearchResult(String type, String id, String name, String parentId, String parentName) {

@@ -34,6 +34,7 @@ public final class BoxTools
                 "   -get <file ID> [<file ID> ...] <local dir>\n" +
                 "   -put version <file ID> <local file> [<file ID> <local file> ...]\n" +
                 "   -put folder <folder ID> <local file> [<local file> ...]\n" +
+                "   -newfolder <parent folder ID> <folder name>\n" +
                 "   -del file|folder <ID> [<ID> ...]\n" +
                 "   -link file|folder [remove] <ID> [<ID> ...]\n" +
                 "   -rename file|folder <file or folder ID> <new name>\n" +
@@ -80,6 +81,9 @@ public final class BoxTools
             break;
         case "-put":
             boxPut(argsList);
+            break;
+        case "-newfolder":
+            boxNewFolder(argsList);
             break;
         case "-del":
             boxDelete(argsList);
@@ -372,6 +376,23 @@ public final class BoxTools
         default:
             showHelpAndExit();
             break;
+        }
+    }
+
+    // -newfolder <parent folder ID> <folder name>
+    //
+    private static void boxNewFolder(LinkedList<String> args) throws IOException {
+        if (args.size() != 2)
+            showHelpAndExit();
+        BoxAuth auth = new BoxAuth(config);
+        BoxOperations ops = new BoxOperations(auth.createAPIConnection());
+        try {
+            String parentId = args.removeFirst();
+            String name = args.removeFirst();
+            Pair<String,String> info = ops.newFolder(config.getId(parentId), name);
+            System.out.printf("Created folder \"%s\" [ %s ] in \"%s\"\n", name, info.getLeft(), info.getRight());
+        } finally {
+            auth.saveTokens(ops.getApiConnection());
         }
     }
 
