@@ -30,7 +30,7 @@ public final class BoxTools
                 "   -extract <filename.boxnote> <filename.txt> [<filename.boxnote> <filename.txt> ...]\n" +
                 "   -oauth\n" +
                 "   -list <folder ID> [<folder ID> ...]\n" +
-                "   -showpath file|folder <ID> [<ID> ...]\n" +
+                "   -showpath [-terse] file|folder <ID> [<ID> ...]\n" +
                 "   -get <file ID> [<file ID> ...] <local dir>\n" +
                 "   -put version <file ID> <local file> [<file ID> <local file> ...]\n" +
                 "   -put folder <folder ID> <local file> [<local file> ...]\n" +
@@ -272,11 +272,17 @@ public final class BoxTools
         }
     }
 
-    // -showpath file|folder <ID> [<ID> ...]
+    // -showpath [-terse] file|folder <ID> [<ID> ...]
     //
     private static void boxShowPath(LinkedList<String> args) throws IOException {
         if (args.size() < 2)
             showHelpAndExit();
+
+        boolean terse = false;
+        if (args.peekFirst().equals("-terse")) {
+            args.removeFirst();
+            terse = true;
+        }
 
         final String itemType = args.removeFirst();
         final boolean isFile = itemType.equals("file");
@@ -287,7 +293,7 @@ public final class BoxTools
             try {
                 for (String id : args) {
                     System.out.println();
-                    ops.showPath(config.getId(id), isFolder);
+                    ops.showPath(config.getId(id), isFolder, terse);
                 }
             } finally {
                 auth.saveTokens(ops.getApiConnection());

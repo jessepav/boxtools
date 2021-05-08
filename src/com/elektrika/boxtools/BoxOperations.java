@@ -40,7 +40,7 @@ public class BoxOperations
 
     private static final String[] SHOW_PATH_FIELDS = {"name", "parent"};
 
-    public void showPath(String id, boolean isFolder) {
+    public void showPath(String id, boolean isFolder, boolean terse) {
         BoxItem.Info info;
         if (isFolder) {
             info = new BoxFolder(api, id).getInfo(SHOW_PATH_FIELDS);
@@ -58,10 +58,17 @@ public class BoxOperations
         StringBuilder spaces = new StringBuilder(32);
         while (!pathInfo.isEmpty()) {
             info = pathInfo.removeLast();
-            System.out.print(spaces.toString());
-            System.out.printf("%s [ %s ]\n", info.getName(), info.getID());
-            spaces.append("  ");
+            if (terse) {
+                if (!info.getID().equals("0"))  // don't include "All Files"
+                    System.out.print("/" + info.getName());
+            } else {
+                System.out.print(spaces.toString());
+                System.out.printf("%s [ %s ]\n", info.getName(), info.getID());
+                spaces.append("  ");
+            }
         }
+        if (terse)
+            System.out.println(isFolder ? "/" : "");
     }
 
     public String getFile(String id, Path localDir) throws IOException {
