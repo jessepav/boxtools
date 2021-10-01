@@ -43,7 +43,11 @@ public final class BoxAuth
         server.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
 
         System.out.println("Authorization URI:\n  " + authorizationUri.toString());
-        OS.browseURI(authorizationUri);
+        try {
+            OS.browseURI(authorizationUri);
+        } catch (UnsupportedOperationException ex) {
+            System.out.println("Desktop.browse() is not supported on this platform. Enter URL manually.");
+        }
 
         synchronized (server) {
             while (server.code == null) {
