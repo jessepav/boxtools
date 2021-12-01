@@ -645,7 +645,7 @@ public final class BoxTools
                 parentNameLen = Math.max(parentNameLen, r.parentName.length());
                 parentIdLen = Math.max(parentIdLen, r.parentId.length());
             }
-            String fmt = String.format("%%-%ds %%-%ds %%-%ds %%-%ds\n", idLen, nameLen, parentNameLen, parentIdLen);
+            String fmt = String.format("%%-%ds  %%-%ds  %%-%ds  %%-%ds\n", idLen, nameLen, parentNameLen, parentIdLen);
             System.out.printf(fmt, "ID", StringUtils.capitalize(type) + " Name", "Parent", "Parent ID");
             System.out.println(StringUtils.repeat('-', idLen + nameLen + parentNameLen + parentIdLen + 3));
             for (BoxOperations.SearchResult r : sr)
