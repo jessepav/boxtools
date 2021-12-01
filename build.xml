@@ -1,0 +1,34 @@
+<project name="boxtools" default="compile" xmlns:if="ant:if" xmlns:unless="ant:unless">
+  <description>Build file for boxtools</description>
+  
+  <property name="src.dir" location="src"/>
+  <property name="build.dir" location="build"/>
+  <property name="classes.dir" location="${build.dir}/boxtools"/>
+  <property name="jar.dir" location="${build.dir}/jar"/>
+  
+  <property name="javac.debug" value="true"/>  <!-- may be overridden on the command-line -->
+  
+  <path id="build.classpath">
+    <pathelement location="${classes.dir}"/>
+    <fileset dir="lib" includes="*.jar"/>
+  </path> 
+    
+  <target name="compile" description="Compile the source">
+    <mkdir dir="${classes.dir}"/>
+    
+    <javac srcdir="${src.dir}" destdir="${classes.dir}" debug="${javac.debug}" verbose="false"
+           source="1.7" target="1.7" classpathref="build.classpath" deprecation="on" encoding="UTF-8"
+           includeAntRuntime="false">
+    </javac>
+  </target>
+  
+  <target name="jar" depends="compile" description="JAR up build output">
+    <mkdir dir="${jar.dir}"/>
+    <jar destfile="${jar.dir}/${ant.project.name}.jar" basedir="${classes.dir}" duplicate="fail"/>
+  </target>
+  
+  <target name="clean" description="Clean up" >
+    <delete dir="${build.dir}"/>
+  </target>
+
+</project>
