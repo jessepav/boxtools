@@ -466,8 +466,10 @@ public class BoxOperations
         PartialCollection<BoxItem.Info> results = search.searchRange(0, limit, bsp);
         List<SearchResult> sr = new ArrayList<>(results.size());
         for (BoxItem.Info info : results) {
+            BoxFolder.Info parent = info.getParent();
             sr.add(new SearchResult(info.getType(), info.getID(), info.getName(),
-                                    info.getParent().getID(), info.getParent().getName()));
+                                    parent != null ? parent.getID() : "N/A",
+                                    parent != null ? parent.getName() : "N/A"));
         }
         return sr;
     }
