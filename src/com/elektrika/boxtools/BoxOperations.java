@@ -51,7 +51,12 @@ public class BoxOperations
         final LinkedList<BoxItem.Info> pathInfo = new LinkedList<>();
         pathInfo.add(info);
         while (!info.getID().equals("0")) {
-            BoxFolder parent = new BoxFolder(api, info.getParent().getID());
+            BoxFolder parent;
+            BoxFolder.Info parentInfo = info.getParent();
+            if (parentInfo == null)
+                parent = new BoxFolder(api, "0");
+            else
+                parent = new BoxFolder(api, parentInfo.getID());
             info = parent.getInfo(SHOW_PATH_FIELDS);
             pathInfo.add(info);
         }
@@ -468,8 +473,8 @@ public class BoxOperations
         for (BoxItem.Info info : results) {
             BoxFolder.Info parent = info.getParent();
             sr.add(new SearchResult(info.getType(), info.getID(), info.getName(),
-                                    parent != null ? parent.getID() : "N/A",
-                                    parent != null ? parent.getName() : "N/A"));
+                                    parent != null ? parent.getID() : "0",
+                                    parent != null ? parent.getName() : "All Files (shared)"));
         }
         return sr;
     }
