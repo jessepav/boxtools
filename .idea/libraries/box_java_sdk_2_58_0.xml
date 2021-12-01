@@ -1,0 +1,19 @@
+<component name="libraryTable">
+  <library name="box-java-sdk-2.58.0">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/slf4j-nop-1.7.32.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/bcpkix-jdk15to18-1.69.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/box-java-sdk-2.58.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/slf4j-api-1.7.32.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/jose4j-0.7.9.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/bcprov-jdk15to18-1.69.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$PROJECT_DIR$/docjars/box-java-sdk-2.58.0-javadoc.jar!/" />
+      <root url="https://javadoc.io/static/com.box/box-java-sdk/2.58.0/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/srcjars/box-java-sdk-2.58.0-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
