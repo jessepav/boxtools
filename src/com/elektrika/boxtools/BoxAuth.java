@@ -3,6 +3,7 @@ package com.elektrika.boxtools;
 import com.box.sdk.BoxAPIConnection;
 import com.box.sdk.BoxConfig;
 import com.box.sdk.BoxDeveloperEditionAPIConnection;
+import com.box.sdk.InMemoryLRUAccessTokenCache;
 import fi.iki.elonen.NanoHTTPD;
 import org.apache.commons.lang3.StringUtils;
 
@@ -20,6 +21,8 @@ import java.util.Properties;
 
 public final class BoxAuth
 {
+    private static final int ACCESS_TOKEN_CACHE_SIZE = 20;  // see createAPIConnection()
+
     private BoxTools.Config config;
     private boolean usingJwt;
 
@@ -81,8 +84,10 @@ public final class BoxAuth
             }
             BoxDeveloperEditionAPIConnection api = BoxDeveloperEditionAPIConnection.getAppEnterpriseConnection(boxConfig);
             final String userId = config.props.getProperty("auth-user");
-            if (userId != null)
-                api = BoxDeveloperEditionAPIConnection.getAppUserConnection(userId, boxConfig);
+            if (userId != null) {
+                InMemoryLRUAccessTokenCache cache = new InMemoryLRUAccessTokenCache(ACCESS_TOKEN_CACHE_SIZE);
+                api = BoxDeveloperEditionAPIConnection.getUserConnection(userId, boxConfig, cache);
+            }
             return api;
         }
     }

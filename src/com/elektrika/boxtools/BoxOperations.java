@@ -1,6 +1,7 @@
 package com.elektrika.boxtools;
 
 import com.box.sdk.*;
+import com.box.sdk.sharedlink.BoxSharedLinkRequest;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 
@@ -481,9 +482,8 @@ public class BoxOperations
 
     /* Returns Triple(name, shared link, direct download link) */
     public Triple<String,String,String> sharedLink(String id, boolean isFolder, boolean remove) {
-        BoxSharedLink.Permissions permissions = new BoxSharedLink.Permissions();
-        permissions.setCanDownload(true);
-        permissions.setCanPreview(true);
+        final BoxSharedLinkRequest sharedLinkRequest =
+            new BoxSharedLinkRequest().access(BoxSharedLink.Access.OPEN).permissions(true, true);
         BoxSharedLink link;
         String name;
         String removeDisposition = "not found";
@@ -499,7 +499,7 @@ public class BoxOperations
                     removeDisposition = "removed";
                 }
             } else {
-                link = file.createSharedLink(BoxSharedLink.Access.OPEN, null, permissions);
+                link = file.createSharedLink(sharedLinkRequest);
             }
         } else {
             BoxFolder folder = new BoxFolder(api, id);
@@ -513,7 +513,7 @@ public class BoxOperations
                     removeDisposition = "removed";
                 }
             } else {
-                link = folder.createSharedLink(BoxSharedLink.Access.OPEN, null, permissions);
+                link = folder.createSharedLink(sharedLinkRequest);
             }
         }
         if (remove)
