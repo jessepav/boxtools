@@ -27,28 +27,29 @@ public final class BoxTools
                 "\n" +
                 "Commands:\n" +
                 "\n" +
-                "   -extract <filename.boxnote> <filename.txt> [<filename.boxnote> <filename.txt> ...]\n" +
-                "   -oauth\n" +
-                "   -list <folder ID> [<folder ID> ...]\n" +
-                "   -showpath [-terse] file|folder <ID> [<ID> ...]\n" +
-                "   -get <file ID> [<file ID> ...] <local dir>\n" +
-                "   -put version <file ID> <local file> [<file ID> <local file> ...]\n" +
-                "   -put folder <folder ID> <local file> [<local file> ...]\n" +
-                "   -newfolder <parent folder ID> <folder name>\n" +
-                "   -del file|folder <ID> [<ID> ...]\n" +
-                "   -link file|folder [remove] <ID> [<ID> ...]\n" +
-                "   -rename file|folder <file or folder ID> <new name>\n" +
-                "   -move file|folder <item ID> <destination folder ID>\n" +
-                "   -moveall <source folder ID> <destination folder ID> [<name match regex>]\n" +
-                "   -rget [norecurse] <folder ID> <local dir> [<name match regex>]\n" +
-                "   -rput [norecurse] <parent folder ID> <local dir> [<name match regex>]\n" +
-                "   -rdel <folder ID> <name match regex>\n" +
-                "   -notetext <note ID> <filename.txt|local dir> [<note ID> <filename.txt|local dir> ...]\n" +
-                "   -convertnote [-folder <destination folder ID>] <note ID> [<note ID> ...]\n" +
-                "   -search [-limit n] file|folder|web_link <item name>\n" +
+                "   extract <filename.boxnote> <filename.txt> [<filename.boxnote> <filename.txt> ...]\n" +
+                "   oauth\n" +
+                "   list <folder ID> [<folder ID> ...]\n" +
+                "   showpath [terse] file|folder <ID> [<ID> ...]\n" +
+                "   path file|folder <ID> [<ID> ...] (terse implied)\n" +
+                "   get <file ID> [<file ID> ...] <local dir>\n" +
+                "   put version <file ID> <local file> [<file ID> <local file> ...]\n" +
+                "   put folder <folder ID> <local file> [<local file> ...]\n" +
+                "   newfolder <parent folder ID> <folder name>\n" +
+                "   del file|folder <ID> [<ID> ...]\n" +
+                "   link file|folder [remove] <ID> [<ID> ...]\n" +
+                "   rename file|folder <file or folder ID> <new name>\n" +
+                "   move file|folder <item ID> <destination folder ID>\n" +
+                "   moveall <source folder ID> <destination folder ID> [<name match regex>]\n" +
+                "   rget [norecurse] <folder ID> <local dir> [<name match regex>]\n" +
+                "   rput [norecurse] <parent folder ID> <local dir> [<name match regex>]\n" +
+                "   rdel <folder ID> <name match regex>\n" +
+                "   notetext <note ID> <filename.txt|local dir> [<note ID> <filename.txt|local dir> ...]\n" +
+                "   convertnote [folder <destination folder ID>] <note ID> [<note ID> ...]\n" +
+                "   search [limit n] file|folder|web_link <item name>\n" +
                 "\n" +
-                " Use '0' as folder ID to indicate root folder.\n" +
-                " For '-put folder', local files may use glob patterns '*', '?', etc."
+                " Use '0' as folder ID to indicate the root folder (aka \"All Files\").\n" +
+                " For 'put folder', local files may use glob patterns '*', '?', etc."
         );
         System.exit(1);
     }
@@ -64,58 +65,59 @@ public final class BoxTools
         final String cmd = argsList.removeFirst();
 
         switch (cmd) {
-        case "-extract":
+        case "extract":
             extractBoxNoteText(argsList);
             break;
-        case "-oauth":
+        case "oauth":
             retrieveOAuthCode(argsList);
             break;
-        case "-list":
+        case "list":
             boxList(argsList);
             break;
-        case "-showpath":
-            boxShowPath(argsList);
+        case "showpath":
+        case "path":
+            boxShowPath(argsList, cmd.equals("path"));
             break;
-        case "-get":
+        case "get":
             boxGet(argsList);
             break;
-        case "-put":
+        case "put":
             boxPut(argsList);
             break;
-        case "-newfolder":
+        case "newfolder":
             boxNewFolder(argsList);
             break;
-        case "-del":
+        case "del":
             boxDelete(argsList);
             break;
-        case "-link":
+        case "link":
             boxSharedLink(argsList);
             break;
-        case "-rename":
+        case "rename":
             boxRename(argsList);
             break;
-        case "-moveall":
+        case "moveall":
             boxMoveAll(argsList);
             break;
-        case "-move":
+        case "move":
             boxMove(argsList);
             break;
-        case "-rget":
+        case "rget":
             rget(argsList);
             break;
-        case "-rput":
+        case "rput":
             rput(argsList);
             break;
-        case "-rdel":
+        case "rdel":
             rdel(argsList);
             break;
-        case "-notetext":
+        case "notetext":
             retrieveBoxNoteText(argsList);
             break;
-        case "-convertnote":
+        case "convertnote":
             convertNoteToText(argsList);
             break;
-        case "-search":
+        case "search":
             boxSearch(argsList);
             break;
         default:
@@ -124,7 +126,7 @@ public final class BoxTools
         System.exit(0);
     }
 
-    // -extract <filename.boxnote> <filename.txt> [<filename.boxnote> <filename.txt> ...]
+    // extract <filename.boxnote> <filename.txt> [<filename.boxnote> <filename.txt> ...]
     //
     private static void extractBoxNoteText(LinkedList<String> args) throws IOException {
         if (args.size() < 2)
@@ -144,7 +146,7 @@ public final class BoxTools
         }
     }
 
-    // -notetext <file ID> <filename.txt> [<file ID> <filename.txt> ...]
+    // notetext <file ID> <filename.txt> [<file ID> <filename.txt> ...]
     //
     private static void retrieveBoxNoteText(LinkedList<String> args) throws IOException {
         if (args.size() < 2)
@@ -190,24 +192,23 @@ public final class BoxTools
         }
     }
 
-    // -convertnote [-folder <destination folder ID>] <note ID> [<note ID> ...]
+    // convertnote [folder <destination folder ID>] <note ID> [<note ID> ...]
     //
     private static void convertNoteToText(LinkedList<String> args) throws IOException {
         String destFolderId = null;
+
+        optargs:
         do {
             String flag = args.peekFirst();
-            if (flag != null && flag.startsWith("-")) {
-                args.removeFirst();  // pop off the flag
-                switch (flag) {
-                case "-folder":
-                    destFolderId = args.removeFirst();
-                    break;
-                default:
-                    showHelpAndExit();
-                    break;
-                }
-            } else {
+            if (flag == null)
                 break;
+            switch (flag) {
+            case "folder":
+                args.removeFirst();  // pop off the flag
+                destFolderId = args.removeFirst();
+                break optargs;
+            default:
+                break optargs;
             }
         } while (true);
 
@@ -246,7 +247,7 @@ public final class BoxTools
         }
     }
 
-    // -oauth
+    // oauth
     //
     private static void retrieveOAuthCode(LinkedList<String> args) throws IOException, URISyntaxException {
         BoxAuth auth = new BoxAuth(config);
@@ -254,7 +255,7 @@ public final class BoxTools
         System.out.println("Tokens retrieved.");
     }
 
-    // -list <folder ID> [<folder ID> ...]
+    // list <folder ID> [<folder ID> ...]
     //
     private static void boxList(LinkedList<String> args) throws IOException {
         if (args.size() < 1)
@@ -272,14 +273,15 @@ public final class BoxTools
         }
     }
 
-    // -showpath [-terse] file|folder <ID> [<ID> ...]
+    // showpath [terse] file|folder <ID> [<ID> ...]
+    //             path file|folder <ID> [<ID> ...]
     //
-    private static void boxShowPath(LinkedList<String> args) throws IOException {
+    private static void boxShowPath(LinkedList<String> args, boolean autoTerse) throws IOException {
         if (args.size() < 2)
             showHelpAndExit();
 
-        boolean terse = false;
-        if (args.peekFirst().equals("-terse")) {
+        boolean terse = autoTerse;
+        if (args.peekFirst().equals("terse")) {
             args.removeFirst();
             terse = true;
         }
@@ -303,7 +305,7 @@ public final class BoxTools
         }
     }
 
-    // -get <file ID> [<file ID> ...] <local dir>
+    // get <file ID> [<file ID> ...] <local dir>
     //
     private static void boxGet(LinkedList<String> args) throws IOException {
         if (args.size() < 2)
@@ -322,8 +324,8 @@ public final class BoxTools
         }
     }
 
-    // -put version <file ID> <local file> [<file ID> <local file> ...]
-    //       folder <folder ID> <local file> [<local file> ...]
+    // put version <file ID> <local file> [<file ID> <local file> ...]
+    //     folder <folder ID> <local file> [<local file> ...]
     //
     private static void boxPut(LinkedList<String> args) throws IOException, InterruptedException {
         if (args.size() < 3)
@@ -385,7 +387,7 @@ public final class BoxTools
         }
     }
 
-    // -newfolder <parent folder ID> <folder name>
+    // newfolder <parent folder ID> <folder name>
     //
     private static void boxNewFolder(LinkedList<String> args) throws IOException {
         if (args.size() != 2)
@@ -402,7 +404,7 @@ public final class BoxTools
         }
     }
 
-    // -del file|folder <ID> [<ID> ...]
+    // del file|folder <ID> [<ID> ...]
     //
     private static void boxDelete(LinkedList<String> args) throws IOException {
         if (args.size() < 2)
@@ -429,7 +431,7 @@ public final class BoxTools
         }
     }
 
-    // -link file|folder [remove] <ID> [<ID> ...]
+    // link file|folder [remove] <ID> [<ID> ...]
     //
     private static void boxSharedLink(LinkedList<String> args) throws IOException {
         if (args.size() < 2)
@@ -465,7 +467,7 @@ public final class BoxTools
         }
     }
 
-    // -rename file|folder <file or folder ID> <new name>
+    // rename file|folder <file or folder ID> <new name>
     //
     private static void boxRename(LinkedList<String> args) throws IOException {
         if (args.size() != 3)
@@ -498,7 +500,7 @@ public final class BoxTools
         }
     }
 
-    // -move file|folder <item ID> <destination folder ID>
+    // move file|folder <item ID> <destination folder ID>
     //
     private static void boxMove(LinkedList<String> args) throws IOException {
         if (args.size() < 3)
@@ -524,7 +526,7 @@ public final class BoxTools
         }
     }
 
-    // -moveall <source folder ID> <destination folder ID> [<name match regex>]
+    // moveall <source folder ID> <destination folder ID> [<name match regex>]
     //
     private static void boxMoveAll(LinkedList<String> args) throws IOException {
         if (args.size() < 2)
@@ -542,7 +544,7 @@ public final class BoxTools
         }
     }
 
-    // -rget [norecurse] <folder ID> <local dir> [<name match regex>]
+    // rget [norecurse] <folder ID> <local dir> [<name match regex>]
     //
     private static void rget(LinkedList<String> args) throws IOException {
         if (args.size() < 2)
@@ -564,7 +566,7 @@ public final class BoxTools
         }
     }
 
-    // -rput [norecurse] <parent folder ID> <local dir> [<name match regex>]
+    // rput [norecurse] <parent folder ID> <local dir> [<name match regex>]
     //
     private static void rput(LinkedList<String> args) throws IOException, InterruptedException {
         if (args.size() < 2)
@@ -586,7 +588,7 @@ public final class BoxTools
         }
     }
 
-    // -rdel <folder ID> <name match regex>
+    // rdel <folder ID> <name match regex>
     //
     private static void rdel(LinkedList<String> args) throws IOException {
         if (args.size() != 2)
@@ -603,24 +605,23 @@ public final class BoxTools
         }
     }
 
-    // -search [-limit n] file|folder|web_link <item name>
+    // search [limit n] file|folder|web_link <item name>
     //
     private static void boxSearch(LinkedList<String> args) throws IOException {
         int limit = 10;
+
+        optargs:
         do {
             String flag = args.peekFirst();
-            if (flag != null && flag.startsWith("-")) {
-                args.removeFirst();  // pop off the flag
-                switch (flag) {
-                case "-limit":
-                    limit = Utils.parseInt(args.removeFirst(), 10);
-                    break;
-                default:
-                    showHelpAndExit();
-                    break;
-                }
-            } else {
+            if (flag == null)
                 break;
+            switch (flag) {
+            case "limit":
+                args.removeFirst();  // pop off the flag
+                limit = Utils.parseInt(args.removeFirst(), 10);
+                break optargs;
+            default:
+                break optargs;
             }
         } while (true);
 
