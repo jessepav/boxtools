@@ -44,6 +44,7 @@ public final class BoxTools
                 "   rget [norecurse] <folder ID> <local dir> [<name match regex>]\n" +
                 "   rput [norecurse] <parent folder ID> <local dir> [<name match regex>]\n" +
                 "   rdel <folder ID> <name match regex>\n" +
+                "   zip <destination path> files|folders <ID> [<ID> ...]\n" +
                 "   notetext <note ID> <filename.txt|local dir> [<note ID> <filename.txt|local dir> ...]\n" +
                 "   convertnote [folder <destination folder ID>] <note ID> [<note ID> ...]\n" +
                 "   search [limit n] file|folder|web_link <item name>\n" +
@@ -110,6 +111,9 @@ public final class BoxTools
             break;
         case "rdel":
             rdel(argsList);
+            break;
+        case "zip":
+            zip(argsList);
             break;
         case "notetext":
             retrieveBoxNoteText(argsList);
@@ -600,6 +604,44 @@ public final class BoxTools
         BoxOperations ops = new BoxOperations(auth.createAPIConnection());
         try {
             ops.rdel(config.getId(folderId), regex, true);
+        } finally {
+            auth.saveTokens(ops.getApiConnection());
+        }
+    }
+
+    // zip <destination path> files|folders <ID> [<ID> ...]
+    //
+    private static void zip(LinkedList<String> args) throws IOException {
+        if (args.size() < 3)
+            showHelpAndExit();
+        Path zipPath = Paths.get(args.removeFirst());
+        boolean isFolders;
+        switch (args.removeFirst()) {
+        case "files":
+            isFolders = false;
+            break;
+        case "folders":
+            isFolders = true;
+            break;
+        default:
+            showHelpAndExit();
+            return;
+        }
+        // Expand any aliases
+        ListIterator<String> iter = args.listIterator();
+        while (iter.hasNext()) {
+            String id = iter.next();
+            iter.set(config.getId(id));
+        }
+        BoxAuth auth = new BoxAuth(config);
+        BoxOperations ops = new BoxOperations(auth.createAPIConnection());
+        try {
+            BoxOperations.ZipDownloadResult result = ops.downloadZip(zipPath, isFolders, args);
+            System.out.printf("ZIP download: %s (%d files skipped, %d folders skipped, %d total files)\n",
+                result.success ? "Succeeded" : "Failed",
+                result.skippedFileCount, result.skippedFolderCount, result.totalFileCount);
+            System.out.printf("Saved to: %s (%d bytes)\n", zipPath.toString(), Files.size(zipPath));
+
         } finally {
             auth.saveTokens(ops.getApiConnection());
         }
