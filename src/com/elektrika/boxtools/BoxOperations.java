@@ -545,6 +545,22 @@ public class BoxOperations
         return Pair.of(newInfo.getID(), parent.getInfo("name").getName());
     }
 
+    public void downloadZip(Path zipPath, boolean isFolders, List<String> ids) throws IOException {
+        BoxZipDownloadStatus status;
+        try (BufferedOutputStream out = new BufferedOutputStream(Files.newOutputStream(zipPath))) {
+            List<BoxZipItem> zipItems = new ArrayList<>(ids.size());
+            String type = isFolders ? "folder" : "file";
+            for (String id: ids)
+                zipItems.add(new BoxZipItem(type, id));
+            status = new BoxZip(api).download(zipPath.getFileName().toString(), zipItems, out);
+        }
+        System.out.printf("ZIP download: %s\n(%d files downloaded, %d files skipped, %d folders skipped, %d total files)\n",
+            status.getState() == BoxZipDownloadStatus.State.SUCCEEDED ? "Succeeded" : "Failed",
+            status.getDownloadFileCount(), status.getSkippedFileCount(),
+            status.getSkippedFolderCount(), status.getTotalFileCount());
+        System.out.printf("Saved to: %s (%d bytes)\n", zipPath.toString(), Files.size(zipPath));
+    }
+
     public static class SearchResult
     {
         public SearchResult(String type, String id, String name, String parentId, String parentName) {
