@@ -29,14 +29,19 @@ public class BoxOperations
         return api;
     }
 
-    public void listFolders(List<String> ids) {
+    public List<String> listFolders(List<String> ids) {
+        int resultCntr = 0;
+        List<String> resultIds = new ArrayList<>(32);
         for (String id : ids) {
             final BoxFolder folder = new BoxFolder(api, id);
             System.out.printf("\n=== %s =======================\n\n", folder.getInfo("name").getName());
-            for (BoxItem.Info info : folder.getChildren("type", "id", "name"))
-                System.out.printf("%-8s %-16s %s\n", info.getType(), info.getID(), info.getName());
+            for (BoxItem.Info info : folder.getChildren("type", "id", "name")) {
+                System.out.printf("%2d. %-8s %-16s %s\n", ++resultCntr, info.getType(), info.getID(), info.getName());
+                resultIds.add(info.getID());
+            }
             System.out.println();
         }
+        return resultIds;
     }
 
     private static final String[] SHOW_PATH_FIELDS = {"name", "parent"};

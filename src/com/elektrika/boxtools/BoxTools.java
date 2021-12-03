@@ -271,7 +271,8 @@ public final class BoxTools
         BoxAuth auth = new BoxAuth(config);
         BoxOperations ops = new BoxOperations(auth.createAPIConnection());
         try {
-            ops.listFolders(folderIds);
+            List<String> resultIds = ops.listFolders(folderIds);
+            config.saveSearchResults(resultIds);
         } finally {
             auth.saveTokens(ops.getApiConnection());
         }
@@ -747,7 +748,7 @@ public final class BoxTools
         }
 
         public String getId(String idOrAlias) {
-            if (searchResults != null) {
+            if (searchResults != null && idOrAlias.length() <= 3) {
                 int n = Utils.parseInt(idOrAlias, -1) - 1;
                 if (n >= 0 && n < searchResults.length)
                     return searchResults[n];
