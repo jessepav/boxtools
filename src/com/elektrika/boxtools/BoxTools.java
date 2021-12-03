@@ -278,7 +278,7 @@ public final class BoxTools
     }
 
     // showpath [terse] file|folder <ID> [<ID> ...]
-    //             path file|folder <ID> [<ID> ...]
+    // path file|folder <ID> [<ID> ...] (terse implied)
     //
     private static void boxShowPath(LinkedList<String> args, boolean autoTerse) throws IOException {
         if (args.size() < 2)
@@ -678,21 +678,26 @@ public final class BoxTools
         BoxAuth auth = new BoxAuth(config);
         BoxOperations ops = new BoxOperations(auth.createAPIConnection());
         try {
-            List<BoxOperations.SearchResult> sr = ops.searchName(query, type, limit);
+            List<BoxOperations.SearchResult> results = ops.searchName(query, type, limit);
 
             // Okay, okay, let's make the table look pretty
             int idLen = 12, nameLen = 12, parentNameLen = 12, parentIdLen = 12;
-            for (BoxOperations.SearchResult r : sr) {
+            for (BoxOperations.SearchResult r : results) {
                 idLen = Math.max(idLen, r.id.length());
                 nameLen = Math.max(nameLen, r.name.length());
                 parentNameLen = Math.max(parentNameLen, r.parentName.length());
                 parentIdLen = Math.max(parentIdLen, r.parentId.length());
             }
-            String fmt = String.format("%%-%ds  %%-%ds  %%-%ds  %%-%ds\n", idLen, nameLen, parentNameLen, parentIdLen);
-            System.out.printf(fmt, "ID", StringUtils.capitalize(type) + " Name", "Parent", "Parent ID");
-            System.out.println(StringUtils.repeat('-', idLen + nameLen + parentNameLen + parentIdLen + 3));
-            for (BoxOperations.SearchResult r : sr)
-                System.out.printf(fmt, r.id, r.name, r.parentName, r.parentId);
+            String fmt = String.format("%%2s. %%-%ds  %%-%ds  %%-%ds  %%-%ds\n", idLen, nameLen, parentNameLen, parentIdLen);
+            System.out.printf(fmt, "#", "ID", StringUtils.capitalize(type) + " Name", "Parent", "Parent ID");
+            System.out.println(StringUtils.repeat('-', 4 + idLen + nameLen + parentNameLen + parentIdLen + 6));
+            int cntr = 0;
+            List<String> resultIds = new ArrayList<>(results.size());
+            for (BoxOperations.SearchResult r : results) {
+                System.out.printf(fmt, Integer.toString(++cntr), r.id, r.name, r.parentName, r.parentId);
+                resultIds.add(r.id);
+            }
+            config.saveSearchResults(resultIds);
         } finally {
             auth.saveTokens(ops.getApiConnection());
         }
@@ -703,28 +708,56 @@ public final class BoxTools
         public Properties props;
         public Path propsPath;
         public Map<String,String> aliasMap;
+        public String[] searchResults;
 
         public Config(Path propsPath) throws IOException {
             this.propsPath = propsPath;
             this.props = Utils.loadProps(propsPath);
             loadAliases();
+            loadSearchResults();
         }
 
         private void loadAliases() throws IOException {
-            final String aliases = props.getProperty("id-aliases");
-            if (aliases != null) {
+            final String aliasFile = props.getProperty("id-aliases");
+            if (aliasFile != null) {
                 aliasMap = new HashMap<>();
-                Properties aliasProps = Utils.loadProps(propsPath.resolveSibling(aliases));
+                Properties aliasProps = Utils.loadProps(propsPath.resolveSibling(aliasFile));
                 for (String name : aliasProps.stringPropertyNames())
                     aliasMap.put(name, aliasProps.getProperty(name));
             }
         }
 
+        private void loadSearchResults() throws IOException {
+            final String filename = props.getProperty("search-results");
+            if (filename != null) {
+                final Path path = propsPath.resolveSibling(filename);
+                if (Files.exists(path)) {
+                    String s = new String(Files.readAllBytes(path), StandardCharsets.US_ASCII);
+                    searchResults = StringUtils.split(s, ", ");
+                }
+            }
+        }
+
+        public void saveSearchResults(List<String> resultIds) throws IOException {
+            final String searchResultsFile = props.getProperty("search-results");
+            if (searchResultsFile != null) {
+                byte[] bytes = StringUtils.join(resultIds, ", ").getBytes(StandardCharsets.US_ASCII);
+                Files.write(propsPath.resolveSibling(searchResultsFile), bytes);
+            }
+        }
+
         public String getId(String idOrAlias) {
-            if (aliasMap == null)
-                return idOrAlias;
-            String id = aliasMap.get(idOrAlias);
-            return id != null ? id : idOrAlias;
+            if (searchResults != null) {
+                int n = Utils.parseInt(idOrAlias, -1) - 1;
+                if (n >= 0 && n < searchResults.length)
+                    return searchResults[n];
+            }
+            if (aliasMap != null) {
+                String id = aliasMap.get(idOrAlias);
+                if (id != null)
+                    return id;
+            }
+            return idOrAlias;
         }
     }
 }
