@@ -34,7 +34,7 @@ public class BoxOperations
         List<String> resultIds = new ArrayList<>(32);
         for (String id : ids) {
             final BoxFolder folder = new BoxFolder(api, id);
-            System.out.printf("\n=== %s =======================\n\n", folder.getInfo("name").getName());
+            System.out.printf("\n=== %s [%s] =======================\n\n", folder.getInfo("name").getName(), id);
             for (BoxItem.Info info : folder.getChildren("type", "id", "name")) {
                 System.out.printf("%2d. %-8s %-16s %s\n", ++resultCntr, info.getType(), info.getID(), info.getName());
                 resultIds.add(info.getID());

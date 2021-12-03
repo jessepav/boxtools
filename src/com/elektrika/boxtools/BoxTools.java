@@ -29,7 +29,7 @@ public final class BoxTools
                 "\n" +
                 "   extract <filename.boxnote> <filename.txt> [<filename.boxnote> <filename.txt> ...]\n" +
                 "   oauth\n" +
-                "   list <folder ID> [<folder ID> ...]\n" +
+                "   list [nosave|ns] <folder ID> [<folder ID> ...]\n" +
                 "   showpath [terse] file|folder <ID> [<ID> ...]\n" +
                 "   path file|folder <ID> [<ID> ...] (terse implied)\n" +
                 "   get <file ID> [<file ID> ...] <local dir>\n" +
@@ -47,7 +47,7 @@ public final class BoxTools
                 "   zip <destination path> files|folders <ID> [<ID> ...]\n" +
                 "   notetext <note ID> <filename.txt|local dir> [<note ID> <filename.txt|local dir> ...]\n" +
                 "   convertnote [folder <destination folder ID>] <note ID> [<note ID> ...]\n" +
-                "   search [limit n] file|folder|web_link <item name>\n" +
+                "   search [nosave|ns] [limit n] file|folder|web_link <item name>\n" +
                 "\n" +
                 " Use '0' as folder ID to indicate the root folder (aka \"All Files\").\n" +
                 " For 'put folder', local files may use glob patterns '*', '?', etc."
@@ -210,7 +210,7 @@ public final class BoxTools
             case "folder":
                 args.removeFirst();  // pop off the flag
                 destFolderId = args.removeFirst();
-                break optargs;
+                break;
             default:
                 break optargs;
             }
@@ -259,11 +259,18 @@ public final class BoxTools
         System.out.println("Tokens retrieved.");
     }
 
-    // list <folder ID> [<folder ID> ...]
+    // list [nosave|ns] <folder ID> [<folder ID> ...]
     //
     private static void boxList(LinkedList<String> args) throws IOException {
         if (args.size() < 1)
             showHelpAndExit();
+
+        boolean save = true;
+        final String optarg = args.peekFirst();
+        if (optarg.equals("nosave") || optarg.equals("ns")) {
+            args.removeFirst();
+            save = false;
+        }
 
         final List<String> folderIds = new ArrayList<>(args.size());
         for (String id : args)
@@ -272,7 +279,8 @@ public final class BoxTools
         BoxOperations ops = new BoxOperations(auth.createAPIConnection());
         try {
             List<String> resultIds = ops.listFolders(folderIds);
-            config.saveSearchResults(resultIds);
+            if (save)
+                config.saveSearchResults(resultIds);
         } finally {
             auth.saveTokens(ops.getApiConnection());
         }
@@ -648,10 +656,11 @@ public final class BoxTools
         }
     }
 
-    // search [limit n] file|folder|web_link <item name>
+    // search [nosave|ns] [limit n] file|folder|web_link <item name>
     //
     private static void boxSearch(LinkedList<String> args) throws IOException {
         int limit = 10;
+        boolean save = true;
 
         optargs:
         do {
@@ -662,7 +671,12 @@ public final class BoxTools
             case "limit":
                 args.removeFirst();  // pop off the flag
                 limit = Utils.parseInt(args.removeFirst(), 10);
-                break optargs;
+                break;
+            case "nosave":
+            case "ns":
+                args.removeFirst();
+                save = false;
+                break;
             default:
                 break optargs;
             }
@@ -698,7 +712,8 @@ public final class BoxTools
                 System.out.printf(fmt, Integer.toString(++cntr), r.id, r.name, r.parentName, r.parentId);
                 resultIds.add(r.id);
             }
-            config.saveSearchResults(resultIds);
+            if (save)
+                config.saveSearchResults(resultIds);
         } finally {
             auth.saveTokens(ops.getApiConnection());
         }
