@@ -2,6 +2,7 @@ package com.elektrika.boxtools;
 
 import com.box.sdk.*;
 import com.box.sdk.sharedlink.BoxSharedLinkRequest;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 
@@ -29,13 +30,15 @@ public class BoxOperations
         return api;
     }
 
-    public List<String> listFolders(List<String> ids) {
+    public List<String> listFolders(List<String> ids, String nameFilter) {
         int resultCntr = 0;
         List<String> resultIds = new ArrayList<>(32);
         for (String id : ids) {
             final BoxFolder folder = new BoxFolder(api, id);
             System.out.printf("\n=== %s [%s] =======================\n\n", folder.getInfo("name").getName(), id);
             for (BoxItem.Info info : folder.getChildren("type", "id", "name")) {
+                if (nameFilter != null && !StringUtils.containsIgnoreCase(info.getName(), nameFilter))
+                    continue;
                 System.out.printf("%2d. %-8s %-16s %s\n", ++resultCntr, info.getType(), info.getID(), info.getName());
                 resultIds.add(info.getID());
             }

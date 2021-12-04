@@ -29,7 +29,7 @@ public final class BoxTools
                 "\n" +
                 "   extract <filename.boxnote> <filename.txt> [<filename.boxnote> <filename.txt> ...]\n" +
                 "   oauth\n" +
-                "   list [nosave|ns] <folder ID> [<folder ID> ...]\n" +
+                "   list [nosave|ns] [filter <term>] <folder ID> [<folder ID> ...]\n" +
                 "   showpath [terse] file|folder <ID> [<ID> ...]\n" +
                 "   path file|folder <ID> [<ID> ...] (terse implied)\n" +
                 "   get <file ID> [<file ID> ...] <local dir>\n" +
@@ -259,18 +259,34 @@ public final class BoxTools
         System.out.println("Tokens retrieved.");
     }
 
-    // list [nosave|ns] <folder ID> [<folder ID> ...]
+    // list [nosave|ns] [filter <term>] <folder ID> [<folder ID> ...]
     //
     private static void boxList(LinkedList<String> args) throws IOException {
         if (args.size() < 1)
             showHelpAndExit();
 
         boolean save = true;
-        final String optarg = args.peekFirst();
-        if (optarg.equals("nosave") || optarg.equals("ns")) {
-            args.removeFirst();
-            save = false;
-        }
+        String nameFilter = null;
+
+        optargs:
+        do {
+            String flag = args.peekFirst();
+            if (flag == null)
+                break;
+            switch (flag) {
+            case "nosave":
+            case "ns":
+                args.removeFirst();
+                save = false;
+                break;
+            case "filter":
+                args.removeFirst();
+                nameFilter = args.removeFirst();
+                break;
+            default:
+                break optargs;
+            }
+        } while (true);
 
         final List<String> folderIds = new ArrayList<>(args.size());
         for (String id : args)
@@ -278,7 +294,7 @@ public final class BoxTools
         BoxAuth auth = new BoxAuth(config);
         BoxOperations ops = new BoxOperations(auth.createAPIConnection());
         try {
-            List<String> resultIds = ops.listFolders(folderIds);
+            List<String> resultIds = ops.listFolders(folderIds, nameFilter);
             if (save && !resultIds.isEmpty())
                 config.saveSearchResults(resultIds);
         } finally {
