@@ -279,7 +279,7 @@ public final class BoxTools
         BoxOperations ops = new BoxOperations(auth.createAPIConnection());
         try {
             List<String> resultIds = ops.listFolders(folderIds);
-            if (save)
+            if (save && !resultIds.isEmpty())
                 config.saveSearchResults(resultIds);
         } finally {
             auth.saveTokens(ops.getApiConnection());
@@ -712,7 +712,7 @@ public final class BoxTools
                 System.out.printf(fmt, Integer.toString(++cntr), r.id, r.name, r.parentName, r.parentId);
                 resultIds.add(r.id);
             }
-            if (save)
+            if (save && !resultIds.isEmpty())
                 config.saveSearchResults(resultIds);
         } finally {
             auth.saveTokens(ops.getApiConnection());
