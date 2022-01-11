@@ -41,6 +41,8 @@ public final class BoxTools
                 "   rename file|folder <file or folder ID> <new name>\n" +
                 "   move file|folder <item ID> <destination folder ID>\n" +
                 "   moveall <source folder ID> <destination folder ID> [<name match regex>]\n" +
+                "   copy file|folder <item ID> <destination folder ID>\n" +
+                "   copyall <source folder ID> <destination folder ID> [<name match regex>]\n" +
                 "   rget [norecurse] <folder ID> <local dir> [<name match regex>]\n" +
                 "   rput [norecurse] <parent folder ID> <local dir> [<name match regex>]\n" +
                 "   rdel <folder ID> <name match regex>\n" +
@@ -98,10 +100,16 @@ public final class BoxTools
             boxRename(argsList);
             break;
         case "moveall":
-            boxMoveAll(argsList);
+            boxMoveCopyAll(false, argsList);
             break;
         case "move":
-            boxMove(argsList);
+            boxMoveCopy(false, argsList);
+            break;
+        case "copyall":
+            boxMoveCopyAll(true, argsList);
+            break;
+        case "copy":
+            boxMoveCopy(true, argsList);
             break;
         case "rget":
             rget(argsList);
@@ -530,8 +538,9 @@ public final class BoxTools
     }
 
     // move file|folder <item ID> <destination folder ID>
+    // copy file|folder <item ID> <destination folder ID>
     //
-    private static void boxMove(LinkedList<String> args) throws IOException {
+    private static void boxMoveCopy(boolean copy, LinkedList<String> args) throws IOException {
         if (args.size() < 3)
             showHelpAndExit();
 
@@ -544,8 +553,8 @@ public final class BoxTools
             BoxAuth auth = new BoxAuth(config);
             BoxOperations ops = new BoxOperations(auth.createAPIConnection());
             try {
-                Pair<String,String> names = ops.moveItem(isFolder, config.getId(sourceId), config.getId(destId));
-                System.out.printf("Moved %s \"%s\" to folder \"%s\"",
+                Pair<String,String> names = ops.moveCopyItem(copy, isFolder, config.getId(sourceId), config.getId(destId));
+                System.out.printf((copy ? "Copied" : "Moved") + " %s \"%s\" to folder \"%s\"",
                     isFile ? "file" : "folder", names.getLeft(), names.getRight());
             } finally {
                 auth.saveTokens(ops.getApiConnection());
@@ -556,8 +565,9 @@ public final class BoxTools
     }
 
     // moveall <source folder ID> <destination folder ID> [<name match regex>]
+    // copyall <source folder ID> <destination folder ID> [<name match regex>]
     //
-    private static void boxMoveAll(LinkedList<String> args) throws IOException {
+    private static void boxMoveCopyAll(boolean copy, LinkedList<String> args) throws IOException {
         if (args.size() < 2)
             showHelpAndExit();
         final String sourceId = args.removeFirst();
@@ -567,7 +577,7 @@ public final class BoxTools
         BoxAuth auth = new BoxAuth(config);
         BoxOperations ops = new BoxOperations(auth.createAPIConnection());
         try {
-            ops.moveAll(config.getId(sourceId), config.getId(destId), regex, true);
+            ops.moveCopyAll(copy, config.getId(sourceId), config.getId(destId), regex, true);
         } finally {
             auth.saveTokens(ops.getApiConnection());
         }

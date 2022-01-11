@@ -213,7 +213,7 @@ public class BoxOperations
         return new BoxFolder(api, id).getInfo("name").getName();
     }
 
-    public void moveAll(String sourceId, String destId, String regex, boolean verbose) {
+    public void moveCopyAll(boolean copy, String sourceId, String destId, String regex, boolean verbose) {
         final BoxFolder sourceFolder = new BoxFolder(api, sourceId);
         final BoxFolder destFolder = new BoxFolder(api, destId);
         List<String> itemIds = new ArrayList<>(256);
@@ -231,7 +231,7 @@ public class BoxOperations
             itemTypes.add(info.getType());
         }
         if (verbose)
-            System.out.printf("Moving items from \"%s\" to \"%s\"...\n",
+            System.out.printf((copy ? "Copying" : "Moving") + " items from \"%s\" to \"%s\"...\n",
                 sourceFolder.getInfo("name").getName(), destFolder.getInfo("name").getName());
         for (int i = 0; i < itemIds.size(); i++) {
             String id = itemIds.get(i);
@@ -253,7 +253,7 @@ public class BoxOperations
                     System.out.println("Skipping item of unknown type: " + type);
                 continue;
             }
-            BoxItem.Info info = item.move(destFolder);
+            BoxItem.Info info = copy ? item.copy(destFolder) : item.move(destFolder);
             if (verbose)
                 System.out.println(info.getName());
         }
@@ -530,18 +530,24 @@ public class BoxOperations
             return Triple.of(name, link.getURL(), isFolder ? null : link.getDownloadURL());
     }
 
-    public Pair<String,String> moveItem(boolean isFolder, String sourceId, String destId) {
+    public Pair<String,String> moveCopyItem(boolean copy, boolean isFolder, String sourceId, String destId) {
         String sourceName, destName;
         final BoxFolder destFolder = new BoxFolder(api, destId);
         destName = destFolder.getInfo("name").getName();
         if (!isFolder) { // aka isFile
             BoxFile file = new BoxFile(api, sourceId);
             sourceName = file.getInfo("name").getName();
-            file.move(destFolder);
+            if (copy)
+                file.copy(destFolder);
+            else
+                file.move(destFolder);
         } else {
             BoxFolder folder = new BoxFolder(api, sourceId);
             sourceName = folder.getInfo("name").getName();
-            folder.move(destFolder);
+            if (copy)
+                folder.copy(destFolder);
+            else
+                folder.move(destFolder);
         }
         return Pair.of(sourceName, destName);
     }
