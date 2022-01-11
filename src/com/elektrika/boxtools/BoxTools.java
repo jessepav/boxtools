@@ -27,29 +27,34 @@ public final class BoxTools
                 "\n" +
                 "Commands:\n" +
                 "\n" +
-                "   extract <filename.boxnote> <filename.txt> [<filename.boxnote> <filename.txt> ...]\n" +
                 "   oauth\n" +
+                "\n" +
                 "   list [nosave|ns] [filter <term>] <folder ID> [<folder ID> ...]\n" +
+                "   search [nosave|ns] [limit n] file|folder|web_link <item name>\n" +
                 "   showpath [terse] file|folder <ID> [<ID> ...]\n" +
                 "   path file|folder <ID> [<ID> ...] (terse implied)\n" +
+                "   link file|folder [remove] <ID> [<ID> ...]\n" +
+                "\n" +
                 "   get <file ID> [<file ID> ...] <local dir>\n" +
                 "   put version <file ID> <local file> [<file ID> <local file> ...]\n" +
                 "   put folder <folder ID> <local file> [<local file> ...]\n" +
-                "   newfolder <parent folder ID> <folder name>\n" +
                 "   del file|folder <ID> [<ID> ...]\n" +
-                "   link file|folder [remove] <ID> [<ID> ...]\n" +
-                "   rename file|folder <file or folder ID> <new name>\n" +
+                "   rget [norecurse] <folder ID> <local dir> [<name match regex>]\n" +
+                "   rput [norecurse] <parent folder ID> <local dir> [<name match regex>]\n" +
+                "   rdel <folder ID> <name match regex>\n" +
+                "\n" +
                 "   move file|folder <item ID> <destination folder ID>\n" +
                 "   moveall <source folder ID> <destination folder ID> [<name match regex>]\n" +
                 "   copy file|folder <item ID> <destination folder ID>\n" +
                 "   copyall <source folder ID> <destination folder ID> [<name match regex>]\n" +
-                "   rget [norecurse] <folder ID> <local dir> [<name match regex>]\n" +
-                "   rput [norecurse] <parent folder ID> <local dir> [<name match regex>]\n" +
-                "   rdel <folder ID> <name match regex>\n" +
+                "\n" +
+                "   rename file|folder <file or folder ID> <new name>\n" +
+                "   newfolder <parent folder ID> <folder name>\n" +
                 "   zip <destination path> files|folders <ID> [<ID> ...]\n" +
+                "\n" +
+                "   extract <filename.boxnote> <filename.txt> [<filename.boxnote> <filename.txt> ...]\n" +
                 "   notetext <note ID> <filename.txt|local dir> [<note ID> <filename.txt|local dir> ...]\n" +
                 "   convertnote [folder <destination folder ID>] <note ID> [<note ID> ...]\n" +
-                "   search [nosave|ns] [limit n] file|folder|web_link <item name>\n" +
                 "\n" +
                 " Use '0' as folder ID to indicate the root folder (aka \"All Files\").\n" +
                 " For 'put folder', local files may use glob patterns '*', '?', etc."
