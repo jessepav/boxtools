@@ -35,7 +35,16 @@ public class BoxOperations
         List<String> resultIds = new ArrayList<>(32);
         for (String id : ids) {
             final BoxFolder folder = new BoxFolder(api, id);
-            System.out.printf("\n=== %s [%s] =======================\n\n", folder.getInfo("name").getName(), id);
+            System.out.printf("\n%2d. === %s [%s] =======================\n", ++resultCntr, folder.getInfo("name").getName(), id);
+            resultIds.add(id);
+            if (!id.equals("0")) {
+                final BoxFolder.Info parentInfo = folder.getInfo("parent").getParent();
+                final String parentId = parentInfo == null ? "0" : parentInfo.getID();
+                final String parentName = parentInfo == null ? "All Files" : parentInfo.getName();
+                System.out.printf("%2d.   == Parent: %s [%s] ==========\n", ++resultCntr, parentName, parentId);
+                resultIds.add(parentId);
+            }
+            System.out.println();
             for (BoxItem.Info info : folder.getChildren("type", "id", "name")) {
                 if (nameFilter != null && !StringUtils.containsIgnoreCase(info.getName(), nameFilter))
                     continue;
