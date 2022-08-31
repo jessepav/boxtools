@@ -8,3 +8,7 @@
 /.idea/dictionaries
 /config/boxtools.properties
 /config/id-aliases.properties
+
+GTAGS
+GRTAGS
+GPATH
