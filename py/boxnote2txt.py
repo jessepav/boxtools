@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import sys, os.path, json, argparse
+import sys, os.path, json, argparse, re
 from io import StringIO
 
 indent_size = 4
@@ -41,6 +41,16 @@ def decode_note_obj(obj, listtype=None, listlevel=0, listitem_cntr=0):
     else:
         return ""   # Unknown content type
 
+def typography_repl_fn(matchobj):
+    s = matchobj[0]
+    if s in ['“', '”']:
+        return '"'
+    elif s == "’":
+        return "'"
+    elif s == "—":
+        return '--'
+    else:
+        return s
 
 if __name__ == '__main__':
     cli_parser = argparse.ArgumentParser(description='Convert new-style Box Notes to text')
@@ -48,16 +58,22 @@ if __name__ == '__main__':
     cli_parser.add_argument('textfile', help='Text output file', nargs='?', default='-')
     cli_parser.add_argument('-i', '--indent', metavar='n', type=int, default=3,
             help='Number of spaces per indent level')
+    cli_parser.add_argument('-t', '--remove-typography', action='store_true',
+            help='Remove "smart" typography (fancy quotes, dashes, etc.)')
     options = cli_parser.parse_args()
 
     notefile = options.boxnote
     textfile = options.textfile
     indent_size = options.indent
+    remove_typography = options.remove_typography
 
     with open(notefile, "rt") as f:
         notejson = json.load(f)
 
     text = decode_note_obj(notejson['doc'])
+    if remove_typography:
+        text = re.sub(r"[“”’—]", typography_repl_fn, text)
+
     if textfile == '-':
         print(text, end='')
     else:
