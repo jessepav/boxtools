@@ -10,3 +10,9 @@ project).
 
 It's ridiculous that as of this writing (Autumn 2021) Box doesn't offer
 an API to retrieve the contents of a Box Note in any usable format.
+
+### Update: Aug 2022
+
+Box has updated its Notes format to a much easier-to-parse (yet still
+undocumented, of course) format. See `boxnote2txt.py` in the `py` directory for
+a converter from `.boxnote` to text.
