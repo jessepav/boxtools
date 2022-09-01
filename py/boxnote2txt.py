@@ -8,7 +8,6 @@ indent_size = 4
 def decode_note_obj(obj, listtype=None, listlevel=0, listitem_cntr=0):
     type_ = obj.get('type')
     content_ = obj.get('content')
-    # print(f"Entering {type_ = } with content length = {len(content_) if content_ else 0}")
     if type_ == 'doc' and content_:
         return ''.join(decode_note_obj(x) for x in content_)
     elif type_ == 'paragraph':
@@ -39,7 +38,8 @@ def decode_note_obj(obj, listtype=None, listlevel=0, listitem_cntr=0):
                     return f'*{text_}*'
         return text_
     else:
-        return ""   # Unknown content type
+        print(f"Unknown content type: '{type_}'", file=sys.stderr)
+        return ""
 
 def typography_repl_fn(matchobj):
     s = matchobj[0]
