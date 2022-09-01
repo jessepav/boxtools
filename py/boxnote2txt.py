@@ -55,11 +55,13 @@ def typography_repl_fn(matchobj):
 if __name__ == '__main__':
     cli_parser = argparse.ArgumentParser(description='Convert new-style Box Notes to text')
     cli_parser.add_argument('boxnote', help='Box Note JSON input file')
-    cli_parser.add_argument('textfile', help='Text output file', nargs='?', default='-')
+    cli_parser.add_argument('textfile', nargs='?', default='-',
+            help='Text output file. If omitted or set to "-", we print text to stdout.')
     cli_parser.add_argument('-i', '--indent', metavar='n', type=int, default=3,
             help='Number of spaces per indent level')
     cli_parser.add_argument('-t', '--remove-typography', action='store_true',
-            help='Remove "smart" typography (fancy quotes, dashes, etc.)')
+            help='Remove "smart" typography (fancy quotes, dashes, etc.), replacing each '
+                 'instance with its ASCII equivalent')
     cli_parser.add_argument('-s', '--strip-trailing-lines', action='store_true',
             help='Strip off trailing blank lines')
     options = cli_parser.parse_args()
