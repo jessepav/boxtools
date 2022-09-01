@@ -60,17 +60,22 @@ if __name__ == '__main__':
             help='Number of spaces per indent level')
     cli_parser.add_argument('-t', '--remove-typography', action='store_true',
             help='Remove "smart" typography (fancy quotes, dashes, etc.)')
+    cli_parser.add_argument('-s', '--strip-trailing-lines', action='store_true',
+            help='Strip off trailing blank lines')
     options = cli_parser.parse_args()
 
     notefile = options.boxnote
     textfile = options.textfile
     indent_size = options.indent
     remove_typography = options.remove_typography
+    strip_trailing = options.strip_trailing_lines
 
     with open(notefile, "rt") as f:
         notejson = json.load(f)
 
     text = decode_note_obj(notejson['doc'])
+    if strip_trailing:
+        text = text.rstrip() + '\n'
     if remove_typography:
         text = re.sub(r"[“”’—]", typography_repl_fn, text)
 
