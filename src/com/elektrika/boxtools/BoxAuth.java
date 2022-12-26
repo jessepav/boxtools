@@ -40,7 +40,10 @@ public final class BoxAuth
         final String clientSecret = config.props.getProperty("client-secret");
         final String redirectUri = config.props.getProperty("redirect-uri");
         final int port = new URI(redirectUri).getPort();
-        final URI authorizationUri = new URI(StringUtils.replace(config.props.getProperty("authorization-url"), "[CLIENT_ID]", clientId, 1));
+        String authUriString = config.props.getProperty("authorization-url");
+        authUriString = StringUtils.replace(authUriString, "[CLIENT_ID]", clientId, 1);
+        authUriString = StringUtils.replace(authUriString, "[PORT]", Integer.toString(port), 1);
+        final URI authorizationUri = new URI(authUriString);
 
         OAuthHttpServer server = new OAuthHttpServer(port);
         server.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
