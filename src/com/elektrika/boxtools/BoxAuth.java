@@ -62,6 +62,7 @@ public final class BoxAuth
                 } catch (InterruptedException e) { /* ignore */ }
             }
         }
+        System.out.println("Code received -- attempting API connection");
         BoxAPIConnection client = new BoxAPIConnection(clientId, clientSecret, server.code);
         usingJwt = false;
         saveTokens(client);
