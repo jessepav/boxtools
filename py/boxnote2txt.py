@@ -49,6 +49,8 @@ def typography_repl_fn(matchobj):
         return "'"
     elif s == "—":
         return '--'
+    elif s == "\u00A0":
+        return ' '
     else:
         return s
 
@@ -79,7 +81,7 @@ if __name__ == '__main__':
     if strip_trailing:
         text = text.rstrip() + '\n'
     if remove_typography:
-        text = re.sub(r"[“”’—]", typography_repl_fn, text)
+        text = re.sub(r"[“”’—\u00A0]", typography_repl_fn, text)
 
     if textfile == '-':
         print(text, end='')
