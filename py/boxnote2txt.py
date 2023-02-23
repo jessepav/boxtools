@@ -37,6 +37,8 @@ def decode_note_obj(obj, listtype=None, listlevel=0, listitem_cntr=0):
                 elif mtype_ == 'em':
                     return f'*{text_}*'
         return text_
+    elif type_ == 'hard_break':
+        return '\n'
     else:
         print(f"Unknown content type: '{type_}'", file=sys.stderr)
         return ""
