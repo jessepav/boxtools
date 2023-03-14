@@ -4,6 +4,7 @@ import sys, os.path, json, argparse, re
 from io import StringIO
 
 indent_size = 4
+code_block_style = ''
 
 def decode_note_obj(obj, listtype=None, listlevel=0, listitem_cntr=0):
     type_ = obj.get('type')
@@ -39,6 +40,40 @@ def decode_note_obj(obj, listtype=None, listlevel=0, listitem_cntr=0):
         return text_
     elif type_ == 'hard_break':
         return '\n'
+    elif type_ == 'code_block':
+        if not content_: return '\n'
+        code_block_text = '\n'.join(decode_note_obj(x) for x in content_)
+        buf = StringIO()
+        if code_block_style == 'markdown':
+            language = obj.get('attrs', {}).get('language')
+            language = language.lower() if language else ''
+            buf.write(f"```{language}\n")
+            buf.write(code_block_text)
+            buf.write("\n```\n")
+        else:
+            indent = ' ' * indent_size
+            for line in code_block_text.splitlines(keepends=True):
+                buf.write(indent + line)
+            buf.write('\n')
+        text = buf.getvalue()
+        buf.close()
+        return text
+    elif type_ == 'heading':
+        level = obj['attrs']['level']
+        htext = ''.join(decode_note_obj(x) for x in content_) if content_ else ''
+        return f"\n{'#' * level}  {htext}\n\n"
+    elif type_ == 'horizontal_rule':
+        return "\n-------------------\n\n"
+    elif type_ == 'blockquote':
+        quoted_text = '\n'.join(decode_note_obj(x) for x in content_)
+        buf = StringIO()
+        buf.write('\n')
+        for line in quoted_text.splitlines(keepends=True):
+            buf.write('> ' + line)
+        buf.write('\n')
+        text = buf.getvalue()
+        buf.close()
+        return text
     else:
         print(f"Unknown content type: '{type_}'", file=sys.stderr)
         return ""
@@ -68,6 +103,8 @@ if __name__ == '__main__':
                  'instance with its ASCII equivalent')
     cli_parser.add_argument('-s', '--strip-trailing-lines', action='store_true',
             help='Strip off trailing blank lines')
+    cli_parser.add_argument('-m', '--markdown', action='store_true',
+            help='Format (some) output as Markdown rather than plain text')
     options = cli_parser.parse_args()
 
     notefile = options.boxnote
@@ -75,6 +112,7 @@ if __name__ == '__main__':
     indent_size = options.indent
     remove_typography = options.remove_typography
     strip_trailing = options.strip_trailing_lines
+    code_block_style = 'markdown' if options.markdown else 'text'
 
     with open(notefile, "rt") as f:
         notejson = json.load(f)
