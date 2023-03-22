@@ -29,7 +29,7 @@ class OAuthRequestHandler(BaseHTTPRequestHandler):
 
 def shutdown_server():
     print("Shutting down...")
-    thread = Thread(target = lambda: http_server.shutdown())
+    thread = Thread(target = http_server.shutdown)
     thread.start()
 
 def start_server():
