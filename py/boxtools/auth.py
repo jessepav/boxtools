@@ -49,9 +49,16 @@ def retrieve_tokens(client_id, client_secret, redirect_url):
         print("The redirect URL must include an explicit port number.")
         sys.exit(1)
     import webbrowser
+    print("Opening a web browser to URL:\n\n", auth_url, sep='')
     webbrowser.open(auth_url)
     start_server(port)
     access_token, refresh_token = oauth.authenticate(authcode)
+    return access_token, refresh_token
+
+def refresh_tokens(client_id, client_secret, access_token, refresh_token):
+    oauth = OAuth2(client_id=client_id, client_secret=client_secret,
+                   access_token=access_token, refresh_token=refresh_token)
+    access_token, refresh_token = oauth.refresh(access_token)
     return access_token, refresh_token
 
 def get_client(client_id, client_secret, access_token, refresh_token):

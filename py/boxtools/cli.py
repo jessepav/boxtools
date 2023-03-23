@@ -13,10 +13,13 @@ usage = """\
 Usage: boxcli.sh command [args...]
 
 Commands:
-    auth
-    userinfo
+    auth        obtain auth tokens via OAuth2
+    refresh     refresh existing auth tokens
+
+    userinfo    print user info
 """
 
+# The user can override the default ~/.boxtools directory via $BOXTOOLS_DIR
 config_dir = os.environ.get("BOXTOOLS_DIR", os.path.expanduser("~/.boxtools"))
 
 if not os.path.exists(config_dir):
@@ -44,11 +47,13 @@ if client_id == "(your client-id)" or client_secret == "(your client-secret)":
     print(f"Edit '{config_file}' to supply a valid client ID and secret")
     sys.exit(0)
 
+# Print help if we need to
 args = sys.argv[1:]
 if len(args) == 0 or any(flag in args for flag in ('-h', '--help')):
     print(usage, end="")
     sys.exit(1)
 
+# Two functions to work with the tokens file
 def save_tokens(access_token, refresh_token):
     with open(tokens_file, 'wt') as f:
         json.dump({ 'access_token' : access_token, 'refresh_token' : refresh_token }, f, 
@@ -62,13 +67,21 @@ def load_tokens_or_die():
         tokendict = json.load(f)
     return tokendict['access_token'], tokendict['refresh_token']
 
+# And now our big command if-else
 command = args.pop(0)
+# The auth commands are special in that they don't need a client
 if command == "auth":
     from .auth import retrieve_tokens
     access_token, refresh_token = retrieve_tokens(client_id, client_secret, redirect_url)
     save_tokens(access_token, refresh_token)
     print(f"Tokens saved to {tokens_file}")
-else:
+elif command == "refresh":
+    access_token, refresh_token = load_tokens_or_die()
+    from .auth import refresh_tokens
+    access_token, refresh_tokens = refresh_tokens(client_id, client_secret, access_token, refresh_token)
+    save_tokens(access_token, refresh_token)
+    print(f"Tokens refreshed and saved")
+else:  # All the other commands depend upon a client
     access_token, refresh_token = load_tokens_or_die()
     from .auth import get_client
     client = get_client(client_id, client_secret, access_token, refresh_token)
