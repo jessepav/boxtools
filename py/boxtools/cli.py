@@ -58,6 +58,7 @@ def save_tokens(access_token, refresh_token):
     with open(tokens_file, 'wt') as f:
         json.dump({ 'access_token' : access_token, 'refresh_token' : refresh_token }, f, 
                   indent=2)
+        f.write('\n')  # We want the file to end in a newline, like a usual text file
 
 def load_tokens_or_die():
     if not os.path.exists(tokens_file):
@@ -89,7 +90,8 @@ else:  # All the other commands depend upon a client
     client = get_client(client_id, client_secret, access_token, refresh_token)
     if command == "userinfo":
         user = ops.getuserinfo(client)
-        print(json.dumps({ 'id' : user.id, 'login' : user.login, 'name' : user.name }, indent=2))
+        infodict = {field : getattr(user, field) for field in ('id', 'login', 'name')}
+        print(json.dumps(infodict, indent=2))
     else:
         print(f"Unknown command '{command}'")
         sys.exit(2)
