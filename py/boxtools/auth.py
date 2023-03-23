@@ -51,7 +51,7 @@ def retrieve_tokens(client_id, client_secret, redirect_url):
     import webbrowser
     print("Opening a web browser to URL:\n\n", auth_url, sep='')
     webbrowser.open(auth_url)
-    start_server(port)
+    start_server(port)  # This blocks until we retrieve the authcode!
     access_token, refresh_token = oauth.authenticate(authcode)
     return access_token, refresh_token
 

@@ -80,7 +80,7 @@ if command == "auth":
 elif command == "refresh":
     access_token, refresh_token = load_tokens_or_die()
     from .auth import refresh_tokens
-    access_token, refresh_tokens = refresh_tokens(client_id, client_secret, access_token, refresh_token)
+    access_token, refresh_token = refresh_tokens(client_id, client_secret, access_token, refresh_token)
     save_tokens(access_token, refresh_token)
     print(f"Tokens refreshed and saved")
 else:  # All the other commands depend upon a client
