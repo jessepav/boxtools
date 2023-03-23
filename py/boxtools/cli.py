@@ -16,7 +16,7 @@ Commands:
     auth        obtain auth tokens via OAuth2
     refresh     refresh existing auth tokens
 
-    userinfo    print user info
+    userinfo    print user info as JSON
 """
 
 # The user can override the default ~/.boxtools directory via $BOXTOOLS_DIR
@@ -67,6 +67,8 @@ def load_tokens_or_die():
         tokendict = json.load(f)
     return tokendict['access_token'], tokendict['refresh_token']
 
+import boxtools.ops as ops
+
 # And now our big command if-else
 command = args.pop(0)
 # The auth commands are special in that they don't need a client
@@ -86,8 +88,8 @@ else:  # All the other commands depend upon a client
     from .auth import get_client
     client = get_client(client_id, client_secret, access_token, refresh_token)
     if command == "userinfo":
-        user = client.user().get()
-        print(f"User ID: {user.id}, Name: {user.name}")
+        user = ops.getuserinfo(client)
+        print(json.dumps({ 'id' : user.id, 'login' : user.login, 'name' : user.name }, indent=2))
     else:
         print(f"Unknown command '{command}'")
         sys.exit(2)
