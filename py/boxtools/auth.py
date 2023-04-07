@@ -61,9 +61,10 @@ def refresh_tokens(client_id, client_secret, access_token, refresh_token):
     access_token, refresh_token = oauth.refresh(access_token)
     return access_token, refresh_token
 
-def get_client(client_id, client_secret, access_token, refresh_token):
+def get_client(client_id, client_secret, access_token, refresh_token, save_tokens):
     oauth = OAuth2(client_id=client_id, client_secret=client_secret,
-                   access_token=access_token, refresh_token=refresh_token)
+                   access_token=access_token, refresh_token=refresh_token,
+                   store_tokens=save_tokens)
     client = Client(oauth)
     return client
 

@@ -87,7 +87,7 @@ elif command == "refresh":
 else:  # All the other commands depend upon a client
     access_token, refresh_token = load_tokens_or_die()
     from .auth import get_client
-    client = get_client(client_id, client_secret, access_token, refresh_token)
+    client = get_client(client_id, client_secret, access_token, refresh_token, save_tokens)
     if command == "userinfo":
         user = ops.getuserinfo(client)
         infodict = {field : getattr(user, field) for field in ('id', 'login', 'name')}
