@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BTDIR="$(realpath "$(dirname "$0")")"
+export BOXTOOLS_APP_DIR="$(realpath "$(dirname "$0")")"
 
-export PYTHONPATH="$BTDIR${PYTHONPATH:+":$PYTHONPATH"}"
-"$BTDIR/venv/bin/python" -m boxtools.cli "$@"
+export PYTHONPATH="$BOXTOOLS_APP_DIR${PYTHONPATH:+":$PYTHONPATH"}"
+"$BOXTOOLS_APP_DIR/venv/bin/python" -m boxtools.cli "$@"

@@ -9,14 +9,16 @@ client-secret = "(your client-secret)"
 redirect-url = "http://127.0.0.1:18444"
 """
 
-usage = """\
-Usage: boxcli.sh command [args...]
+usage = f"""\
+Usage: cli.sh command [args...]
 
 Commands:
     auth        obtain auth tokens via OAuth2
     refresh     refresh existing auth tokens
 
     userinfo    print user info as JSON
+
+BOXTOOLS_APP_DIR = "{os.environ.get("BOXTOOLS_APP_DIR")}"
 """
 
 # The user can override the default ~/.boxtools directory via $BOXTOOLS_DIR
