@@ -40,9 +40,9 @@ def start_server(port):
     http_server = HTTPServer(('127.0.0.1', port), OAuthRequestHandler)
     http_server.serve_forever()
 
-def retrieve_tokens(client_id, client_secret, redirect_url):
+def retrieve_tokens(client_id, client_secret, redirect_url, save_tokens):
     global auth_url, csrf_token, authcode
-    oauth = OAuth2(client_id=client_id, client_secret=client_secret)
+    oauth = OAuth2(client_id=client_id, client_secret=client_secret, store_tokens=save_tokens)
     auth_url, csrf_token = oauth.get_authorization_url(redirect_url)
     port = urlparse(redirect_url).port
     if not port:
@@ -55,9 +55,10 @@ def retrieve_tokens(client_id, client_secret, redirect_url):
     access_token, refresh_token = oauth.authenticate(authcode)
     return access_token, refresh_token
 
-def refresh_tokens(client_id, client_secret, access_token, refresh_token):
+def refresh_tokens(client_id, client_secret, access_token, refresh_token, save_tokens):
     oauth = OAuth2(client_id=client_id, client_secret=client_secret,
-                   access_token=access_token, refresh_token=refresh_token)
+                   access_token=access_token, refresh_token=refresh_token,
+                   store_tokens=save_tokens)
     access_token, refresh_token = oauth.refresh(access_token)
     return access_token, refresh_token
 

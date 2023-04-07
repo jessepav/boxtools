@@ -75,14 +75,12 @@ command = args.pop(0)
 # The auth commands are special in that they don't need a client
 if command == "auth":
     from .auth import retrieve_tokens
-    access_token, refresh_token = retrieve_tokens(client_id, client_secret, redirect_url)
-    save_tokens(access_token, refresh_token)
+    retrieve_tokens(client_id, client_secret, redirect_url, save_tokens)
     print(f"Tokens saved to {tokens_file}")
 elif command == "refresh":
     access_token, refresh_token = load_tokens_or_die()
     from .auth import refresh_tokens
-    access_token, refresh_token = refresh_tokens(client_id, client_secret, access_token, refresh_token)
-    save_tokens(access_token, refresh_token)
+    refresh_tokens(client_id, client_secret, access_token, refresh_token, save_tokens)
     print(f"Tokens refreshed and saved")
 else:  # All the other commands depend upon a client
     access_token, refresh_token = load_tokens_or_die()
