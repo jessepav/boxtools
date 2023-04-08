@@ -1,0 +1,9 @@
+Usage: {progname} command [args...]
+
+Commands:
+    auth        obtain auth tokens via OAuth2
+    refresh     refresh existing auth tokens
+
+    userinfo    print user info as JSON
+
+Use "{progname} [command] --help" for more information about a command.

@@ -2,24 +2,20 @@ import os, os.path, sys
 import json
 import tomli
 
-default_config_toml = """\
-[auth]
-client-id = "(your client-id)"
-client-secret = "(your client-secret)"
-redirect-url = "http://127.0.0.1:18444"
-"""
+app_dir = os.environ.get("BOXTOOLS_APP_DIR")
+if not app_dir:
+    print("You must set $BOXTOOLS_APP_DIR before running this program!")
+    sys.exit(1)
 
-usage = f"""\
-Usage: cli.sh command [args...]
+def load_resources():
+    global default_config_toml, usage
+    with open(os.path.join(app_dir, 'resources/boxtools.toml'), "rt") as f:
+        default_config_toml = f.read()
+    with open(os.path.join(app_dir, 'resources/usage.txt'), "rt") as f:
+        usage = f.read()
+    usage = usage.format(progname=os.path.basename(sys.argv[0]))
 
-Commands:
-    auth        obtain auth tokens via OAuth2
-    refresh     refresh existing auth tokens
-
-    userinfo    print user info as JSON
-
-BOXTOOLS_APP_DIR = "{os.environ.get("BOXTOOLS_APP_DIR")}"
-"""
+load_resources()
 
 # The user can override the default ~/.boxtools directory via $BOXTOOLS_DIR
 config_dir = os.environ.get("BOXTOOLS_DIR", os.path.expanduser("~/.boxtools"))
@@ -58,7 +54,7 @@ if len(args) == 0 or any(flag in args for flag in ('-h', '--help')):
 # Two functions to work with the tokens file
 def save_tokens(access_token, refresh_token):
     with open(tokens_file, 'wt') as f:
-        json.dump({ 'access_token' : access_token, 'refresh_token' : refresh_token }, f, 
+        json.dump({ 'access_token' : access_token, 'refresh_token' : refresh_token }, f,
                   indent=2)
         f.write('\n')  # We want the file to end in a newline, like a usual text file
 

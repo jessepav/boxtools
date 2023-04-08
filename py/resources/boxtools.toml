@@ -1,0 +1,4 @@
+[auth]
+client-id = "(your client-id)"
+client-secret = "(your client-secret)"
+redirect-url = "http://127.0.0.1:18444"
