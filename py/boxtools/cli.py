@@ -84,12 +84,20 @@ def auth_cmd(args):
     print(f"Tokens saved to {tokens_file}")
 
 def refresh_cmd(args):
+    if len(args):
+        print(f"usage: {os.path.basename(sys.argv[0])} refresh\n\n"
+               "Manually refresh access tokens")
+        sys.exit(1)
     access_token, refresh_token = load_tokens_or_die()
     from .auth import refresh_tokens
     refresh_tokens(client_id, client_secret, access_token, refresh_token, save_tokens)
     print(f"Tokens refreshed and saved")
 
 def userinfo_cmd(args, client):
+    if len(args):
+        print(f"usage: {os.path.basename(sys.argv[0])} userinfo\n\n"
+               "Print authorized user information as a JSON object")
+        sys.exit(1)
     user = ops.getuserinfo(client)
     infodict = {field : getattr(user, field) for field in ('id', 'login', 'name')}
     print(json.dumps(infodict, indent=2))
