@@ -67,7 +67,18 @@ def load_tokens_or_die():
         tokendict = json.load(f)
     return tokendict['access_token'], tokendict['refresh_token']
 
-# Definte command functions {{{1
+
+# Support functions for boxtools.ops {{{1
+
+# Loads boxtools.ops as 'ops' in the global namespace, and retrieves a Box Client object
+def get_ops_client():
+    global ops
+    import boxtools.ops as ops
+    access_token, refresh_token = load_tokens_or_die()
+    from .auth import get_client
+    return get_client(client_id, client_secret, access_token, refresh_token, save_tokens)
+
+# Define command functions {{{1
 
 def auth_cmd(args):
     cli_parser = argparse.ArgumentParser(usage='%(prog)s auth [options]',
@@ -93,22 +104,21 @@ def refresh_cmd(args):
     refresh_tokens(client_id, client_secret, access_token, refresh_token, save_tokens)
     print(f"Tokens refreshed and saved")
 
-def userinfo_cmd(args, client):
+def userinfo_cmd(args):
     if len(args):
         print(f"usage: {os.path.basename(sys.argv[0])} userinfo\n\n"
                "Print authorized user information as a JSON object")
         sys.exit(1)
+    client = get_ops_client()
     user = ops.getuserinfo(client)
     infodict = {field : getattr(user, field) for field in ('id', 'login', 'name')}
     print(json.dumps(infodict, indent=2))
 
-# A mapping of command names to the implementing command function along
-# with a bool indicating if the command requires a Box client object as the
-# second parameter.
+# A mapping of command names to the implementing command function
 command_funcs = {
-    'auth' : (auth_cmd, False),
-    'refresh' : (refresh_cmd, False),
-    'userinfo' : (userinfo_cmd, True)
+    'auth' : auth_cmd,
+    'refresh' : refresh_cmd,
+    'userinfo' : userinfo_cmd,
 }
 
 # Run the appropriate command function {{{1
@@ -120,12 +130,4 @@ if command not in command_funcs:
     print(f"Unknown command '{command}'")
     sys.exit(2)
 
-cmdfunc, need_client = command_funcs[command]
-if need_client:
-    import boxtools.ops as ops  # All client operations are defined in ops
-    access_token, refresh_token = load_tokens_or_die()
-    from .auth import get_client
-    client = get_client(client_id, client_secret, access_token, refresh_token, save_tokens)
-    cmdfunc(command_args, client)
-else:
-    cmdfunc(command_args)
+command_funcs[command](command_args)
