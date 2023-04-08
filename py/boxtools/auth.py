@@ -40,18 +40,24 @@ def start_server(port):
     http_server = HTTPServer(('127.0.0.1', port), OAuthRequestHandler)
     http_server.serve_forever()
 
-def retrieve_tokens(client_id, client_secret, redirect_url, save_tokens):
+def retrieve_tokens(client_id, client_secret, redirect_url, save_tokens, run_server, open_browser):
     global auth_url, csrf_token, authcode
     oauth = OAuth2(client_id=client_id, client_secret=client_secret, store_tokens=save_tokens)
     auth_url, csrf_token = oauth.get_authorization_url(redirect_url)
-    port = urlparse(redirect_url).port
-    if not port:
-        print("The redirect URL must include an explicit port number.")
-        sys.exit(1)
-    import webbrowser
-    print("Opening a web browser to URL:\n\n", auth_url, sep='')
-    webbrowser.open(auth_url)
-    start_server(port)  # This blocks until we retrieve the authcode!
+    print("Auth URL:", auth_url, sep="\n\n")
+    if open_browser:
+        import webbrowser
+        webbrowser.open(auth_url)
+    if run_server:
+        port = urlparse(redirect_url).port
+        if not port:
+            print("The redirect URL must include an explicit port number.")
+            sys.exit(1)
+        start_server(port)  # This blocks until we retrieve the authcode!
+    else:
+        print("\n" + "-" * 60)
+        print("CSRF Token:", csrf_token, end="\n\n")
+        authcode = input("authcode> ")
     access_token, refresh_token = oauth.authenticate(authcode)
     return access_token, refresh_token
 

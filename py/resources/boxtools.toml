@@ -1,4 +1,5 @@
 [auth]
 client-id = "(your client-id)"
 client-secret = "(your client-secret)"
-redirect-url = "http://127.0.0.1:18444"
+internal-redirect-url = "http://127.0.0.1:18444"
+external-redirect-url = "https://website.com/authpage"

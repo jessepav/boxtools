@@ -38,7 +38,8 @@ with open(config_file, 'rb') as f:
     config = tomli.load(f)
     client_id = config['auth']['client-id']
     client_secret = config['auth']['client-secret']
-    redirect_url = config['auth']['redirect-url']
+    redirect_urls = {'internal' : config['auth']['internal-redirect-url'],
+                     'external' : config['auth']['external-redirect-url']}
 
 # Ensure the user actually modified the config file
 if client_id == "(your client-id)" or client_secret == "(your client-secret)":
@@ -69,8 +70,17 @@ def load_tokens_or_die():
 # Definte command functions {{{1
 
 def auth_cmd(args):
+    cli_parser = argparse.ArgumentParser(usage='%(prog)s auth [options]',
+                                         description='Authenticate (via OAuth2) with Box')
+    cli_parser.add_argument('-B', '--no-browser', action='store_true',
+                            help="Do not open a browser window to the authorization URL")
+    cli_parser.add_argument('-e', '--external-redirect', action='store_true',
+                            help="Redirect to an external address to retrieve the auth code")
+    options = cli_parser.parse_args(args)
     from .auth import retrieve_tokens
-    retrieve_tokens(client_id, client_secret, redirect_url, save_tokens)
+    redirect_url = redirect_urls['external' if options.external_redirect else 'internal']
+    retrieve_tokens(client_id, client_secret, redirect_url, save_tokens,
+                    run_server=not options.external_redirect, open_browser=not options.no_browser)
     print(f"Tokens saved to {tokens_file}")
 
 def refresh_cmd(args):
