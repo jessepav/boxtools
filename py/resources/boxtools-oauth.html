@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+    <title>boxtools</title>
+    <style>
+      body {
+        width: 700px;
+        margin: 2em auto;
+        font: 18px sans-serif;
+      }
+
+      code {
+        background-color: #e1e1e1;
+        padding: 1px;
+      }
+
+      table {
+        margin-top: 1em;
+        border-collapse: collapse;
+        font: 18px monospace;
+      }
+
+      td {
+        border: 1px solid #333333;
+        padding: 8px;
+      }
+
+      td:nth-child(1) { text-align: right; }
+      td:nth-child(2) { font-weight: bold; }
+    </style>
+    <script type="module">
+      window.onload = () => {
+        const params = new URLSearchParams(document.location.search);
+        const ctoken = params.get('state') ?? 'N/A';
+        const authcode = params.get('code') ?? 'N/A';
+        document.getElementById('csrf-token').textContent = ctoken;
+        document.getElementById('authcode').textContent = authcode;
+      };
+    </script>
+  </head>
+  <body>
+    Ensure that the <code>CSRF Token</code> matches the one shown by boxtools, and then
+    paste the <code>Authcode</code> into the program (and do it quickly, because it expires
+    fast).
+    <table>
+      <tr><td>CSRF Token:</td><td id="csrf-token"></td></tr>
+      <tr><td>  Authcode:</td><td id="authcode"></td></tr>
+    </table>
+  </body>
+</html>
+
