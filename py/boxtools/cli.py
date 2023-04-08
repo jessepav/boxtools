@@ -1,4 +1,4 @@
-import os, os.path, sys, argparse
+import os, os.path, sys, argparse, pprint
 import json
 import tomli
 
@@ -51,7 +51,7 @@ if len(sys.argv) == 1 or sys.argv[1] in ('-h', '--help'):
     print(general_usage, end="")
     sys.exit(1)
 
-# Support functions for working with the tokens file {{{1
+# Support functions {{{1
 
 def save_tokens(access_token, refresh_token):
     with open(tokens_file, 'wt') as f:
@@ -67,9 +67,6 @@ def load_tokens_or_die():
         tokendict = json.load(f)
     return tokendict['access_token'], tokendict['refresh_token']
 
-
-# Support functions for boxtools.ops {{{1
-
 # Loads boxtools.ops as 'ops' in the global namespace, and retrieves a Box Client object
 def get_ops_client():
     global ops
@@ -77,6 +74,24 @@ def get_ops_client():
     access_token, refresh_token = load_tokens_or_die()
     from .auth import get_client
     return get_client(client_id, client_secret, access_token, refresh_token, save_tokens)
+
+def print_table(items, fields, colgap=4, print_header=True):
+    max_field_len = [0] * len(fields)
+    for item in items:
+        for i, field in enumerate(fields):
+            max_field_len[i] = max(max_field_len[i], len(getattr(item, field)))
+    for i in range(len(max_field_len) - 1):
+        max_field_len[i] += colgap
+    if print_header:
+        for i, field in enumerate(fields):
+            print(f"{field:{max_field_len[i]}}", end="")
+        print()
+        print("-" * sum(max_field_len))
+    for item in items:
+        for i, field in enumerate(fields):
+            print(f"{getattr(item, field):{max_field_len[i]}}", end="")
+        print()
+    return sum(max_field_len)
 
 # Define command functions {{{1
 
@@ -114,11 +129,43 @@ def userinfo_cmd(args):
     infodict = {field : getattr(user, field) for field in ('id', 'login', 'name')}
     print(json.dumps(infodict, indent=2))
 
+def list_folder(args):
+    cli_parser = argparse.ArgumentParser(usage='%(prog)s list [options] id [id...]',
+                                         description='List a folder')
+    cli_parser.add_argument('id', nargs='+', help='Folder ID(s)')
+    cli_parser.add_argument('-f', '--fields', default="type, name, id",
+                            help='Comma-separated list of Box item fields to list')
+    cli_parser.add_argument('-H', '--no-header', action='store_true',
+                            help='Do not print header text for the listing')
+    cli_parser.add_argument('-J', '--json', action='store_true',
+                            help='Print folder contents as JSON (implies --no-header)')
+    options = cli_parser.parse_args(args)
+    folder_ids = options.id
+    fields = [field.strip() for field in options.fields.split(",")]
+    print_header = not options.no_header
+    json_format = options.json
+    client = get_ops_client()
+    for i, folder_id in enumerate(folder_ids):
+        folder, items = ops.list_folder(client, folder_id, fields=fields)
+        if json_format:
+            print(json.dumps([{field : getattr(item, field) for field in fields}
+                              for item in items], indent=2))
+        else:
+            if i != 0:  # Note that table_width is set at the end of this block
+                print("\n" + "=" * table_width + "\n")
+            if print_header:
+                folder_header_info = f"{folder.name} | {folder.id}"
+                if folder.parent is not None:
+                    folder_header_info += f" - (Parent: {folder.parent.name} | {folder.parent.id})"
+                print(folder_header_info, end="\n\n")
+            table_width = print_table(list(items), fields, print_header=print_header)
+
 # A mapping of command names to the implementing command function
 command_funcs = {
     'auth' : auth_cmd,
     'refresh' : refresh_cmd,
     'userinfo' : userinfo_cmd,
+    'list' : list_folder,
 }
 
 # Run the appropriate command function {{{1
