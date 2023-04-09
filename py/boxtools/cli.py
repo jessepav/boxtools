@@ -38,16 +38,19 @@ if not os.path.exists(config_file):
 # Read the config
 with open(config_file, 'rb') as f:
     config = tomli.load(f)
-    client_id = config['auth']['client-id']
-    client_secret = config['auth']['client-secret']
-    redirect_urls = {'internal' : config['auth']['internal-redirect-url'],
-                     'external' : config['auth']['external-redirect-url']}
+    auth_table = config['auth']
+    client_id = auth_table['client-id']
+    client_secret = auth_table['client-secret']
+    redirect_urls = {'internal' : auth_table['internal-redirect-url'],
+                     'external' : auth_table['external-redirect-url']}
+    config_table = config['config']
+    id_history_size = config_table['id-history-size']
 
 if os.path.exists(prev_ids_file):
     with open(prev_ids_file, 'rt') as f:
-        prev_ids = json.load(f)
+        prev_id_map = json.load(f)
 else:
-    prev_ids = []
+    prev_id_map = {}
 
 if not os.path.exists(aliases_file):
     shutil.copyfile(os.path.join(app_dir, 'resources/id-aliases.toml'), aliases_file)
@@ -106,27 +109,27 @@ def print_table(items, fields, colgap=4, print_header=True):
         print()
     return sum(max_field_len)
 
-def translate_id(_id):
-    if _id in id_aliases:
-        return str(id_aliases[_id])
-    elif len(_id) >= 3 and _id[0] == '/' and _id[-1] == '/':  # a regex
+def translate_id(id_):
+    if id_ in id_aliases:
+        return str(id_aliases[id_])
+    elif len(id_) >= 3 and id_[0] == '/' and id_[-1] == '/':  # a regex
         matched_ids = []
-        reo = re.compile(_id[1:-1], re.IGNORECASE)
-        for _prev_id in prev_ids:
-            if any(reo.search(_part) for _part in _prev_id):
-                matched_ids.append(_prev_id)
+        reo = re.compile(id_[1:-1], re.IGNORECASE)
+        for entry in prev_id_map.items():
+            if any(reo.search(part) for part in entry):
+                matched_ids.append(entry)
         if len(matched_ids) == 0:
-            print(f"{_id} did not match any previous IDs")
+            print(f"{id_} did not match any previous IDs")
             sys.exit(2)
         elif len(matched_ids) > 1:
-            print(f"{_id} matched multiple previous IDs:\n")
-            for _mid in matched_ids:
-                print(f"  {_mid}")
+            print(f"{id_} matched multiple previous IDs:\n")
+            for entry in matched_ids:
+                print(f"  {entry}")
             sys.exit(2)
         else:
-            return matched_ids[0][-1]
+            return matched_ids[0][0]
     else:  # Not a special syntax
-        return _id
+        return id_
 
 # Define command functions {{{1
 
@@ -165,6 +168,7 @@ def userinfo_cmd(args):
     print(json.dumps(infodict, indent=2))
 
 def list_folder(args):
+    global prev_id_map
     cli_parser = argparse.ArgumentParser(usage='%(prog)s list [options] id [id...]',
                                          description='List a folder')
     cli_parser.add_argument('id', nargs='+', help='Folder ID(s)')
@@ -180,17 +184,15 @@ def list_folder(args):
     print_header = not options.no_header
     json_format = options.json
     record_ids = 'id' in fields and 'name' in fields
-    if record_ids:
-        global prev_ids
-        prev_ids = []
     client = get_ops_client()
     for i, folder_id in enumerate(folder_ids):
         folder, items = ops.list_folder(client, folder_id, fields=fields)
         if record_ids:
-            prev_ids.append([folder.name, folder_id])
+            prev_id_map[folder_id] = folder.name
             if _p := folder.parent:
-                prev_ids.append([_p.name, _p.id])
-            prev_ids.extend([item.name, item.id] for item in items)
+                prev_id_map[_p.id] = _p.name
+            for item in items:
+                prev_id_map[item.id] = item.name
         if json_format:
             print(json.dumps([{field : getattr(item, field) for field in fields}
                               for item in items], indent=2))
@@ -221,7 +223,12 @@ if command not in command_funcs:
     print(f"Unknown command '{command}'")
     sys.exit(2)
 
-command_funcs[command](command_args)
-
-with open(prev_ids_file, "wt") as f:
-    json.dump(prev_ids, f)
+try:
+    command_funcs[command](command_args)
+finally:
+    if (ndel := len(prev_id_map) - id_history_size) > 0:
+        keys = list(prev_id_map.keys())
+        for k in keys[0:ndel]:
+            del prev_id_map[k]
+    with open(prev_ids_file, "wt") as f:
+        json.dump(prev_id_map, f)
