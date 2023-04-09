@@ -12,6 +12,7 @@ Commands:
     get         Download files
     put         Upload a file
     rm          Remove files or folders
+    mkdir       Create a new folder
 
     path        Get full path of files or folders
 
@@ -22,8 +23,10 @@ Configuration files are stored in $BOXTOOLS_DIR, by default ~/.boxtools
 Whenever a command expects a Box Item ID, you can use a special syntax
 to lookup an ID returned by the most recent list or search command:
 
-  /re/ = use the ID of the item whose name or ID is matched by
-         the regular expression re
+  /re/  = use the ID of the item whose name or ID is
+          matched by the regular expression re
+  @name = Do a substring search on item names
+  =name = Do an exact match for an item name
 
 Also, you can define aliases for IDs in $BOXTOOLS_DIR/id-aliases.toml
 Any ID entered will first be checked against these aliases.

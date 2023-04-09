@@ -115,36 +115,55 @@ def print_table(items, fields, colgap=4, print_header=True):
         print()
     return sum(max_field_len)
 
+def _choose_id(id_, matched_ids):
+    if len(matched_ids) == 0:
+        print(f"{id_} did not match any previous IDs")
+        return None
+    elif len(matched_ids) > 1:
+        print(f"{id_} matched multiple previous IDs:\n")
+        choices = []
+        for i, entry in enumerate(matched_ids, start=1):
+            choice = BareObj()
+            choice.n = str(i)
+            choice.id = entry[0]
+            choice.name = entry[1]
+            choices.append(choice)
+        print_table(choices, ('n', 'name', 'id'))
+        print()
+        choice = int(input('choice # (n)> ')) - 1
+        if choice >= 0 and choice < len(matched_ids):
+            return matched_ids[choice][0]
+        else:
+            return None
+    else:
+        return matched_ids[0][0]
+
 def translate_id(id_):
     if id_ in id_aliases:
         return str(id_aliases[id_])
+    if id_.startswith('@'):
+        term = id_[1:]
+        matched_ids = []
+        for entry in prev_id_map.items():
+            if term in entry[1]:
+                matched_ids.append(entry)
+        return _choose_id(id_, matched_ids)
+    elif id_.startswith('='):
+        term = id_[1:]
+        matched_ids = []
+        for entry in prev_id_map.items():
+            if term == entry[1]:
+                matched_ids.append(entry)
+        return _choose_id(id_, matched_ids)
+    elif id_.startswith('@'):
+        pass
     elif len(id_) >= 3 and id_[0] == '/' and id_[-1] == '/':  # a regex
         matched_ids = []
         reo = re.compile(id_[1:-1], re.IGNORECASE)
         for entry in prev_id_map.items():
             if any(reo.search(part) for part in entry):
                 matched_ids.append(entry)
-        if len(matched_ids) == 0:
-            print(f"{id_} did not match any previous IDs")
-            return None
-        elif len(matched_ids) > 1:
-            print(f"{id_} matched multiple previous IDs:\n")
-            choices = []
-            for i, entry in enumerate(matched_ids, start=1):
-                choice = BareObj()
-                choice.n = str(i)
-                choice.id = entry[0]
-                choice.name = entry[1]
-                choices.append(choice)
-            print_table(choices, ('n', 'name', 'id'))
-            print()
-            choice = int(input('choice # (n)> ')) - 1
-            if choice >= 0 and choice < len(matched_ids):
-                return matched_ids[choice][0]
-            else:
-                return None
-        else:
-            return matched_ids[0][0]
+        return _choose_id(id_, matched_ids)
     elif id_.isdigit():
         return id_
     else:
@@ -389,6 +408,18 @@ def itempaths(args):
         path_components = _get_item_path(item)
         print("/" + "/".join(path_components))
 
+def mkdir(args):
+    if len(args) < 2 or '-h' in args or '--help' in args:
+        print(f"usage: {os.path.basename(sys.argv[0])} mkdir parent_folder_id folder_name\n\n"
+               "Create a new folder")
+        return
+    parent_folder_id = translate_id(args[0])
+    foldername = args[1]
+    client = get_ops_client()
+    folder = client.folder(folder_id=parent_folder_id).get()
+    print(f'Creating "{foldername}" in "{folder.name}"...')
+    folder.create_subfolder(foldername)
+
 # A mapping of command names to the implementing command function
 command_funcs = {
     'auth' : auth_cmd,
@@ -400,6 +431,7 @@ command_funcs = {
     'put'    : put_file,
     'rm'     : rm_items,
     'path'   : itempaths,
+    'mkdir'  : mkdir,
 }
 
 # Run the appropriate command function {{{1
