@@ -382,19 +382,6 @@ def rm_items(args):
             print(f"Deleting folder {box_foldername}...")
             folder.delete()
 
-def _get_item_path(item):
-    if item.id == '0':
-        return []
-    path_components = []
-    path_components.append(item.name)
-    folder = item.parent
-    while folder and folder.id != '0':
-        folder = folder.get(fields=['id', 'name', 'parent'])
-        path_components.append(folder.name)
-        folder = folder.parent
-    path_components.reverse()
-    return path_components
-
 def itempaths(args):
     cli_parser = argparse.ArgumentParser(usage='%(prog)s path [options] ids',
                                          description='Get full path of files or folders')
@@ -414,9 +401,13 @@ def itempaths(args):
         return
     client = get_ops_client()
     for id in item_ids:
-        item = client.file(id).get(fields=['id', 'name', 'parent']) if do_files \
-                else client.folder(id).get(fields=['id', 'name', 'parent'])
-        path = "/" + "/".join(_get_item_path(item))
+        item = client.file(id).get() if do_files else client.folder(id).get()
+        if id == '0':
+            path = '/'
+        else:
+            path_names = [folder.name for folder in item.path_collection['entries'][1:]]
+            path_names.append(item.name)
+            path = "/" + "/".join(path_names)
         if rclone:
             print('box:', end="")
         print(path)
