@@ -5,11 +5,11 @@ Configuration files are stored in $BOXTOOLS_DIR, by default ~/.boxtools
 Whenever a command expects a Box Item ID, you can use a special syntax
 to lookup an ID returned by the most recent list or search command:
 
-  /re/  = use the ID of the item whose name or ID is
-          matched by the regular expression re
-  %name = Do a substring search on item names
   =name = Do an exact match on item names
+  %name = Do a substring search on item names
   ^name = Do a prefix search on item names
+  /re/  = use the ID of the item whose name *or* ID is matched by the
+          case-insensitive regular expression re
 
 Also, you can define aliases for IDs in $BOXTOOLS_DIR/id-aliases.toml
 Any ID entered will first be checked against these aliases.
@@ -33,8 +33,8 @@ Commands:
     mv / move     Move files or folders
     cp / copy     Copy files or folders
     rn / rename   Rename a file or folder
-    ln / link     Get links for files or folders
 
+    ln / link     Get links for files or folders
     path          Get full path of files or folders
 
 Use "{progname} [command] --help" for more information about a command.
