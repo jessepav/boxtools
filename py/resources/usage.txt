@@ -9,3 +9,17 @@ Commands:
     list (ls)   List contents of a folder
 
 Use "{progname} [command] --help" for more information about a command.
+
+Configuration files are stored in $BOXTOOLS_DIR, by default ~/.boxtools
+
+Whenever a command expects a Box Item ID, you can use a special syntax
+to lookup an ID returned by the most recent list or search command:
+
+  /re/ = use the ID of the item whose name or ID is matched by
+         the regular expression re
+
+Also, you can define aliases for IDs in $BOXTOOLS_DIR/id-aliases.toml
+Any ID entered will first be checked against these aliases.
+
+BOXTOOLS_APP_DIR = {app_dir}
+BOXTOOLS_DIR     = {config_dir}

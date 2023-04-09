@@ -1,4 +1,4 @@
-import os, os.path, sys, argparse, pprint, re
+import os, os.path, sys, argparse, pprint, re, shutil
 import json
 import tomli
 
@@ -10,14 +10,15 @@ if not app_dir:
     print("You must set $BOXTOOLS_APP_DIR before running this program!")
     sys.exit(1)
 
-# We keep certain resources as their own files for easy editing
-with open(os.path.join(app_dir, 'resources/boxtools.toml'), "rt") as f:
-    default_config_toml = f.read()
-with open(os.path.join(app_dir, 'resources/usage.txt'), "rt") as f:
-    general_usage = f.read().format(progname=os.path.basename(sys.argv[0]))
-
 # The user can override the default ~/.boxtools directory by setting $BOXTOOLS_DIR
 config_dir = os.environ.get("BOXTOOLS_DIR", os.path.expanduser("~/.boxtools"))
+
+# We keep certain resources as their own files for easy editing
+with open(os.path.join(app_dir, 'resources/usage.txt'), "rt") as f:
+    general_usage = f.read().\
+        format(progname=os.path.basename(sys.argv[0]),
+               app_dir=app_dir, config_dir=config_dir)
+
 if not os.path.exists(config_dir):
     print(f"Creating {config_dir}...")
     os.mkdir(config_dir)
@@ -26,13 +27,13 @@ if not os.path.exists(config_dir):
 config_file = os.path.join(config_dir, "boxtools.toml")
 tokens_file = os.path.join(config_dir, "auth-tokens.json")
 prev_ids_file = os.path.join(config_dir, "previous-ids.json")
+aliases_file = os.path.join(config_dir, "id-aliases.toml")
 
 # If no config file exists, write the default and exit
 if not os.path.exists(config_file):
     print(f"Edit the default config file at '{config_file}'")
-    with open(config_file, 'wt') as f:
-        f.write(default_config_toml)
-        sys.exit(0)
+    shutil.copyfile(os.path.join(app_dir, 'resources/boxtools.toml'), config_file)
+    sys.exit(0)
 
 # Read the config
 with open(config_file, 'rb') as f:
@@ -47,6 +48,11 @@ if os.path.exists(prev_ids_file):
         prev_ids = json.load(f)
 else:
     prev_ids = []
+
+if not os.path.exists(aliases_file):
+    shutil.copyfile(os.path.join(app_dir, 'resources/id-aliases.toml'), aliases_file)
+with open(aliases_file, 'rb') as f:
+    id_aliases = tomli.load(f)['aliases']
 
 # Ensure the user actually modified the config file
 if client_id == "(your client-id)" or client_secret == "(your client-secret)":
@@ -101,7 +107,9 @@ def print_table(items, fields, colgap=4, print_header=True):
     return sum(max_field_len)
 
 def translate_id(_id):
-    if len(_id) >= 3 and _id[0] == '/' and _id[-1] == '/':  # a regex
+    if _id in id_aliases:
+        return str(id_aliases[_id])
+    elif len(_id) >= 3 and _id[0] == '/' and _id[-1] == '/':  # a regex
         matched_ids = []
         reo = re.compile(_id[1:-1], re.IGNORECASE)
         for _prev_id in prev_ids:
