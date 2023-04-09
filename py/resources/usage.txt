@@ -10,6 +10,7 @@ Commands:
     search      Search for items
 
     get         Download files
+    put         Upload a file
 
 Use "{progname} [command] --help" for more information about a command.
 

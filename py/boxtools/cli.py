@@ -232,7 +232,7 @@ def list_folder(args):
 search_item_type_map = {
    'f' : 'file',
    'file' : 'file',
-   'l' : 'folder',
+   'd' : 'folder',
    'folder' : 'folder'
 }
 
@@ -242,7 +242,7 @@ def search(args):
                                          description='Search for items')
     cli_parser.add_argument('term', help='Search term')
     cli_parser.add_argument('-t', '--item-type', default="file",
-                            help="""Type of item to search for: "file"/'f' (default) or "folder"/'l'""")
+                            help="""Type of item to search for: "file"/'f' (default) or "folder"/'d'""")
     cli_parser.add_argument('-l', '--limit', type=int, default=10,
                             help='Maximum number of items to return')
     cli_parser.add_argument('-n', '--name-only', action='store_true',
@@ -291,7 +291,41 @@ def get_files(args):
         filename = file.get(fields=['name']).name
         print(f"Downloading {filename}...")
         with open(os.path.join(target_dir, filename), "wb") as f:
-           file.download_to(f) 
+           file.download_to(f)
+
+def put_file(args):
+    cli_parser = argparse.ArgumentParser(usage='%(prog)s put [options] file(s)',
+                                         description='Upload a file')
+    cli_parser.add_argument('files', nargs='+', help='File(s) to upload')
+    cli_parser.add_argument('-f', '--file-version', metavar='file_id',
+                            help='Upload a new version of a file')
+    cli_parser.add_argument('-d', '--folder', metavar='folder_id',
+                            help='Upload a file into a given folder')
+    options = cli_parser.parse_args(args)
+    file_id = options.file_version
+    folder_id = options.folder
+    files = options.files
+    if not any((file_id, folder_id)) or all((file_id, folder_id)):
+        print("You must supply exactly one of --version/-f or --folder/-d")
+        return
+    if file_id and len(files) != 1:
+        print("You must supply exactly one file to upload a new version")
+        return
+    client = get_ops_client()
+    if file_id:
+        file = client.file(translate_id(file_id))
+        box_filename = file.get(fields=['name']).name
+        filepath = files[0]
+        print(f"Uploading {filepath} as a new version of {box_filename}...", end="")
+        file.update_contents(filepath)
+        print("done")
+    elif folder_id:
+        folder = client.folder(translate_id(folder_id))
+        foldername = folder.get(fields=['name']).name
+        for filepath in files:
+            print(f"Uploading {filepath} to {foldername}...", end="")
+            folder.upload(filepath)
+            print("done")
 
 # A mapping of command names to the implementing command function
 command_funcs = {
@@ -301,6 +335,7 @@ command_funcs = {
     'list' : list_folder, 'ls' : list_folder,
     'search' : search,
     'get'    : get_files,
+    'put'    : put_file,
 }
 
 # Run the appropriate command function {{{1
