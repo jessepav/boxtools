@@ -6,6 +6,6 @@ Commands:
 
     userinfo    print user info as JSON
 
-    list        List contents of a folder
+    list (ls)   List contents of a folder
 
 Use "{progname} [command] --help" for more information about a command.

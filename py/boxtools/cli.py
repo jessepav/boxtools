@@ -84,7 +84,7 @@ def print_table(items, fields, colgap=4, print_header=True):
         max_field_len[i] += colgap
     if print_header:
         for i, field in enumerate(fields):
-            print(f"{field:{max_field_len[i]}}", end="")
+            print(f"{field.capitalize():{max_field_len[i]}}", end="")
         print()
         print("-" * sum(max_field_len))
     for item in items:
@@ -165,7 +165,7 @@ command_funcs = {
     'auth' : auth_cmd,
     'refresh' : refresh_cmd,
     'userinfo' : userinfo_cmd,
-    'list' : list_folder,
+    'list' : list_folder, 'ls' : list_folder,
 }
 
 # Run the appropriate command function {{{1
