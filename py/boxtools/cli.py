@@ -213,7 +213,7 @@ def userinfo_cmd(args):
     infodict = {field : getattr(user, field) for field in ('id', 'login', 'name')}
     print(json.dumps(infodict, indent=2))
 
-def list_folder(args):
+def ls_folder(args):
     global prev_id_map
     cli_parser = argparse.ArgumentParser(usage='%(prog)s list [options] id [id...]',
                                          description='List a folder')
@@ -365,7 +365,7 @@ def rm_items(args):
     item_ids = [translate_id(_id) for _id in options.ids]
     if any(id is None for id in item_ids):
         return
-    if not any((do_files, do_folders)) or all((do_files, do_folders)):
+    if do_files == do_folders:
         print("You must supply exactly one of --files/-f or --folders/-d")
         return
     client = get_ops_client()
@@ -409,7 +409,7 @@ def itempaths(args):
     item_ids = [translate_id(_id) for _id in options.ids]
     if any(id is None for id in item_ids):
         return
-    if not any((do_files, do_folders)) or all((do_files, do_folders)):
+    if do_files == do_folders:
         print("You must supply exactly one of --files/-f or --folders/-d")
         return
     client = get_ops_client()
@@ -447,7 +447,7 @@ def mv_items(args):
     dest_folder_id = translate_id(options.dest_folder_id)
     if dest_folder_id is None or any(id is None for id in item_ids):
         return
-    if not any((do_files, do_folders)) or all((do_files, do_folders)):
+    if do_files == do_folders:
         print("You must supply exactly one of --files/-f or --folders/-d")
         return
     client = get_ops_client()
@@ -471,7 +471,7 @@ def cp_items(args):
     dest_folder_id = translate_id(options.dest_folder_id)
     if dest_folder_id is None or any(id is None for id in item_ids):
         return
-    if not any((do_files, do_folders)) or all((do_files, do_folders)):
+    if do_files == do_folders:
         print("You must supply exactly one of --files/-f or --folders/-d")
         return
     client = get_ops_client()
@@ -495,7 +495,7 @@ def rn_item(args):
     new_name = options.new_name
     if item_id is None:
         return
-    if not any((do_files, do_folders)) or all((do_files, do_folders)):
+    if do_files == do_folders:
         print("You must supply exactly one of --files/-f or --folders/-d")
         return
     client = get_ops_client()
@@ -504,12 +504,59 @@ def rn_item(args):
     item = item.rename(new_name)
     print(f'"{oldname}" renamed to "{item.name}"')
 
+def ln_items(args):
+    cli_parser = argparse.ArgumentParser(usage='%(prog)s ln [options] ids',
+                                         description='Get links for files or folders')
+    cli_parser.add_argument('ids', nargs='+', help='Item IDs')
+    cli_parser.add_argument('-f', '--files', action='store_true', help='Item IDs are files')
+    cli_parser.add_argument('-d', '--folders', action='store_true', help='Item IDs are folders')
+    cli_parser.add_argument('-p', '--password', help='Set a password to access items')
+    cli_parser.add_argument('-r', '--remove', action='store_true', help='Remove shared link from items')
+    options = cli_parser.parse_args(args)
+    do_files = options.files
+    do_folders = options.folders
+    password = options.password
+    remove = options.remove
+    item_ids = [translate_id(_id) for _id in options.ids]
+    if any(id is None for id in item_ids):
+        return
+    if do_files == do_folders:
+        print("You must supply exactly one of --files/-f or --folders/-d")
+        return
+    client = get_ops_client()
+    if do_files:
+        for id in item_ids:
+            file = client.file(id)
+            if remove:
+                file.remove_shared_link()
+                file = file.get()
+                print(f'Removed shared link for file "{file.name}"')
+            else:
+                link = file.get_shared_link(allow_download=True, allow_preview=True, password=password)
+                file = file.get()
+                direct_link = file.shared_link['download_url']
+                print("== File:", file.name)
+                print("   Link:", link)
+                print(" Direct:", direct_link)
+    elif do_folders:
+        for id in item_ids:
+            folder = client.folder(id)
+            if remove:
+                folder.remove_shared_link()
+                folder = folder.get()
+                print(f'Removed shared link for folder "{folder.name}"')
+            else:
+                link = folder.get_shared_link(allow_download=True, allow_preview=True, password=password)
+                folder = folder.get()
+                print("== Folder:", folder.name)
+                print("     Link:", link)
+
 # A mapping of command names to the implementing command function
 command_funcs = {
     'auth'     : auth_cmd,
     'refresh'  : refresh_cmd,
     'userinfo' : userinfo_cmd,
-    'list'     : list_folder, 'ls' : list_folder,
+    'list'     : ls_folder, 'ls' : ls_folder,
     'search'   : search,
     'get'      : get_files,
     'put'      : put_file,
@@ -519,6 +566,7 @@ command_funcs = {
     'mv'       : mv_items, 'move' : mv_items,
     'cp'       : cp_items, 'copy' : cp_items,
     'rn'       : rn_item, 'rename' : rn_item,
+    'ln'       : ln_items, 'link' : ln_items,
 }
 
 # Run the appropriate command function {{{1

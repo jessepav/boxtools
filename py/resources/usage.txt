@@ -23,7 +23,7 @@ Commands:
 
     userinfo      print user info as JSON
 
-    list / ls     List contents of a folder
+    ls / list     List contents of a folder
     search        Search for items
 
     get           Download files
@@ -33,6 +33,7 @@ Commands:
     mv / move     Move files or folders
     cp / copy     Copy files or folders
     rn / rename   Rename a file or folder
+    ln / link     Get links for files or folders
 
     path          Get full path of files or folders
 
