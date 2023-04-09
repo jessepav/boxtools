@@ -327,6 +327,33 @@ def put_file(args):
             folder.upload(filepath)
             print("done")
 
+def rm_items(args):
+    cli_parser = argparse.ArgumentParser(usage='%(prog)s rm [options] ids',
+                                         description='Remove files or folders')
+    cli_parser.add_argument('ids', nargs='+', help='File or folder IDs to remove')
+    cli_parser.add_argument('-f', '--files', action='store_true', help='Remove files')
+    cli_parser.add_argument('-d', '--folders', action='store_true', help='Remove folders')
+    options = cli_parser.parse_args(args)
+    do_files = options.files
+    do_folders = options.folders
+    item_ids = options.ids
+    if not any((do_files, do_folders)) or all((do_files, do_folders)):
+        print("You must supply exactly one of --files/-f or --folders/-d")
+        return
+    client = get_ops_client()
+    if do_files:
+        for file_id in item_ids:
+            file = client.file(translate_id(file_id))
+            box_filename = file.get(fields=['name']).name
+            print(f"Deleting file {box_filename}...")
+            file.delete()
+    elif do_folders:
+        for folder_id in item_ids:
+            folder = client.folder(translate_id(folder_id))
+            box_foldername = folder.get(fields=['name']).name
+            print(f"Deleting folder {box_foldername}...")
+            folder.delete()
+
 # A mapping of command names to the implementing command function
 command_funcs = {
     'auth' : auth_cmd,
@@ -336,6 +363,7 @@ command_funcs = {
     'search' : search,
     'get'    : get_files,
     'put'    : put_file,
+    'rm'     : rm_items,
 }
 
 # Run the appropriate command function {{{1

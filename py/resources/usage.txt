@@ -11,6 +11,7 @@ Commands:
 
     get         Download files
     put         Upload a file
+    rm          Remove files or folders
 
 Use "{progname} [command] --help" for more information about a command.
 
