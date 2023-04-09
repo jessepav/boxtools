@@ -1,4 +1,5 @@
 import os, os.path, sys, argparse, pprint, re, shutil
+from types import SimpleNamespace as BareObj
 import json, pickle
 import tomli
 
@@ -92,7 +93,7 @@ def get_ops_client():
     return get_client(client_id, client_secret, access_token, refresh_token, save_tokens)
 
 def print_table(items, fields, colgap=4, print_header=True):
-    max_field_len = [0] * len(fields)
+    max_field_len = [len(field) for field in fields]
     for item in items:
         for i, field in enumerate(fields):
             max_field_len[i] = max(max_field_len[i], len(getattr(item, field)))
@@ -120,16 +121,30 @@ def translate_id(id_):
                 matched_ids.append(entry)
         if len(matched_ids) == 0:
             print(f"{id_} did not match any previous IDs")
-            sys.exit(2)
+            return None
         elif len(matched_ids) > 1:
             print(f"{id_} matched multiple previous IDs:\n")
-            for entry in matched_ids:
-                print(f"  {entry}")
-            sys.exit(2)
+            choices = []
+            for i, entry in enumerate(matched_ids, start=1):
+                choice = BareObj()
+                choice.n = str(i)
+                choice.id = entry[0]
+                choice.name = entry[1]
+                choices.append(choice)
+            print_table(choices, ('n', 'name', 'id'))
+            print()
+            choice = int(input('choice # (n)> ')) - 1
+            if choice >= 0 and choice < len(matched_ids):
+                return matched_ids[choice][0]
+            else:
+                return None
         else:
             return matched_ids[0][0]
-    else:  # Not a special syntax
+    elif id_.isdigit():
         return id_
+    else:
+        print(f"{id_} is not a valid item ID")
+        return None
 
 # Define command functions {{{1
 
@@ -151,7 +166,7 @@ def refresh_cmd(args):
     if len(args):
         print(f"usage: {os.path.basename(sys.argv[0])} refresh\n\n"
                "Manually refresh access tokens")
-        sys.exit(1)
+        return
     access_token, refresh_token = load_tokens_or_die()
     from .auth import refresh_tokens
     refresh_tokens(client_id, client_secret, access_token, refresh_token, save_tokens)
@@ -161,7 +176,7 @@ def userinfo_cmd(args):
     if len(args):
         print(f"usage: {os.path.basename(sys.argv[0])} userinfo\n\n"
                "Print authorized user information as a JSON object")
-        sys.exit(1)
+        return
     client = get_ops_client()
     user = ops.getuserinfo(client)
     infodict = {field : getattr(user, field) for field in ('id', 'login', 'name')}
@@ -180,6 +195,8 @@ def list_folder(args):
                             help='Print folder contents as JSON (implies --no-header)')
     options = cli_parser.parse_args(args)
     folder_ids = [translate_id(_id) for _id in options.id]
+    if any(id is None for id in folder_ids):  # translate_id() failed
+        return
     fields = [field.strip() for field in options.fields.split(",")]
     print_header = not options.no_header
     json_format = options.json
@@ -205,12 +222,55 @@ def list_folder(args):
                 print(folder_header_info, end="\n\n")
             table_width = print_table(items, fields, print_header=print_header)
 
+search_item_type_map = {
+   'f' : 'file',
+   'file' : 'file',
+   'l' : 'folder',
+   'folder' : 'folder'
+}
+
+def search(args):
+    global prev_id_map
+    cli_parser = argparse.ArgumentParser(usage='%(prog)s search [options] term',
+                                         description='Search for items')
+    cli_parser.add_argument('term', help='Search term')
+    cli_parser.add_argument('-t', '--item-type', default="file",
+                            help="""Type of item to search for: "file"/'f' (default) or "folder"/'l'""")
+    cli_parser.add_argument('-l', '--limit', type=int, default=10,
+                            help='Maximum number of items to return')
+    cli_parser.add_argument('-n', '--name-only', action='store_true',
+                            help='Search only in item names rather than in all content')
+    options = cli_parser.parse_args(args)
+    term = options.term
+    limit = options.limit
+    name_only = options.name_only
+    item_type = search_item_type_map.get(options.item_type)
+    if not item_type:
+        print(f"{options.item_type} is not a valid search item type")
+        return
+    fields=['name', 'id', 'parent']
+    client = get_ops_client()
+    results = ops.search(client,
+                         query=term, limit=limit, offset=0, result_type=item_type,
+                         content_types=['name'] if name_only else None, fields=fields)
+    items = []
+    for r in results:
+        item = BareObj()
+        item.name, item.id = r.name, r.id
+        parent = r.parent
+        item.parent, item.parent_id = parent.name, parent.id
+        items.append(item)
+        prev_id_map[item.id] = item.name
+        prev_id_map[parent.id] = parent.name
+    print_table(items, ('name', 'id', 'parent', 'parent_id'))
+
 # A mapping of command names to the implementing command function
 command_funcs = {
     'auth' : auth_cmd,
     'refresh' : refresh_cmd,
     'userinfo' : userinfo_cmd,
     'list' : list_folder, 'ls' : list_folder,
+    'search' : search,
 }
 
 # Run the appropriate command function {{{1
