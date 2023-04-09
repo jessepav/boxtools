@@ -120,7 +120,7 @@ def _choose_id(id_, matched_ids):
         print(f"{id_} did not match any previous IDs")
         return None
     elif len(matched_ids) > 1:
-        print(f"{id_} matched multiple previous IDs:\n")
+        print(f'"{id_}" matched multiple previous IDs (listed from old to new):\n')
         choices = []
         for i, entry in enumerate(matched_ids, start=1):
             choice = BareObj()
@@ -376,6 +376,8 @@ def rm_items(args):
             folder.delete()
 
 def _get_item_path(item):
+    if item.id == '0':
+        return []
     path_components = []
     path_components.append(item.name)
     folder = item.parent
