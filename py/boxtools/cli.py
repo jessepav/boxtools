@@ -525,7 +525,7 @@ def ln_items(args):
         return
     client = get_ops_client()
     if do_files:
-        for id in item_ids:
+        for i, id in enumerate(item_ids):
             file = client.file(id)
             if remove:
                 file.remove_shared_link()
@@ -535,11 +535,12 @@ def ln_items(args):
                 link = file.get_shared_link(allow_download=True, allow_preview=True, password=password)
                 file = file.get()
                 direct_link = file.shared_link['download_url']
+                if i != 0: print()
                 print("== File:", file.name)
                 print("   Link:", link)
                 print(" Direct:", direct_link)
     elif do_folders:
-        for id in item_ids:
+        for i, id in enumerate(item_ids):
             folder = client.folder(id)
             if remove:
                 folder.remove_shared_link()
@@ -548,6 +549,7 @@ def ln_items(args):
             else:
                 link = folder.get_shared_link(allow_download=True, allow_preview=True, password=password)
                 folder = folder.get()
+                if i != 0: print()
                 print("== Folder:", folder.name)
                 print("     Link:", link)
 
