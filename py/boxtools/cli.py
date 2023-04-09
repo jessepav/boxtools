@@ -117,7 +117,7 @@ def print_table(items, fields, colgap=4, print_header=True):
 
 def _choose_id(id_, matched_ids):
     if len(matched_ids) == 0:
-        print(f"{id_} did not match any previous IDs")
+        print(f'"{id_}" did not match any previous IDs')
         return None
     elif len(matched_ids) > 1:
         print(f'"{id_}" matched multiple previous IDs (listed from old to new):\n')
