@@ -280,7 +280,7 @@ def get_files(args):
         return
     target_dir = args[-1]
     file_ids = [translate_id(id) for id in args[0:-1]]
-    if any(id is None for id in file_ids):  # translate_id() failed
+    if any(id is None for id in file_ids):
         return
     if not os.path.isdir(target_dir):
         print(f"{target_dir} is not a directory!")
@@ -336,23 +336,58 @@ def rm_items(args):
     options = cli_parser.parse_args(args)
     do_files = options.files
     do_folders = options.folders
-    item_ids = options.ids
+    item_ids = [translate_id(_id) for _id in options.ids]
+    if any(id is None for id in item_ids):
+        return
     if not any((do_files, do_folders)) or all((do_files, do_folders)):
         print("You must supply exactly one of --files/-f or --folders/-d")
         return
     client = get_ops_client()
     if do_files:
         for file_id in item_ids:
-            file = client.file(translate_id(file_id))
+            file = client.file(file_id)
             box_filename = file.get(fields=['name']).name
             print(f"Deleting file {box_filename}...")
             file.delete()
     elif do_folders:
         for folder_id in item_ids:
-            folder = client.folder(translate_id(folder_id))
+            folder = client.folder(folder_id)
             box_foldername = folder.get(fields=['name']).name
             print(f"Deleting folder {box_foldername}...")
             folder.delete()
+
+def _get_item_path(item):
+    path_components = []
+    path_components.append(item.name)
+    folder = item.parent
+    while folder and folder.id != '0':
+        folder = folder.get(fields=['id', 'name', 'parent'])
+        path_components.append(folder.name)
+        folder = folder.parent
+    path_components.reverse()
+    return path_components
+
+def itempaths(args):
+    cli_parser = argparse.ArgumentParser(usage='%(prog)s path [options] ids',
+                                         description='Get full path of files or folders')
+    cli_parser.add_argument('ids', nargs='+', help='File or folder IDs')
+    cli_parser.add_argument('-f', '--files', action='store_true', help='Get file paths')
+    cli_parser.add_argument('-d', '--folders', action='store_true', help='Get folder paths')
+    options = cli_parser.parse_args(args)
+    do_files = options.files
+    do_folders = options.folders
+    item_ids = [translate_id(_id) for _id in options.ids]
+    if any(id is None for id in item_ids):
+        return
+    if not any((do_files, do_folders)) or all((do_files, do_folders)):
+        print("You must supply exactly one of --files/-f or --folders/-d")
+        return
+    client = get_ops_client()
+    for id in item_ids:
+        item = client.file(id).get(fields=['id', 'name', 'parent']) if do_files \
+                else client.folder(id).get(fields=['id', 'name', 'parent'])
+        path_components = _get_item_path(item)
+        print("/" + "/".join(path_components))
 
 # A mapping of command names to the implementing command function
 command_funcs = {
@@ -364,6 +399,7 @@ command_funcs = {
     'get'    : get_files,
     'put'    : put_file,
     'rm'     : rm_items,
+    'path'   : itempaths,
 }
 
 # Run the appropriate command function {{{1

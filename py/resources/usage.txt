@@ -13,6 +13,8 @@ Commands:
     put         Upload a file
     rm          Remove files or folders
 
+    path        Get full path of files or folders
+
 Use "{progname} [command] --help" for more information about a command.
 
 Configuration files are stored in $BOXTOOLS_DIR, by default ~/.boxtools
