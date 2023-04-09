@@ -1,4 +1,4 @@
-import os, os.path, sys, argparse, pprint, re, shutil
+import os, os.path, sys, argparse, pprint, re, shutil, logging
 from types import SimpleNamespace as BareObj
 import json, pickle
 import tomli
@@ -70,6 +70,8 @@ if len(sys.argv) == 1 or sys.argv[1] in ('-h', '--help'):
 
 # Support functions {{{1
 
+ops_client = None
+
 def save_tokens(access_token, refresh_token):
     with open(tokens_file, 'wt') as f:
         json.dump({ 'access_token' : access_token, 'refresh_token' : refresh_token }, f,
@@ -84,13 +86,16 @@ def load_tokens_or_die():
         tokendict = json.load(f)
     return tokendict['access_token'], tokendict['refresh_token']
 
-# Loads boxtools.ops as 'ops' in the global namespace, and retrieves a Box Client object
+# Retrieves and caches a Box Client object
 def get_ops_client():
-    global ops
-    import boxtools.ops as ops
-    access_token, refresh_token = load_tokens_or_die()
-    from .auth import get_client
-    return get_client(client_id, client_secret, access_token, refresh_token, save_tokens)
+    global ops_client
+    if ops_client is None:
+        access_token, refresh_token = load_tokens_or_die()
+        from .auth import get_client
+        ops_client = get_client(client_id, client_secret, access_token, refresh_token, save_tokens)
+        # Prevent the Box SDK from spewing logging messages
+        logging.getLogger('boxsdk').setLevel(logging.CRITICAL)
+    return ops_client
 
 def print_table(items, fields, colgap=4, print_header=True):
     max_field_len = [len(field) for field in fields]
@@ -178,7 +183,7 @@ def userinfo_cmd(args):
                "Print authorized user information as a JSON object")
         return
     client = get_ops_client()
-    user = ops.getuserinfo(client)
+    user = client.user().get()
     infodict = {field : getattr(user, field) for field in ('id', 'login', 'name')}
     print(json.dumps(infodict, indent=2))
 
@@ -203,7 +208,9 @@ def list_folder(args):
     record_ids = 'id' in fields and 'name' in fields
     client = get_ops_client()
     for i, folder_id in enumerate(folder_ids):
-        folder, items = ops.list_folder(client, folder_id, fields=fields)
+        folder = client.folder(folder_id=folder_id)
+        items = list(folder.get_items(fields=fields))
+        folder = folder.get()
         if record_ids:
             prev_id_map[folder_id] = folder.name
             if _p := folder.parent:
@@ -250,11 +257,12 @@ def search(args):
         return
     fields=['name', 'id', 'parent']
     client = get_ops_client()
-    results = ops.search(client,
-                         query=term, limit=limit, offset=0, result_type=item_type,
-                         content_types=['name'] if name_only else None, fields=fields)
+    results = client.search().query(query=term, limit=limit, offset=0, result_type=item_type,
+                                    content_types=['name'] if name_only else None, fields=fields)
+    # We can't just throw the iterator returned by query() into a list(), because it stalls,
+    # so we need to manually retrieve 'limit' items
     items = []
-    for r in results:
+    for i, r in enumerate(results, start=1):
         item = BareObj()
         item.name, item.id = r.name, r.id
         parent = r.parent
@@ -262,7 +270,28 @@ def search(args):
         items.append(item)
         prev_id_map[item.id] = item.name
         prev_id_map[parent.id] = parent.name
+        if i == limit: break
     print_table(items, ('name', 'id', 'parent', 'parent_id'))
+
+def get_files(args):
+    if len(args) < 2 or '-h' in args or '--help' in args:
+        print(f"usage: {os.path.basename(sys.argv[0])} get file_id [file_id...] directory\n\n"
+               "Download files")
+        return
+    target_dir = args[-1]
+    file_ids = [translate_id(id) for id in args[0:-1]]
+    if any(id is None for id in file_ids):  # translate_id() failed
+        return
+    if not os.path.isdir(target_dir):
+        print(f"{target_dir} is not a directory!")
+        return
+    client = get_ops_client()
+    for file_id in file_ids:
+        file = client.file(file_id)
+        filename = file.get(fields=['name']).name
+        print(f"Downloading {filename}...")
+        with open(os.path.join(target_dir, filename), "wb") as f:
+           file.download_to(f) 
 
 # A mapping of command names to the implementing command function
 command_funcs = {
@@ -271,6 +300,7 @@ command_funcs = {
     'userinfo' : userinfo_cmd,
     'list' : list_folder, 'ls' : list_folder,
     'search' : search,
+    'get'    : get_files,
 }
 
 # Run the appropriate command function {{{1

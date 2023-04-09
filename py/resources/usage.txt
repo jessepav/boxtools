@@ -9,6 +9,8 @@ Commands:
     list (ls)   List contents of a folder
     search      Search for items
 
+    get         Download files
+
 Use "{progname} [command] --help" for more information about a command.
 
 Configuration files are stored in $BOXTOOLS_DIR, by default ~/.boxtools
