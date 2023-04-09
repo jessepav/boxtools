@@ -1,4 +1,4 @@
-import os, os.path, sys, argparse, pprint
+import os, os.path, sys, argparse, pprint, re
 import json
 import tomli
 
@@ -25,6 +25,7 @@ if not os.path.exists(config_dir):
 # These are the configuration files
 config_file = os.path.join(config_dir, "boxtools.toml")
 tokens_file = os.path.join(config_dir, "auth-tokens.json")
+prev_ids_file = os.path.join(config_dir, "previous-ids.json")
 
 # If no config file exists, write the default and exit
 if not os.path.exists(config_file):
@@ -40,6 +41,12 @@ with open(config_file, 'rb') as f:
     client_secret = config['auth']['client-secret']
     redirect_urls = {'internal' : config['auth']['internal-redirect-url'],
                      'external' : config['auth']['external-redirect-url']}
+
+if os.path.exists(prev_ids_file):
+    with open(prev_ids_file, 'rt') as f:
+        prev_ids = json.load(f)
+else:
+    prev_ids = []
 
 # Ensure the user actually modified the config file
 if client_id == "(your client-id)" or client_secret == "(your client-secret)":
@@ -93,6 +100,26 @@ def print_table(items, fields, colgap=4, print_header=True):
         print()
     return sum(max_field_len)
 
+def translate_id(_id):
+    if len(_id) >= 3 and _id[0] == '/' and _id[-1] == '/':  # a regex
+        matched_ids = []
+        reo = re.compile(_id[1:-1])
+        for _prev_id in prev_ids:
+            if reo.search(_prev_id):
+                matched_ids.append(_prev_id)
+        if len(matched_ids) == 0:
+            print(f"{_id} did not match any previous IDs")
+            sys.exit(2)
+        elif len(matched_ids) > 1:
+            print(f"{_id} matched multiple previous IDs:\n")
+            for _mid in matched_ids:
+                print(f"  {_mid}")
+            sys.exit(2)
+        else:
+            return matched_ids[0]
+    else:  # Not a special syntax
+        return _id
+
 # Define command functions {{{1
 
 def auth_cmd(args):
@@ -140,13 +167,22 @@ def list_folder(args):
     cli_parser.add_argument('-J', '--json', action='store_true',
                             help='Print folder contents as JSON (implies --no-header)')
     options = cli_parser.parse_args(args)
-    folder_ids = options.id
+    folder_ids = [translate_id(_id) for _id in options.id]
     fields = [field.strip() for field in options.fields.split(",")]
     print_header = not options.no_header
     json_format = options.json
+    record_ids = 'id' in fields
+    if record_ids:
+        global prev_ids
+        prev_ids = []
     client = get_ops_client()
     for i, folder_id in enumerate(folder_ids):
         folder, items = ops.list_folder(client, folder_id, fields=fields)
+        if record_ids:
+            prev_ids.append(folder_id)
+            if folder.parent:
+                prev_ids.append(folder.parent.id)
+            prev_ids.extend(item.id for item in items)
         if json_format:
             print(json.dumps([{field : getattr(item, field) for field in fields}
                               for item in items], indent=2))
@@ -158,7 +194,7 @@ def list_folder(args):
                 if folder.parent is not None:
                     folder_header_info += f" - (Parent: {folder.parent.name} | {folder.parent.id})"
                 print(folder_header_info, end="\n\n")
-            table_width = print_table(list(items), fields, print_header=print_header)
+            table_width = print_table(items, fields, print_header=print_header)
 
 # A mapping of command names to the implementing command function
 command_funcs = {
@@ -178,3 +214,6 @@ if command not in command_funcs:
     sys.exit(2)
 
 command_funcs[command](command_args)
+
+with open(prev_ids_file, "wt") as f:
+    json.dump(prev_ids, f)

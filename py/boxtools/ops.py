@@ -8,4 +8,4 @@ def getuserinfo(client):
 
 def list_folder(client, folder_id, fields=['id', 'type', 'name']):
     folder = client.folder(folder_id=folder_id)
-    return folder.get(), folder.get_items(fields=fields)
+    return folder.get(), list(folder.get_items(fields=fields))
