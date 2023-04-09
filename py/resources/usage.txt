@@ -6,13 +6,15 @@ Commands:
 
     userinfo    print user info as JSON
 
-    list (ls)   List contents of a folder
+    list / ls   List contents of a folder
     search      Search for items
 
     get         Download files
     put         Upload a file
-    rm          Remove files or folders
     mkdir       Create a new folder
+    rm / del    Remove files or folders
+    mv / move   Move files or folders
+    cp / copy   Copy files or folders
 
     path        Get full path of files or folders
 

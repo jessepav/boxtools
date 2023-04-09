@@ -392,9 +392,11 @@ def itempaths(args):
     cli_parser.add_argument('ids', nargs='+', help='File or folder IDs')
     cli_parser.add_argument('-f', '--files', action='store_true', help='Get file paths')
     cli_parser.add_argument('-d', '--folders', action='store_true', help='Get folder paths')
+    cli_parser.add_argument('-R', '--rclone', action='store_true', help='Format paths for use with rclone')
     options = cli_parser.parse_args(args)
     do_files = options.files
     do_folders = options.folders
+    rclone = options.rclone
     item_ids = [translate_id(_id) for _id in options.ids]
     if any(id is None for id in item_ids):
         return
@@ -405,8 +407,10 @@ def itempaths(args):
     for id in item_ids:
         item = client.file(id).get(fields=['id', 'name', 'parent']) if do_files \
                 else client.folder(id).get(fields=['id', 'name', 'parent'])
-        path_components = _get_item_path(item)
-        print("/" + "/".join(path_components))
+        path = "/" + "/".join(_get_item_path(item))
+        if rclone:
+            print('box:', end="")
+        print(path)
 
 def mkdir(args):
     if len(args) < 2 or '-h' in args or '--help' in args:
@@ -420,18 +424,68 @@ def mkdir(args):
     print(f'Creating "{foldername}" in "{folder.name}"...')
     folder.create_subfolder(foldername)
 
+def mv_items(args):
+    cli_parser = argparse.ArgumentParser(usage='%(prog)s mv [options] ids dest_folder_id',
+                                         description='Move files or folders')
+    cli_parser.add_argument('ids', nargs='+', help='File or folder IDs to move')
+    cli_parser.add_argument('dest_folder_id', help='Destination folder ID')
+    cli_parser.add_argument('-f', '--files', action='store_true', help='Item IDs are files')
+    cli_parser.add_argument('-d', '--folders', action='store_true', help='Item IDs are folders')
+    options = cli_parser.parse_args(args)
+    do_files = options.files
+    do_folders = options.folders
+    item_ids = [translate_id(_id) for _id in options.ids]
+    dest_folder_id = translate_id(options.dest_folder_id)
+    if dest_folder_id is None or any(id is None for id in item_ids):
+        return
+    if not any((do_files, do_folders)) or all((do_files, do_folders)):
+        print("You must supply exactly one of --files/-f or --folders/-d")
+        return
+    client = get_ops_client()
+    folder = client.folder(folder_id=dest_folder_id)
+    for item_id in item_ids:
+        item = client.file(item_id) if do_files else client.folder(item_id)
+        moved_item = item.move(parent_folder=folder)
+        print(f'Moved "{moved_item.name}" into "{moved_item.parent.name}"')
+
+def cp_items(args):
+    cli_parser = argparse.ArgumentParser(usage='%(prog)s cp [options] ids dest_folder_id',
+                                         description='Copy files or folders')
+    cli_parser.add_argument('ids', nargs='+', help='File or folder IDs to copy')
+    cli_parser.add_argument('dest_folder_id', help='Destination folder ID')
+    cli_parser.add_argument('-f', '--files', action='store_true', help='Item IDs are files')
+    cli_parser.add_argument('-d', '--folders', action='store_true', help='Item IDs are folders')
+    options = cli_parser.parse_args(args)
+    do_files = options.files
+    do_folders = options.folders
+    item_ids = [translate_id(_id) for _id in options.ids]
+    dest_folder_id = translate_id(options.dest_folder_id)
+    if dest_folder_id is None or any(id is None for id in item_ids):
+        return
+    if not any((do_files, do_folders)) or all((do_files, do_folders)):
+        print("You must supply exactly one of --files/-f or --folders/-d")
+        return
+    client = get_ops_client()
+    folder = client.folder(folder_id=dest_folder_id)
+    for item_id in item_ids:
+        item = client.file(item_id) if do_files else client.folder(item_id)
+        copied_item = item.copy(parent_folder=folder)
+        print(f'Copied "{copied_item.name}" into "{copied_item.parent.name}"')
+
 # A mapping of command names to the implementing command function
 command_funcs = {
-    'auth' : auth_cmd,
-    'refresh' : refresh_cmd,
+    'auth'     : auth_cmd,
+    'refresh'  : refresh_cmd,
     'userinfo' : userinfo_cmd,
-    'list' : list_folder, 'ls' : list_folder,
-    'search' : search,
-    'get'    : get_files,
-    'put'    : put_file,
-    'rm'     : rm_items,
-    'path'   : itempaths,
-    'mkdir'  : mkdir,
+    'list'     : list_folder, 'ls' : list_folder,
+    'search'   : search,
+    'get'      : get_files,
+    'put'      : put_file,
+    'rm'       : rm_items, 'del' : rm_items,
+    'path'     : itempaths,
+    'mkdir'    : mkdir,
+    'mv'       : mv_items, 'move' : mv_items,
+    'cp'       : cp_items, 'copy' : cp_items,
 }
 
 # Run the appropriate command function {{{1
