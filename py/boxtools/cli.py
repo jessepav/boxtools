@@ -1,5 +1,5 @@
 import os, os.path, sys, argparse, pprint, re, shutil
-import json
+import json, pickle
 import tomli
 
 # Preliminaries {{{1
@@ -26,7 +26,7 @@ if not os.path.exists(config_dir):
 # These are the configuration files
 config_file = os.path.join(config_dir, "boxtools.toml")
 tokens_file = os.path.join(config_dir, "auth-tokens.json")
-prev_ids_file = os.path.join(config_dir, "previous-ids.json")
+prev_ids_file = os.path.join(config_dir, "previous-ids.pickle")
 aliases_file = os.path.join(config_dir, "id-aliases.toml")
 
 # If no config file exists, write the default and exit
@@ -47,8 +47,8 @@ with open(config_file, 'rb') as f:
     id_history_size = config_table['id-history-size']
 
 if os.path.exists(prev_ids_file):
-    with open(prev_ids_file, 'rt') as f:
-        prev_id_map = json.load(f)
+    with open(prev_ids_file, 'rb') as f:
+        prev_id_map = pickle.load(f)
 else:
     prev_id_map = {}
 
@@ -191,8 +191,7 @@ def list_folder(args):
             prev_id_map[folder_id] = folder.name
             if _p := folder.parent:
                 prev_id_map[_p.id] = _p.name
-            for item in items:
-                prev_id_map[item.id] = item.name
+            prev_id_map.update((item.id, item.name) for item in items)
         if json_format:
             print(json.dumps([{field : getattr(item, field) for field in fields}
                               for item in items], indent=2))
@@ -230,5 +229,5 @@ finally:
         keys = list(prev_id_map.keys())
         for k in keys[0:ndel]:
             del prev_id_map[k]
-    with open(prev_ids_file, "wt") as f:
-        json.dump(prev_id_map, f)
+    with open(prev_ids_file, "wb") as f:
+        pickle.dump(prev_id_map, f)
