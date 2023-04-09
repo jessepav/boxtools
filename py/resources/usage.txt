@@ -1,25 +1,5 @@
 Usage: {progname} command [args...]
 
-Commands:
-    auth        obtain auth tokens via OAuth2
-    refresh     refresh existing auth tokens
-
-    userinfo    print user info as JSON
-
-    list / ls   List contents of a folder
-    search      Search for items
-
-    get         Download files
-    put         Upload a file
-    mkdir       Create a new folder
-    rm / del    Remove files or folders
-    mv / move   Move files or folders
-    cp / copy   Copy files or folders
-
-    path        Get full path of files or folders
-
-Use "{progname} [command] --help" for more information about a command.
-
 Configuration files are stored in $BOXTOOLS_DIR, by default ~/.boxtools
 
 Whenever a command expects a Box Item ID, you can use a special syntax
@@ -27,11 +7,33 @@ to lookup an ID returned by the most recent list or search command:
 
   /re/  = use the ID of the item whose name or ID is
           matched by the regular expression re
-  @name = Do a substring search on item names
-  =name = Do an exact match for an item name
+  %name = Do a substring search on item names
+  =name = Do an exact match on item names
+  ^name = Do a prefix search on item names
 
 Also, you can define aliases for IDs in $BOXTOOLS_DIR/id-aliases.toml
 Any ID entered will first be checked against these aliases.
 
-BOXTOOLS_APP_DIR = {app_dir}
-BOXTOOLS_DIR     = {config_dir}
+  BOXTOOLS_APP_DIR = {app_dir}
+  BOXTOOLS_DIR     = {config_dir}
+
+Commands:
+    auth          obtain auth tokens via OAuth2
+    refresh       refresh existing auth tokens
+
+    userinfo      print user info as JSON
+
+    list / ls     List contents of a folder
+    search        Search for items
+
+    get           Download files
+    put           Upload a file
+    mkdir         Create a new folder
+    rm / del      Remove files or folders
+    mv / move     Move files or folders
+    cp / copy     Copy files or folders
+    rn / rename   Rename a file or folder
+
+    path          Get full path of files or folders
+
+Use "{progname} [command] --help" for more information about a command.

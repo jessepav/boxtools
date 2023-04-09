@@ -141,7 +141,7 @@ def _choose_id(id_, matched_ids):
 def translate_id(id_):
     if id_ in id_aliases:
         return str(id_aliases[id_])
-    if id_.startswith('@'):
+    if id_.startswith('%'):
         term = id_[1:]
         matched_ids = []
         for entry in prev_id_map.items():
@@ -153,6 +153,13 @@ def translate_id(id_):
         matched_ids = []
         for entry in prev_id_map.items():
             if term == entry[1]:
+                matched_ids.append(entry)
+        return _choose_id(id_, matched_ids)
+    elif id_.startswith('^'):
+        term = id_[1:]
+        matched_ids = []
+        for entry in prev_id_map.items():
+            if entry[1].startswith(term):
                 matched_ids.append(entry)
         return _choose_id(id_, matched_ids)
     elif id_.startswith('@'):
@@ -474,6 +481,29 @@ def cp_items(args):
         copied_item = item.copy(parent_folder=folder)
         print(f'Copied "{copied_item.name}" into "{copied_item.parent.name}"')
 
+def rn_item(args):
+    cli_parser = argparse.ArgumentParser(usage='%(prog)s rn [options] id new_name',
+                                         description='Rename a file or folder')
+    cli_parser.add_argument('id', help='File or folder ID')
+    cli_parser.add_argument('new_name', help='New name for the item')
+    cli_parser.add_argument('-f', '--files', action='store_true', help='Item IDs are files')
+    cli_parser.add_argument('-d', '--folders', action='store_true', help='Item IDs are folders')
+    options = cli_parser.parse_args(args)
+    do_files = options.files
+    do_folders = options.folders
+    item_id = translate_id(options.id)
+    new_name = options.new_name
+    if item_id is None:
+        return
+    if not any((do_files, do_folders)) or all((do_files, do_folders)):
+        print("You must supply exactly one of --files/-f or --folders/-d")
+        return
+    client = get_ops_client()
+    item = client.file(item_id) if do_files else client.folder(item_id)
+    oldname = item.get().name
+    item = item.rename(new_name)
+    print(f'"{oldname}" renamed to "{item.name}"')
+
 # A mapping of command names to the implementing command function
 command_funcs = {
     'auth'     : auth_cmd,
@@ -488,6 +518,7 @@ command_funcs = {
     'mkdir'    : mkdir,
     'mv'       : mv_items, 'move' : mv_items,
     'cp'       : cp_items, 'copy' : cp_items,
+    'rn'       : rn_item, 'rename' : rn_item,
 }
 
 # Run the appropriate command function {{{1
