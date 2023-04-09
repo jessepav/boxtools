@@ -103,9 +103,9 @@ def print_table(items, fields, colgap=4, print_header=True):
 def translate_id(_id):
     if len(_id) >= 3 and _id[0] == '/' and _id[-1] == '/':  # a regex
         matched_ids = []
-        reo = re.compile(_id[1:-1])
+        reo = re.compile(_id[1:-1], re.IGNORECASE)
         for _prev_id in prev_ids:
-            if reo.search(_prev_id):
+            if any(reo.search(_part) for _part in _prev_id):
                 matched_ids.append(_prev_id)
         if len(matched_ids) == 0:
             print(f"{_id} did not match any previous IDs")
@@ -116,7 +116,7 @@ def translate_id(_id):
                 print(f"  {_mid}")
             sys.exit(2)
         else:
-            return matched_ids[0]
+            return matched_ids[0][-1]
     else:  # Not a special syntax
         return _id
 
@@ -171,7 +171,7 @@ def list_folder(args):
     fields = [field.strip() for field in options.fields.split(",")]
     print_header = not options.no_header
     json_format = options.json
-    record_ids = 'id' in fields
+    record_ids = 'id' in fields and 'name' in fields
     if record_ids:
         global prev_ids
         prev_ids = []
@@ -179,10 +179,10 @@ def list_folder(args):
     for i, folder_id in enumerate(folder_ids):
         folder, items = ops.list_folder(client, folder_id, fields=fields)
         if record_ids:
-            prev_ids.append(folder_id)
-            if folder.parent:
-                prev_ids.append(folder.parent.id)
-            prev_ids.extend(item.id for item in items)
+            prev_ids.append([folder.name, folder_id])
+            if _p := folder.parent:
+                prev_ids.append([_p.name, _p.id])
+            prev_ids.extend([item.name, item.id] for item in items)
         if json_format:
             print(json.dumps([{field : getattr(item, field) for field in fields}
                               for item in items], indent=2))
@@ -191,8 +191,8 @@ def list_folder(args):
                 print("\n" + "=" * table_width + "\n")
             if print_header:
                 folder_header_info = f"{folder.name} | {folder.id}"
-                if folder.parent is not None:
-                    folder_header_info += f" - (Parent: {folder.parent.name} | {folder.parent.id})"
+                if _p := folder.parent:
+                    folder_header_info += f" - (Parent: {_p.name} | {_p.id})"
                 print(folder_header_info, end="\n\n")
             table_width = print_table(items, fields, print_header=print_header)
 
