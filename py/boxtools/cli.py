@@ -662,7 +662,7 @@ def shell(args):
                     # gets a '--help' or incorrect arguments.
                     pass
             else:
-                print(f"Unknown command '{command}'")
+                print(f"Unknown command '{cmd}'")
 
 # Map command names to the implementing command function  # {{{2
 command_funcs = {
