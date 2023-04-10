@@ -97,11 +97,20 @@ def get_ops_client():
         logging.getLogger('boxsdk').setLevel(logging.CRITICAL)
     return ops_client
 
-def print_table(items, fields, colgap=4, print_header=True):
+def print_table(items, fields, colgap=4, *,print_header=True, is_dict=False, is_sequence=False):
+    # Helper function so we can work with all sorts of items
+    def _get_field_val(item, idx, field):
+        if is_dict:
+            return item[field]
+        elif is_sequence:
+            return item[idx]
+        else:
+            return getattr(item, field)
+    #
     max_field_len = [len(field) for field in fields]
     for item in items:
         for i, field in enumerate(fields):
-            max_field_len[i] = max(max_field_len[i], len(getattr(item, field)))
+            max_field_len[i] = max(max_field_len[i], len(_get_field_val(item, i, field)))
     for i in range(len(max_field_len) - 1):
         max_field_len[i] += colgap
     if print_header:
@@ -111,7 +120,7 @@ def print_table(items, fields, colgap=4, print_header=True):
         print("-" * sum(max_field_len))
     for item in items:
         for i, field in enumerate(fields):
-            print(f"{getattr(item, field):{max_field_len[i]}}", end="")
+            print(f"{_get_field_val(item, i, field):{max_field_len[i]}}", end="")
         print()
     return sum(max_field_len)
 
@@ -225,6 +234,13 @@ def userinfo_cmd(args):  # {{{2
     user = client.user().get()
     infodict = {field : getattr(user, field) for field in ('id', 'login', 'name')}
     print(json.dumps(infodict, indent=2))
+
+def history(args):
+    if len(args):
+        print(f"usage: {os.path.basename(sys.argv[0])} history\n\n"
+               "Show previous ID history")
+        return
+    print_table(list(prev_id_map.items()), ('Id', 'Name'), is_sequence=True)
 
 def ls_folder(args):  # {{{2
     cli_parser = argparse.ArgumentParser(usage='%(prog)s ls [options] id [id...]',
@@ -604,8 +620,9 @@ command_funcs = {
     'auth'     : auth_cmd,
     'refresh'  : refresh_cmd,
     'userinfo' : userinfo_cmd,
+    'history'  : history,
     'ls'       : ls_folder, 'list' : ls_folder,
-    'fd'       : search, 'search' : search, 
+    'fd'       : search, 'search' : search,
     'get'      : get_files,
     'put'      : put_file,
     'rm'       : rm_items, 'del' : rm_items,

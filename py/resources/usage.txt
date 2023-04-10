@@ -22,10 +22,11 @@ Any ID entered will first be checked against these aliases.
   BOXTOOLS_DIR     = {config_dir}
 
 Commands:
-    auth          obtain auth tokens via OAuth2
-    refresh       refresh existing auth tokens
+    auth          Obtain auth tokens via OAuth2
+    refresh       Refresh existing auth tokens
 
-    userinfo      print user info as JSON
+    userinfo      Print user info as JSON
+    history       Show previous ID history
 
     ls / list     List contents of a folder
     fd / search   Search for items
