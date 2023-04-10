@@ -304,8 +304,11 @@ def search(args):  # {{{2
         prev_id_map[item.id] = item.name
         if not no_parent:
             parent = r.parent
-            item.parent, item.parent_id = parent.name, parent.id
-            prev_id_map[parent.id] = parent.name
+            if parent:
+                item.parent, item.parent_id = parent.name, parent.id
+                prev_id_map[parent.id] = parent.name
+            else:
+                item.parent, item.parent_id = 'N/A', 'N/A'
         items.append(item)
         if i == limit: break
     print_table(items, ('name', 'id', 'parent', 'parent_id') if not no_parent else
