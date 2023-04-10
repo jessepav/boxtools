@@ -1,5 +1,4 @@
 import os, os.path, sys, argparse, pprint, re, shutil, logging
-from types import SimpleNamespace as BareObj
 import json, pickle
 import tomli
 
@@ -125,24 +124,26 @@ def print_table(items, fields, colgap=4, *,print_header=True, is_dict=False, is_
     return sum(max_field_len)
 
 def _choose_id(id_, matched_ids):
-    if len(matched_ids) == 0:
+    numchoices = len(matched_ids)
+    if numchoices == 0:
         print(f'"{id_}" did not match any previous IDs')
         return None
-    elif len(matched_ids) > 1:
+    elif numchoices > 1:
         print(f'"{id_}" matched multiple previous IDs (listed from old to new):\n')
         choices = []
         for i, entry in enumerate(matched_ids, start=1):
-            choice = BareObj()
-            choice.n = str(i)
-            choice.id = entry[0]
-            choice.name = entry[1]
-            choices.append(choice)
-        print_table(choices, ('n', 'name', 'id'))
+            choices.append({'n'    : str(i),
+                            'id'   : entry[0],
+                            'name' : entry[1]})
+        print_table(choices, ('n', 'name', 'id'), is_dict=True)
         print()
-        choice = int(input('choice # (n)> ')) - 1
-        if choice >= 0 and choice < len(matched_ids):
-            return matched_ids[choice][0]
-        else:
+        try:
+            choice = int(input(f'choice # (1-{numchoices})> ')) - 1
+            if choice >= 0 and choice < numchoices:
+                return matched_ids[choice][0]
+            else:
+                return None
+        except ValueError:
             return None
     else:
         return matched_ids[0][0]
