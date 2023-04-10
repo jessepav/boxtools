@@ -1,4 +1,4 @@
-import os, os.path, sys, argparse, pprint, re, shutil, logging
+import os, os.path, sys, argparse, pprint, re, shutil, logging, readline
 import json, pickle
 import tomli
 
@@ -223,7 +223,8 @@ def add_history_item(item, parent=None):
 # Define command functions {{{1
 
 def auth_cmd(args):  # {{{2
-    cli_parser = argparse.ArgumentParser(usage='%(prog)s auth [options]',
+    cli_parser = argparse.ArgumentParser(exit_on_error=False,
+                                         usage='%(prog)s auth [options]',
                                          description='Authenticate (via OAuth2) with Box')
     cli_parser.add_argument('-B', '--no-browser', action='store_true',
                             help="Do not open a browser window to the authorization URL")
@@ -264,7 +265,8 @@ def history(args):
     print_table(list(item_history_map.items()), ('id', 'name', 'parent_name'), is_dict=True)
 
 def ls_folder(args):  # {{{2
-    cli_parser = argparse.ArgumentParser(usage='%(prog)s ls [options] id [id...]',
+    cli_parser = argparse.ArgumentParser(exit_on_error=False,
+                                         usage='%(prog)s ls [options] id [id...]',
                                          description='List a folder')
     cli_parser.add_argument('id', nargs='+', help='Folder ID(s)')
     cli_parser.add_argument('-H', '--no-header', action='store_true',
@@ -297,7 +299,8 @@ def ls_folder(args):  # {{{2
         table_width = print_table(items, ('type', 'name', 'id'), print_header=print_header)
 
 def search(args):  # {{{2
-    cli_parser = argparse.ArgumentParser(usage='%(prog)s fd [options] term',
+    cli_parser = argparse.ArgumentParser(exit_on_error=False,
+                                         usage='%(prog)s fd [options] term',
                                          description='Search for items')
     cli_parser.add_argument('term', help='Search term')
     cli_parser.add_argument('-f', '--files', action='store_true', help='Search for files')
@@ -371,7 +374,8 @@ def get_files(args):  # {{{2
            file.download_to(f)
 
 def put_file(args):  # {{{2
-    cli_parser = argparse.ArgumentParser(usage='%(prog)s put [options] file(s)',
+    cli_parser = argparse.ArgumentParser(exit_on_error=False,
+                                         usage='%(prog)s put [options] file(s)',
                                          description='Upload a file')
     cli_parser.add_argument('files', nargs='+', help='File(s) to upload')
     cli_parser.add_argument('-f', '--file-version', metavar='file_id',
@@ -405,7 +409,8 @@ def put_file(args):  # {{{2
             print("done")
 
 def rm_items(args):  # {{{2
-    cli_parser = argparse.ArgumentParser(usage='%(prog)s rm [options] ids...',
+    cli_parser = argparse.ArgumentParser(exit_on_error=False,
+                                         usage='%(prog)s rm [options] ids...',
                                          description='Remove files or folders')
     cli_parser.add_argument('ids', nargs='+', help='File or folder IDs to remove')
     cli_parser.add_argument('-f', '--files', action='store_true', help='Remove files')
@@ -433,7 +438,8 @@ def rm_items(args):  # {{{2
             folder.delete()
 
 def itempaths(args):  # {{{2
-    cli_parser = argparse.ArgumentParser(usage='%(prog)s path [options] ids...',
+    cli_parser = argparse.ArgumentParser(exit_on_error=False,
+                                         usage='%(prog)s path [options] ids...',
                                          description='Get full path of files or folders')
     cli_parser.add_argument('ids', nargs='+', help='File or folder IDs')
     cli_parser.add_argument('-f', '--files', action='store_true', help='Get file paths')
@@ -485,7 +491,8 @@ def mkdir(args):  # {{{2
     folder.create_subfolder(foldername)
 
 def mv_items(args):  # {{{2
-    cli_parser = argparse.ArgumentParser(usage='%(prog)s mv [options] ids... dest_folder_id',
+    cli_parser = argparse.ArgumentParser(exit_on_error=False,
+                                         usage='%(prog)s mv [options] ids... dest_folder_id',
                                          description='Move files or folders')
     cli_parser.add_argument('ids', nargs='+', help='File or folder IDs to move')
     cli_parser.add_argument('dest_folder_id', help='Destination folder ID')
@@ -508,7 +515,8 @@ def mv_items(args):  # {{{2
         print(f'Moved "{moved_item.name}" into "{moved_item.parent.name}"')
 
 def cp_items(args):  # {{{2
-    cli_parser = argparse.ArgumentParser(usage='%(prog)s cp [options] ids... dest_folder_id',
+    cli_parser = argparse.ArgumentParser(exit_on_error=False,
+                                         usage='%(prog)s cp [options] ids... dest_folder_id',
                                          description='Copy files or folders')
     cli_parser.add_argument('ids', nargs='+', help='File or folder IDs to copy')
     cli_parser.add_argument('dest_folder_id', help='Destination folder ID')
@@ -531,7 +539,8 @@ def cp_items(args):  # {{{2
         print(f'Copied "{copied_item.name}" into "{copied_item.parent.name}"')
 
 def rn_item(args):  # {{{2
-    cli_parser = argparse.ArgumentParser(usage='%(prog)s rn [options] id new_name',
+    cli_parser = argparse.ArgumentParser(exit_on_error=False,
+                                         usage='%(prog)s rn [options] id new_name',
                                          description='Rename a file or folder')
     cli_parser.add_argument('id', help='File or folder ID')
     cli_parser.add_argument('new_name', help='New name for the item')
@@ -553,7 +562,8 @@ def rn_item(args):  # {{{2
     print(f'"{oldname}" renamed to "{item.name}"')
 
 def ln_items(args):  # {{{2
-    cli_parser = argparse.ArgumentParser(usage='%(prog)s ln [options] ids...',
+    cli_parser = argparse.ArgumentParser(exit_on_error=False,
+                                         usage='%(prog)s ln [options] ids...',
                                          description='Get links for files or folders')
     cli_parser.add_argument('ids', nargs='+', help='Item IDs')
     cli_parser.add_argument('-f', '--files', action='store_true', help='Item IDs are files')
@@ -612,7 +622,8 @@ def readlink(args):  # {{{2
     print_stat_info(item)
 
 def stat_items(args):  # {{{2
-    cli_parser = argparse.ArgumentParser(usage='%(prog)s stat [options] ids...',
+    cli_parser = argparse.ArgumentParser(exit_on_error=False,
+                                         usage='%(prog)s stat [options] ids...',
                                          description='Get info about files or folders')
     cli_parser.add_argument('ids', nargs='+', help='Item IDs')
     cli_parser.add_argument('-f', '--files', action='store_true', help='Item IDs are files')
@@ -632,6 +643,27 @@ def stat_items(args):  # {{{2
         if i != 0: print()
         print_stat_info(item)
 
+def shell(args):
+    import shlex
+    print("Type 'quit' to exit the shell, 'help' for general usage.")
+    while True:
+        cmdline = input("> ")
+        if cmdline == 'quit':
+            break
+        elif cmdline == 'help':
+            print(general_usage, end="")
+        else:
+            cmd, *args = shlex.split(cmdline)
+            if cmd in command_funcs:
+                try:
+                    command_funcs[cmd](args)
+                except (SystemExit, argparse.ArgumentError):
+                    # We catch these so that the shell doesn't exit when argparse.parse_args()
+                    # gets a '--help' or incorrect arguments.
+                    pass
+            else:
+                print(f"Unknown command '{command}'")
+
 # Map command names to the implementing command function  # {{{2
 command_funcs = {
     'auth'     : auth_cmd,
@@ -650,7 +682,8 @@ command_funcs = {
     'rn'       : rn_item, 'rename' : rn_item,
     'ln'       : ln_items, 'link' : ln_items,
     'readlink' : readlink,
-    'stat'     : stat_items
+    'stat'     : stat_items,
+    'shell'    : shell,
 }
 # End command functions }}}1
 
@@ -661,14 +694,15 @@ command_args = sys.argv[2:]
 
 if command not in command_funcs:
     print(f"Unknown command '{command}'")
-    sys.exit(2)
-
-try:
-    command_funcs[command](command_args)
-finally:
-    if (ndel := len(item_history_map) - id_history_size) > 0:
-        keys = list(item_history_map.keys())
-        for k in keys[0:ndel]:
-            del item_history_map[k]
-    with open(item_history_file, "wb") as f:
-        pickle.dump(item_history_map, f)
+else:
+    try:
+        command_funcs[command](command_args)
+    except argparse.ArgumentError:
+        pass
+    finally:
+        if (ndel := len(item_history_map) - id_history_size) > 0:
+            keys = list(item_history_map.keys())
+            for k in keys[0:ndel]:
+                del item_history_map[k]
+        with open(item_history_file, "wb") as f:
+            pickle.dump(item_history_map, f)

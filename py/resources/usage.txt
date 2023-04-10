@@ -44,4 +44,6 @@ Commands:
     path          Get full path of files or folders
     stat          Get info about the item referred to by a shared link
 
+    shell         Enter an interactive shell
+
 Use "{progname} [command] --help" for more information about a command.
