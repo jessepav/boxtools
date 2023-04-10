@@ -1,7 +1,0 @@
-Refactor handling of prev_id_map:
-
-  * each entry value will be a class or dict rather than list
-  * Write a function add_item_to_history() that will take a Box item
-    and record its id and name and, if applicable, parent information.
-  * We'll then need to revise _choose_id() and translate_id() to account
-    for the changes.

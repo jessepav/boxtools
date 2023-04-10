@@ -26,7 +26,7 @@ if not os.path.exists(config_dir):
 # These are the configuration files
 config_file = os.path.join(config_dir, "boxtools.toml")
 tokens_file = os.path.join(config_dir, "auth-tokens.json")
-prev_ids_file = os.path.join(config_dir, "previous-ids.pickle")
+item_history_file = os.path.join(config_dir, "item-history.pickle")
 aliases_file = os.path.join(config_dir, "id-aliases.toml")
 
 # If no config file exists, write the default and exit
@@ -46,11 +46,11 @@ with open(config_file, 'rb') as f:
     config_table = config['config']
     id_history_size = config_table['id-history-size']
 
-if os.path.exists(prev_ids_file):
-    with open(prev_ids_file, 'rb') as f:
-        prev_id_map = pickle.load(f)
+if os.path.exists(item_history_file):
+    with open(item_history_file, 'rb') as f:
+        item_history_map = pickle.load(f)
 else:
-    prev_id_map = {}
+    item_history_map = {}
 
 if not os.path.exists(aliases_file):
     shutil.copyfile(os.path.join(app_dir, 'resources/id-aliases.toml'), aliases_file)
@@ -145,21 +145,22 @@ def _choose_id(id_, matched_ids):
         print(f'"{id_}" matched multiple previous IDs (listed from old to new):\n')
         choices = []
         for i, entry in enumerate(matched_ids, start=1):
-            choices.append({'n'    : str(i),
-                            'id'   : entry[0],
-                            'name' : entry[1]})
-        print_table(choices, ('n', 'name', 'id'), is_dict=True)
+            choices.append({'n'      : str(i),
+                            'id'     : entry['id'],
+                            'name'   : entry['name'],
+                            'parent_name' : entry['parent_name']})
+        print_table(choices, ('n', 'name', 'id', 'parent_name'), is_dict=True)
         print()
         try:
             choice = int(input(f'choice # (1-{numchoices})> ')) - 1
             if choice >= 0 and choice < numchoices:
-                return matched_ids[choice][0]
+                return matched_ids[choice]['id']
             else:
                 return None
         except ValueError:
             return None
     else:
-        return matched_ids[0][0]
+        return matched_ids[0]['id']
 
 def translate_id(id_):
     if id_ in id_aliases:
@@ -167,44 +168,43 @@ def translate_id(id_):
     if id_.startswith('%'):
         term = id_[1:]
         matched_ids = []
-        for entry in prev_id_map.items():
-            if term in entry[1]:
+        for entry in item_history_map.values():
+            if term in entry['name']:
                 matched_ids.append(entry)
         return _choose_id(id_, matched_ids)
     elif id_.startswith('='):
         term = id_[1:]
         matched_ids = []
-        for entry in prev_id_map.items():
-            if term == entry[1]:
+        for entry in item_history_map.values():
+            if term == entry['name']:
                 matched_ids.append(entry)
         return _choose_id(id_, matched_ids)
     elif id_.startswith('^'):
         term = id_[1:]
         matched_ids = []
-        for entry in prev_id_map.items():
-            if entry[1].startswith(term):
+        for entry in item_history_map.values():
+            if entry['name'].startswith(term):
                 matched_ids.append(entry)
         return _choose_id(id_, matched_ids)
     elif id_.endswith('$'):
         term = id_[0:-1]
         matched_ids = []
-        for entry in prev_id_map.items():
-            if any(part.endswith(term) for part in entry):
+        for entry in item_history_map.values():
+            if any(part.endswith(term) for part in (entry['name'], entry['id'])):
                 matched_ids.append(entry)
         return _choose_id(id_, matched_ids)
     elif id_.count('/') == 1:
         s, n = id_.split('/')
         matched_ids = []
-        for entry in prev_id_map.items():
-            entry_id, entry_name = entry
-            if s in entry_name and entry_id.endswith(n):
+        for entry in item_history_map.values():
+            if s in entry['name'] and entry['id'].endswith(n):
                 matched_ids.append(entry)
         return _choose_id(id_, matched_ids)
     elif len(id_) >= 3 and id_[0] == '/' and id_[-1] == '/':  # a regex
         matched_ids = []
         reo = re.compile(id_[1:-1], re.IGNORECASE)
-        for entry in prev_id_map.items():
-            if any(reo.search(part) for part in entry):
+        for entry in item_history_map.values():
+            if any(reo.search(part) for part in (entry['name'], entry['id'])):
                 matched_ids.append(entry)
         return _choose_id(id_, matched_ids)
     elif id_.isdigit():
@@ -212,6 +212,13 @@ def translate_id(id_):
     else:
         print(f"{id_} is not a valid item ID")
         return None
+
+def add_history_item(item, parent=None):
+    p = parent or getattr(item, 'parent', None)
+    entry = {'id': item.id, 'name': item.name, 'type': item.type,
+             'parent_id' : p.id if p else "N/A",
+             'parent_name' : p.name if p else "N/A" }
+    item_history_map[item.id] = entry
 
 # Define command functions {{{1
 
@@ -254,50 +261,40 @@ def history(args):
         print(f"usage: {os.path.basename(sys.argv[0])} history\n\n"
                "Show previous ID history")
         return
-    print_table(list(prev_id_map.items()), ('Id', 'Name'), is_sequence=True)
+    print_table(list(item_history_map.items()), ('id', 'name', 'parent_name'), is_dict=True)
 
 def ls_folder(args):  # {{{2
     cli_parser = argparse.ArgumentParser(usage='%(prog)s ls [options] id [id...]',
                                          description='List a folder')
     cli_parser.add_argument('id', nargs='+', help='Folder ID(s)')
-    cli_parser.add_argument('-f', '--fields', default="type, name, id",
-                            help='Comma-separated list of Box item fields to list')
     cli_parser.add_argument('-H', '--no-header', action='store_true',
                             help='Do not print header text for the listing')
-    cli_parser.add_argument('-J', '--json', action='store_true',
-                            help='Print folder contents as JSON (implies --no-header)')
     options = cli_parser.parse_args(args)
     folder_ids = [translate_id(_id) for _id in options.id]
     if any(id is None for id in folder_ids):  # translate_id() failed
         return
-    fields = [field.strip() for field in options.fields.split(",")]
     print_header = not options.no_header
-    json_format = options.json
-    record_ids = 'id' in fields and 'name' in fields
     client = get_ops_client()
     for i, folder_id in enumerate(folder_ids):
         folder = client.folder(folder_id=folder_id)
-        items = list(folder.get_items(fields=fields))
+        items = list(folder.get_items(fields=['type', 'name', 'id', 'parent']))
         folder = folder.get()
-        if record_ids:
-            prev_id_map[folder_id] = folder.name
+        add_history_item(folder)
+        if _p := folder.parent:
+            _p = _p.get()
+            add_history_item(_p)
+        for item in items:
+            add_history_item(item, parent=folder)
+        if i != 0:  # Note that table_width is set at the end of this block
+            print("\n" + "=" * table_width + "\n")
+        if print_header:
+            folder_header_info = f"{folder.name} | {folder.id}"
             if _p := folder.parent:
-                prev_id_map[_p.id] = _p.name
-            prev_id_map.update((item.id, item.name) for item in items)
-        if json_format:
-            print(json.dumps([{field : getattr(item, field) for field in fields}
-                              for item in items], indent=2))
-        else:
-            if i != 0:  # Note that table_width is set at the end of this block
-                print("\n" + "=" * table_width + "\n")
-            if print_header:
-                folder_header_info = f"{folder.name} | {folder.id}"
-                if _p := folder.parent:
-                    folder_header_info += f" - (Parent: {_p.name} | {_p.id})"
-                else:
-                    folder_header_info += " - (Parent: All Files | 0)"
-                print(folder_header_info, end="\n\n")
-            table_width = print_table(items, fields, print_header=print_header)
+                folder_header_info += f" - (Parent: {_p.name} | {_p.id})"
+            elif folder_id != '0':
+                folder_header_info += " - (Parent: All Files | 0)"
+            print(folder_header_info, end="\n\n")
+        table_width = print_table(items, ('type', 'name', 'id'), print_header=print_header)
 
 def search(args):  # {{{2
     cli_parser = argparse.ArgumentParser(usage='%(prog)s fd [options] term',
@@ -338,13 +335,13 @@ def search(args):  # {{{2
     for i, r in enumerate(results, start=1):
         item = { 'name' : r.name,
                  'id'   : r.id }
-        prev_id_map[r.id] = r.name
+        add_history_item(r)
         if not no_parent:
             parent = r.parent
             if parent:
                 item['parent'] = parent.name
                 item['parent_id'] = parent.id
-                prev_id_map[parent.id] = parent.name
+                add_history_item(parent)
             else:
                 item['parent'] = item['parent_id'] = 'N/A'
         items.append(item)
@@ -466,7 +463,7 @@ def itempaths(args):  # {{{2
                 for j, path_item in enumerate(path_items):
                     print(" " * (j*2) + '/ ', end="")
                     print(f"{path_item.name} [{path_item.id}]")
-                    prev_id_map[path_item.id] = path_item.name
+                    add_history_item(path_item)
             else:
                 path_entries = [folder.name for folder in item.path_collection['entries'][1:]]
                 path_entries.append(item.name)
@@ -669,9 +666,9 @@ if command not in command_funcs:
 try:
     command_funcs[command](command_args)
 finally:
-    if (ndel := len(prev_id_map) - id_history_size) > 0:
-        keys = list(prev_id_map.keys())
+    if (ndel := len(item_history_map) - id_history_size) > 0:
+        keys = list(item_history_map.keys())
         for k in keys[0:ndel]:
-            del prev_id_map[k]
-    with open(prev_ids_file, "wb") as f:
-        pickle.dump(prev_id_map, f)
+            del item_history_map[k]
+    with open(item_history_file, "wb") as f:
+        pickle.dump(item_history_map, f)
