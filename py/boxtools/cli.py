@@ -322,20 +322,22 @@ def search(args):  # {{{2
     # so we need to manually retrieve 'limit' items
     items = []
     for i, r in enumerate(results, start=1):
-        item = BareObj()
-        item.name, item.id = r.name, r.id
-        prev_id_map[item.id] = item.name
+        item = { 'name' : r.name,
+                 'id'   : r.id }
+        prev_id_map[r.id] = r.name
         if not no_parent:
             parent = r.parent
             if parent:
-                item.parent, item.parent_id = parent.name, parent.id
+                item['parent'] = parent.name
+                item['parent_id'] = parent.id
                 prev_id_map[parent.id] = parent.name
             else:
-                item.parent, item.parent_id = 'N/A', 'N/A'
+                item['parent'] = item['parent_id'] = 'N/A'
         items.append(item)
         if i == limit: break
-    print_table(items, ('name', 'id', 'parent', 'parent_id') if not no_parent else
-                       ('name', 'id'))
+    print_table(items,
+                ('name', 'id', 'parent', 'parent_id') if not no_parent else ('name', 'id'),
+                is_dict=True)
 
 def get_files(args):  # {{{2
     if len(args) < 2 or '-h' in args or '--help' in args:
