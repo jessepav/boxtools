@@ -36,5 +36,6 @@ Commands:
 
     ln / link     Get links for files or folders
     path          Get full path of files or folders
+    stat          Get info about files or folders
 
 Use "{progname} [command] --help" for more information about a command.
