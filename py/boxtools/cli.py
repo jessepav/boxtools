@@ -227,7 +227,7 @@ def userinfo_cmd(args):  # {{{2
     print(json.dumps(infodict, indent=2))
 
 def ls_folder(args):  # {{{2
-    cli_parser = argparse.ArgumentParser(usage='%(prog)s list [options] id [id...]',
+    cli_parser = argparse.ArgumentParser(usage='%(prog)s ls [options] id [id...]',
                                          description='List a folder')
     cli_parser.add_argument('id', nargs='+', help='Folder ID(s)')
     cli_parser.add_argument('-f', '--fields', default="type, name, id",
@@ -270,7 +270,7 @@ def ls_folder(args):  # {{{2
             table_width = print_table(items, fields, print_header=print_header)
 
 def search(args):  # {{{2
-    cli_parser = argparse.ArgumentParser(usage='%(prog)s search [options] term',
+    cli_parser = argparse.ArgumentParser(usage='%(prog)s fd [options] term',
                                          description='Search for items')
     cli_parser.add_argument('term', help='Search term')
     cli_parser.add_argument('-f', '--files', action='store_true', help='Search for files')
@@ -603,8 +603,8 @@ command_funcs = {
     'auth'     : auth_cmd,
     'refresh'  : refresh_cmd,
     'userinfo' : userinfo_cmd,
-    'list'     : ls_folder, 'ls' : ls_folder,
-    'search'   : search,
+    'ls'       : ls_folder, 'list' : ls_folder,
+    'fd'       : search, 'search' : search, 
     'get'      : get_files,
     'put'      : put_file,
     'rm'       : rm_items, 'del' : rm_items,

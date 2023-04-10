@@ -28,7 +28,7 @@ Commands:
     userinfo      print user info as JSON
 
     ls / list     List contents of a folder
-    search        Search for items
+    fd / search   Search for items
 
     get           Download files
     put           Upload a file
