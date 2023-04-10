@@ -265,6 +265,8 @@ def ls_folder(args):
                 folder_header_info = f"{folder.name} | {folder.id}"
                 if _p := folder.parent:
                     folder_header_info += f" - (Parent: {_p.name} | {_p.id})"
+                else:
+                    folder_header_info += " - (Parent: All Files | 0)"
                 print(folder_header_info, end="\n\n")
             table_width = print_table(items, fields, print_header=print_header)
 
