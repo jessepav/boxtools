@@ -227,7 +227,6 @@ def userinfo_cmd(args):  # {{{2
     print(json.dumps(infodict, indent=2))
 
 def ls_folder(args):  # {{{2
-    global prev_id_map
     cli_parser = argparse.ArgumentParser(usage='%(prog)s list [options] id [id...]',
                                          description='List a folder')
     cli_parser.add_argument('id', nargs='+', help='Folder ID(s)')
@@ -271,7 +270,6 @@ def ls_folder(args):  # {{{2
             table_width = print_table(items, fields, print_header=print_header)
 
 def search(args):  # {{{2
-    global prev_id_map
     cli_parser = argparse.ArgumentParser(usage='%(prog)s search [options] term',
                                          description='Search for items')
     cli_parser.add_argument('term', help='Search term')
