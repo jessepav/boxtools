@@ -157,6 +157,8 @@ def _choose_id(id_, matched_ids):
                 return matched_ids[choice]['id']
             else:
                 return None
+        except EOFError:
+            print()
         except ValueError:
             return None
     else:
@@ -647,7 +649,11 @@ def shell(args):
     import shlex
     print("Type 'quit' to exit the shell, 'help' for general usage.")
     while True:
-        cmdline = input("> ")
+        try:
+            cmdline = input("> ")
+        except EOFError:
+            print()
+            break
         if cmdline == 'quit':
             break
         elif cmdline == 'help':
