@@ -281,6 +281,8 @@ def search(args):  # {{{2
                             help='Search only in item names rather than in all content')
     cli_parser.add_argument('-P', '--no-parent', action='store_true',
                             help="Don't include parent folder information in output")
+    cli_parser.add_argument('-a', '--ancestors',
+                            help="Comma-separated list of ancestor folders for results")
     options = cli_parser.parse_args(args)
     term = options.term
     do_files, do_folders = options.files, options.folders
@@ -290,9 +292,14 @@ def search(args):  # {{{2
     limit = options.limit
     name_only = options.name_only
     no_parent = options.no_parent
+    if options.ancestors:
+        ancestor_ids = [translate_id(id.strip()) for id in options.ancestors.split(",")]
+    else:
+        ancestor_ids = None
     fields=['name', 'id', 'parent'] if not no_parent else ['name', 'id']
     client = get_ops_client()
-    results = client.search().query(query=term, limit=limit, offset=0,
+    ancestors = [client.folder(id) for id in ancestor_ids] if ancestor_ids else None
+    results = client.search().query(query=term, limit=limit, offset=0, ancestor_folders=ancestors,
                                     result_type='file' if do_files else 'folder',
                                     content_types=['name'] if name_only else None, fields=fields)
     # We can't just throw the iterator returned by query() into a list(), because it stalls,
