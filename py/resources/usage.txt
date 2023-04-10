@@ -40,7 +40,8 @@ Commands:
     rn / rename   Rename a file or folder
 
     ln / link     Get links for files or folders
+    readlink      Get the item referred to by a shared link
     path          Get full path of files or folders
-    stat          Get info about files or folders
+    stat          Get info about the item referred to by a shared link
 
 Use "{progname} [command] --help" for more information about a command.

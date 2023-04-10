@@ -123,6 +123,19 @@ def print_table(items, fields, colgap=4, *,print_header=True, is_dict=False, is_
         print()
     return sum(max_field_len)
 
+def print_stat_info(item):
+    for field in ('name', 'type', 'id', 'content_created_at', 'content_modified_at',
+                    'created_at', 'description', 'modified_at', 'size'):
+        print(f"{field:20}: {getattr(item, field)}")
+    if item.shared_link:
+        print(f"{'url':20}: {item.shared_link['url']}")
+        print(f"{'download_url':20}: {item.shared_link['download_url']}")
+    if hasattr(item, "item_collection"):
+        print(f"{'item_count':20}: {item.item_collection['total_count']}")
+    if item.parent:
+        print(f"{'parent_name':20}: {item.parent.name}")
+        print(f"{'parent_id':20}: {item.parent.id}")
+
 def _choose_id(id_, matched_ids):
     numchoices = len(matched_ids)
     if numchoices == 0:
@@ -590,6 +603,17 @@ def ln_items(args):  # {{{2
                 print("== Folder:", folder.name)
                 print("     Link:", link)
 
+def readlink(args):  # {{{2
+    if len(args) != 1 or '-h' in args or '--help' in args:
+        print(f"usage: {os.path.basename(sys.argv[0])} readlink shared_url\n\n"
+               "Get info about the item referred to by a shared link.\n\n"
+               'Note that this only works for "Shared URLs", not "Download URLs"')
+        return
+    shared_url = args[0]
+    client = get_ops_client()
+    item = client.get_shared_item(shared_url)
+    print_stat_info(item)
+
 def stat_items(args):  # {{{2
     cli_parser = argparse.ArgumentParser(usage='%(prog)s stat [options] ids...',
                                          description='Get info about files or folders')
@@ -609,14 +633,7 @@ def stat_items(args):  # {{{2
         item = client.file(item_id) if do_files else client.folder(item_id)
         item = item.get()
         if i != 0: print()
-        for field in ('name', 'type', 'id', 'content_created_at', 'content_modified_at',
-                      'created_at', 'description', 'modified_at', 'size'):
-            print(f"{field:20}: {getattr(item, field)}")
-        if item.shared_link:
-            print(f"{'url':20}: {item.shared_link['url']}")
-            print(f"{'download_url':20}: {item.shared_link['download_url']}")
-        if hasattr(item, "item_collection"):
-            print(f"{'item_count':20}: {item.item_collection['total_count']}")
+        print_stat_info(item)
 
 # Map command names to the implementing command function  # {{{2
 command_funcs = {
@@ -635,6 +652,7 @@ command_funcs = {
     'cp'       : cp_items, 'copy' : cp_items,
     'rn'       : rn_item, 'rename' : rn_item,
     'ln'       : ln_items, 'link' : ln_items,
+    'readlink' : readlink,
     'stat'     : stat_items
 }
 # End command functions }}}1
