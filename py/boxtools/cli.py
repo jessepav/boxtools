@@ -147,7 +147,7 @@ def _choose_id(id_, matched_ids):
         for i, entry in enumerate(matched_ids, start=1):
             choices.append({'n'      : str(i),
                             'id'     : entry['id'],
-                            'name'   : entry['name'],
+                            'name'   : entry['name'] + ('/' if entry['type'] == 'folder' else ''),
                             'parent_name' : entry['parent_name']})
         print_table(choices, ('n', 'name', 'id', 'parent_name'), is_dict=True)
         print()
