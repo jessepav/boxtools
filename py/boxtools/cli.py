@@ -162,8 +162,21 @@ def translate_id(id_):
             if entry[1].startswith(term):
                 matched_ids.append(entry)
         return _choose_id(id_, matched_ids)
-    elif id_.startswith('@'):
-        pass
+    elif id_.endswith('$'):
+        term = id_[0:-1]
+        matched_ids = []
+        for entry in prev_id_map.items():
+            if any(part.endswith(term) for part in entry):
+                matched_ids.append(entry)
+        return _choose_id(id_, matched_ids)
+    elif id_.count('/') == 1:
+        s, n = id_.split('/')
+        matched_ids = []
+        for entry in prev_id_map.items():
+            entry_id, entry_name = entry
+            if s in entry_name and entry_id.endswith(n):
+                matched_ids.append(entry)
+        return _choose_id(id_, matched_ids)
     elif len(id_) >= 3 and id_[0] == '/' and id_[-1] == '/':  # a regex
         matched_ids = []
         reo = re.compile(id_[1:-1], re.IGNORECASE)

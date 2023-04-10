@@ -8,8 +8,12 @@ to lookup an ID returned by the most recent list or search command:
   =name = Do an exact match on item names
   %name = Do a substring search on item names
   ^name = Do a prefix search on item names
-  /re/  = use the ID of the item whose name *or* ID is matched by the
+  name$ = Do a suffix search on item names and IDs
+  /re/  = use the ID of the item whose name or ID is matched by the
           case-insensitive regular expression re
+  s/n   = The double-focus operator! Matches an item if the name includes
+          s as a substring, and the ID ends with n. This is pretty much
+          the operator you want to be using to easily choose an item.
 
 Also, you can define aliases for IDs in $BOXTOOLS_DIR/id-aliases.toml
 Any ID entered will first be checked against these aliases.

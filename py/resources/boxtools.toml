@@ -5,4 +5,4 @@ internal-redirect-url = "http://127.0.0.1:18444"
 external-redirect-url = "https://website.com/authpage"
 
 [config]
-id-history-size = 200
+id-history-size = 500
