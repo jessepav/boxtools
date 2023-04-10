@@ -434,6 +434,7 @@ def itempaths(args):  # {{{2
                 for j, path_item in enumerate(path_items):
                     print(" " * (j*2) + '/ ', end="")
                     print(f"{path_item.name} [{path_item.id}]")
+                    prev_id_map[path_item.id] = path_item.name
             else:
                 path_entries = [folder.name for folder in item.path_collection['entries'][1:]]
                 path_entries.append(item.name)
