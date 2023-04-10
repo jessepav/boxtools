@@ -192,7 +192,7 @@ def translate_id(id_):
 
 # Define command functions {{{1
 
-def auth_cmd(args):
+def auth_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(usage='%(prog)s auth [options]',
                                          description='Authenticate (via OAuth2) with Box')
     cli_parser.add_argument('-B', '--no-browser', action='store_true',
@@ -206,7 +206,7 @@ def auth_cmd(args):
                     run_server=not options.external_redirect, open_browser=not options.no_browser)
     print(f"Tokens saved to {tokens_file}")
 
-def refresh_cmd(args):
+def refresh_cmd(args):  # {{{2
     if len(args):
         print(f"usage: {os.path.basename(sys.argv[0])} refresh\n\n"
                "Manually refresh access tokens")
@@ -216,7 +216,7 @@ def refresh_cmd(args):
     refresh_tokens(client_id, client_secret, access_token, refresh_token, save_tokens)
     print(f"Tokens refreshed and saved")
 
-def userinfo_cmd(args):
+def userinfo_cmd(args):  # {{{2
     if len(args):
         print(f"usage: {os.path.basename(sys.argv[0])} userinfo\n\n"
                "Print authorized user information as a JSON object")
@@ -226,7 +226,7 @@ def userinfo_cmd(args):
     infodict = {field : getattr(user, field) for field in ('id', 'login', 'name')}
     print(json.dumps(infodict, indent=2))
 
-def ls_folder(args):
+def ls_folder(args):  # {{{2
     global prev_id_map
     cli_parser = argparse.ArgumentParser(usage='%(prog)s list [options] id [id...]',
                                          description='List a folder')
@@ -270,7 +270,7 @@ def ls_folder(args):
                 print(folder_header_info, end="\n\n")
             table_width = print_table(items, fields, print_header=print_header)
 
-def search(args):
+def search(args):  # {{{2
     global prev_id_map
     cli_parser = argparse.ArgumentParser(usage='%(prog)s search [options] term',
                                          description='Search for items')
@@ -313,7 +313,7 @@ def search(args):
     print_table(items, ('name', 'id', 'parent', 'parent_id') if not no_parent else
                        ('name', 'id'))
 
-def get_files(args):
+def get_files(args):  # {{{2
     if len(args) < 2 or '-h' in args or '--help' in args:
         print(f"usage: {os.path.basename(sys.argv[0])} get file_id [file_id...] directory\n\n"
                "Download files")
@@ -333,7 +333,7 @@ def get_files(args):
         with open(os.path.join(target_dir, filename), "wb") as f:
            file.download_to(f)
 
-def put_file(args):
+def put_file(args):  # {{{2
     cli_parser = argparse.ArgumentParser(usage='%(prog)s put [options] file(s)',
                                          description='Upload a file')
     cli_parser.add_argument('files', nargs='+', help='File(s) to upload')
@@ -367,7 +367,7 @@ def put_file(args):
             folder.upload(filepath)
             print("done")
 
-def rm_items(args):
+def rm_items(args):  # {{{2
     cli_parser = argparse.ArgumentParser(usage='%(prog)s rm [options] ids...',
                                          description='Remove files or folders')
     cli_parser.add_argument('ids', nargs='+', help='File or folder IDs to remove')
@@ -395,7 +395,7 @@ def rm_items(args):
             print(f"Deleting folder {box_foldername}...")
             folder.delete()
 
-def itempaths(args):
+def itempaths(args):  # {{{2
     cli_parser = argparse.ArgumentParser(usage='%(prog)s path [options] ids...',
                                          description='Get full path of files or folders')
     cli_parser.add_argument('ids', nargs='+', help='File or folder IDs')
@@ -434,7 +434,7 @@ def itempaths(args):
                     print('box:', end="")
                 print(path)
 
-def mkdir(args):
+def mkdir(args):  # {{{2
     if len(args) < 2 or '-h' in args or '--help' in args:
         print(f"usage: {os.path.basename(sys.argv[0])} mkdir parent_folder_id folder_name\n\n"
                "Create a new folder")
@@ -446,7 +446,7 @@ def mkdir(args):
     print(f'Creating "{foldername}" in "{folder.name}"...')
     folder.create_subfolder(foldername)
 
-def mv_items(args):
+def mv_items(args):  # {{{2
     cli_parser = argparse.ArgumentParser(usage='%(prog)s mv [options] ids... dest_folder_id',
                                          description='Move files or folders')
     cli_parser.add_argument('ids', nargs='+', help='File or folder IDs to move')
@@ -469,7 +469,7 @@ def mv_items(args):
         moved_item = item.move(parent_folder=folder)
         print(f'Moved "{moved_item.name}" into "{moved_item.parent.name}"')
 
-def cp_items(args):
+def cp_items(args):  # {{{2
     cli_parser = argparse.ArgumentParser(usage='%(prog)s cp [options] ids... dest_folder_id',
                                          description='Copy files or folders')
     cli_parser.add_argument('ids', nargs='+', help='File or folder IDs to copy')
@@ -492,7 +492,7 @@ def cp_items(args):
         copied_item = item.copy(parent_folder=folder)
         print(f'Copied "{copied_item.name}" into "{copied_item.parent.name}"')
 
-def rn_item(args):
+def rn_item(args):  # {{{2
     cli_parser = argparse.ArgumentParser(usage='%(prog)s rn [options] id new_name',
                                          description='Rename a file or folder')
     cli_parser.add_argument('id', help='File or folder ID')
@@ -514,7 +514,7 @@ def rn_item(args):
     item = item.rename(new_name)
     print(f'"{oldname}" renamed to "{item.name}"')
 
-def ln_items(args):
+def ln_items(args):  # {{{2
     cli_parser = argparse.ArgumentParser(usage='%(prog)s ln [options] ids...',
                                          description='Get links for files or folders')
     cli_parser.add_argument('ids', nargs='+', help='Item IDs')
@@ -562,7 +562,7 @@ def ln_items(args):
                 print("== Folder:", folder.name)
                 print("     Link:", link)
 
-def stat_items(args):
+def stat_items(args):  # {{{2
     cli_parser = argparse.ArgumentParser(usage='%(prog)s stat [options] ids...',
                                          description='Get info about files or folders')
     cli_parser.add_argument('ids', nargs='+', help='Item IDs')
@@ -590,7 +590,7 @@ def stat_items(args):
         if hasattr(item, "item_collection"):
             print(f"{'item_count':20}: {item.item_collection['total_count']}")
 
-# A mapping of command names to the implementing command function
+# Map command names to the implementing command function  # {{{2
 command_funcs = {
     'auth'     : auth_cmd,
     'refresh'  : refresh_cmd,
@@ -608,6 +608,7 @@ command_funcs = {
     'ln'       : ln_items, 'link' : ln_items,
     'stat'     : stat_items
 }
+# End command functions }}}1
 
 # Run the appropriate command function {{{1
 
