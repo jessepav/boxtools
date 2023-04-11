@@ -286,7 +286,7 @@ def userinfo_cmd(args):  # {{{2
     infodict = {field : getattr(user, field) for field in ('id', 'login', 'name')}
     print(json.dumps(infodict, indent=2))
 
-def history(args):
+def history(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s history [options]',
                                          description='Show previous ID history')
@@ -704,7 +704,7 @@ def stat_items(args):  # {{{2
         if i != 0: print()
         print_stat_info(item)
 
-def shell(args):
+def shell(args):  # {{{2
     import shlex
     print("Type 'quit' to exit the shell, 'help' for general usage.")
     while True:
