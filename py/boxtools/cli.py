@@ -244,6 +244,9 @@ def add_history_item(item, parent=None):
     entry = {'id': item.id, 'name': item.name, 'type': item.type,
              'parent_id' : p.id if p else "N/A",
              'parent_name' : p.name if p else "N/A" }
+    # We delete and reinsert so that the history item shows as new in the dict item order
+    if item.id in item_history_map:
+        del item_history_map[item.id]
     item_history_map[item.id] = entry
 
 # Define command functions {{{1
@@ -284,11 +287,14 @@ def userinfo_cmd(args):  # {{{2
     print(json.dumps(infodict, indent=2))
 
 def history(args):
-    if len(args):
-        print(f"usage: {os.path.basename(sys.argv[0])} history\n\n"
-               "Show previous ID history")
-        return
-    print_table(list(item_history_map.values()), ('id', 'name', 'parent_name'), is_dict=True)
+    cli_parser = argparse.ArgumentParser(exit_on_error=False,
+                                         usage='%(prog)s history [options]',
+                                         description='Show previous ID history')
+    cli_parser.add_argument('-l', '--limit', type=int, default=0,
+                            help='Maximum number of (most-recent) items to return')
+    options = cli_parser.parse_args(args)
+    limit = options.limit
+    print_table(list(item_history_map.values())[-limit:], ('id', 'name', 'parent_name'), is_dict=True)
 
 def ls_folder(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
