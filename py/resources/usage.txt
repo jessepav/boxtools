@@ -23,6 +23,10 @@ to lookup an ID encountered in recent ls or search commands:
               named "Images".  You could refer to it either as
               "Joe/789" or "Image/Joe".
 
+If you don't use any special syntax, then if the ID is composed of all
+digits, it's treated as a numeric ID; otherwise, it's matched against
+known item names case-insensitively.
+
 Also, you can define aliases for IDs in $BOXTOOLS_DIR/id-aliases.toml
 Any ID entered will first be checked against these aliases.
 

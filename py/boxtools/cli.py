@@ -231,8 +231,13 @@ def translate_id(id_):
     elif id_.isdigit():
         return id_
     else:
-        print(f"{id_} is not a valid item ID")
-        return None
+        term = id_.casefold()
+        matched_ids = []
+        for entry in item_history_map.values():
+            if term == entry['name'].casefold():
+                matched_ids.append(entry)
+        return _choose_id(id_, matched_ids)
+
 
 def add_history_item(item, parent=None):
     p = parent or getattr(item, 'parent', None)
