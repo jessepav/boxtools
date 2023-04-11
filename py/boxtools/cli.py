@@ -107,14 +107,14 @@ def print_table(items, fields, colgap=2, *,print_header=True, is_dict=False, is_
         else:
             return getattr(item, field)
     #
-    def _print_column_val(val, colidx, fill=" "):
+    def _print_column_val(val, colidx, leader=" "):
         print(val, end="")
         if colidx == numcols - 1:
             print()
         else:
             r = max_field_len[colidx] - len(val)
             if r > 2:
-                print("  " + fill*(r-2), end="")
+                print("  " + leader*(r-2), end="")
             else:
                 print(" " * r, end="")
             print(" " * colgap, end="")
@@ -130,7 +130,7 @@ def print_table(items, fields, colgap=2, *,print_header=True, is_dict=False, is_
         print("-" * total_width)
     for item in items:
         for i, field in enumerate(fields):
-            _print_column_val(_get_field_val(item, i, field), i, fill='·')
+            _print_column_val(_get_field_val(item, i, field), i, leader='·')
     return total_width
 
 def print_stat_info(item):
