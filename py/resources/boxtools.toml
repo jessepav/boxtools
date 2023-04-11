@@ -6,3 +6,4 @@ external-redirect-url = "https://website.com/authpage"
 
 [config]
 id-history-size = 500
+chunked-upload-size-threshold = 20971520

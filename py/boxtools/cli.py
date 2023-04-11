@@ -43,8 +43,9 @@ with open(config_file, 'rb') as f:
     client_secret = auth_table['client-secret']
     redirect_urls = {'internal' : auth_table['internal-redirect-url'],
                      'external' : auth_table['external-redirect-url']}
-    config_table = config['config']
-    id_history_size = config_table['id-history-size']
+    config_table = config.get('config', {})
+    id_history_size = config_table.get('id-history-size', 500)
+    chunked_upload_size_threshold = config_table.get('chunked-upload-size-threshold', 20_971_520)
 
 if os.path.exists(item_history_file):
     with open(item_history_file, 'rb') as f:
@@ -94,6 +95,8 @@ def get_ops_client():
         ops_client = get_client(client_id, client_secret, access_token, refresh_token, save_tokens)
         # Prevent the Box SDK from spewing logging messages
         logging.getLogger('boxsdk').setLevel(logging.CRITICAL)
+        import boxsdk.config
+        boxsdk.config.API.CHUNK_UPLOAD_THREADS = 2
     return ops_client
 
 def print_table(items, fields, colgap=2, *,print_header=True, is_dict=False, is_sequence=False):
@@ -458,15 +461,23 @@ def put_file(args):  # {{{2
         file = client.file(file_id)
         box_filename = file.get(fields=['name']).name
         filepath = files[0]
-        print(f"Uploading {filepath} as a new version of {box_filename}...", end="", flush=True)
-        file.update_contents(filepath)
+        print(f'Uploading "{filepath}" as a new version of "{box_filename}"...', end="", flush=True)
+        if os.path.getsize(filepath) > chunked_upload_size_threshold:
+            uploader = file.get_chunked_uploader(filepath)
+            uploader.start()
+        else:
+            file.update_contents(filepath)
         print("done")
     elif folder_id:
         folder = client.folder(folder_id)
         foldername = folder.get(fields=['name']).name
         for filepath in files:
-            print(f"Uploading {filepath} to {foldername}...", end="", flush=True)
-            folder.upload(filepath)
+            print(f'Uploading "{filepath}" to "{foldername}"...', end="", flush=True)
+            if os.path.getsize(filepath) > chunked_upload_size_threshold:
+                uploader = folder.get_chunked_uploader(filepath)
+                uploader.start()
+            else:
+                folder.upload(filepath)
             print("done")
 
 def rm_items(args):  # {{{2
