@@ -309,6 +309,8 @@ def search(args):  # {{{2
     cli_parser.add_argument('-d', '--folders', action='store_true', help='Search for folders')
     cli_parser.add_argument('-l', '--limit', type=int, default=10,
                             help='Maximum number of items to return')
+    cli_parser.add_argument('-o', '--offset', type=int, default=0,
+                            help='The number of results to skip before displaying results')
     cli_parser.add_argument('-n', '--name-only', action='store_true',
                             help='Search only in item names rather than in all content')
     cli_parser.add_argument('-P', '--no-parent', action='store_true',
@@ -324,6 +326,7 @@ def search(args):  # {{{2
         print("You must supply exactly one of --files/-f or --folders/-d")
         return
     limit = options.limit
+    offset = options.offset
     name_only = options.name_only
     no_parent = options.no_parent
     ancestor_ids = [translate_id(id.strip()) for id in options.ancestors.split(",")] \
@@ -333,7 +336,7 @@ def search(args):  # {{{2
     fields=['name', 'id', 'parent'] if not no_parent else ['name', 'id']
     client = get_ops_client()
     ancestors = [client.folder(id) for id in ancestor_ids] if ancestor_ids else None
-    results = client.search().query(query=term, limit=limit, offset=0,
+    results = client.search().query(query=term, limit=limit, offset=offset,
                                     ancestor_folders=ancestors, file_extensions=extensions,
                                     result_type='file' if do_files else 'folder',
                                     content_types=['name'] if name_only else None, fields=fields)
