@@ -11,9 +11,17 @@ to lookup an ID encountered in recent ls or search commands:
   name$     Do a suffix search on item names and IDs
   /re/      use the ID of the item whose name or ID is matched by the
             case-insensitive regular expression re
-  s/n       The double-focus operator! Matches an item if the name includes
-            s as a substring, and the ID ends with n. This is pretty much
-            the operator you want to be using to easily choose an item.
+  s/n       The double-focus operator! It's the best.
+              if n.isdigit() == True:
+                 Matches an item if the name includes s as a substring,
+                 and the ID ends with n.
+  p/s         else:
+                 Matches an item if the name includes s as a substring,
+                 and the parent folder name includes p.
+            Example:
+              There is a file "Joe.jpg" with ID 123456789 in a folder
+              named "Images".  You could refer to it either as
+              "Joe/789" or "Image/Joe".
 
 Also, you can define aliases for IDs in $BOXTOOLS_DIR/id-aliases.toml
 Any ID entered will first be checked against these aliases.

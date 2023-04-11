@@ -196,11 +196,20 @@ def translate_id(id_):
                 matched_ids.append(entry)
         return _choose_id(id_, matched_ids)
     elif id_.count('/') == 1:
-        s, n = id_.split('/')
+        parts = id_.split('/')
+        search_id = parts[1].isdigit()
+        if search_id:
+            s, n = parts
+        else:
+            p, s = parts
         matched_ids = []
         for entry in item_history_map.values():
-            if s in entry['name'] and entry['id'].endswith(n):
-                matched_ids.append(entry)
+            if search_id:
+                if s in entry['name'] and entry['id'].endswith(n):
+                    matched_ids.append(entry)
+            else:
+                if s in entry['name'] and p in entry['parent_name']:
+                    matched_ids.append(entry)
         return _choose_id(id_, matched_ids)
     elif len(id_) >= 3 and id_[0] == '/' and id_[-1] == '/':  # a regex
         matched_ids = []
@@ -264,7 +273,7 @@ def history(args):
         print(f"usage: {os.path.basename(sys.argv[0])} history\n\n"
                "Show previous ID history")
         return
-    print_table(list(item_history_map.items()), ('id', 'name', 'parent_name'), is_dict=True)
+    print_table(list(item_history_map.values()), ('id', 'name', 'parent_name'), is_dict=True)
 
 def ls_folder(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
