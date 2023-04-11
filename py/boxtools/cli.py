@@ -292,15 +292,31 @@ def ls_folder(args):  # {{{2
     cli_parser.add_argument('id', nargs='+', help='Folder ID(s)')
     cli_parser.add_argument('-H', '--no-header', action='store_true',
                             help='Do not print header text for the listing')
+    cli_parser.add_argument('-l', '--limit', type=int, default=None,
+                            help='Maximum number of items to return')
+    cli_parser.add_argument('-o', '--offset', type=int, default=None,
+                            help='The number of results to skip before displaying results')
     options = cli_parser.parse_args(args)
     folder_ids = [translate_id(_id) for _id in options.id]
     if any(id is None for id in folder_ids):  # translate_id() failed
         return
     print_header = not options.no_header
+    limit = options.limit
+    offset = options.offset
     client = get_ops_client()
     for i, folder_id in enumerate(folder_ids):
         folder = client.folder(folder_id=folder_id)
-        items = list(folder.get_items(fields=['type', 'name', 'id', 'parent']))
+        item_iter = folder.get_items(fields=['type', 'name', 'id', 'parent'],
+                                     limit=limit, offset=offset)
+        if limit:
+            # We can't just throw the iterator returned by get_items() into a list(),
+            # because it stalls, so we need to manually retrieve 'limit' items
+            items = []
+            for j, item in enumerate(item_iter, start=1):
+                items.append(item)
+                if j == limit: break
+        else:
+            items = list(item_iter)
         folder = folder.get()
         add_history_item(folder)
         if _p := folder.parent:
