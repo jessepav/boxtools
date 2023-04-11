@@ -406,7 +406,10 @@ def get_files(args):  # {{{2
         print(f"usage: {os.path.basename(sys.argv[0])} get file_id [file_id...] directory\n\n"
                "Download files")
         return
-    target_dir = args[-1]
+    target_dir = os.path.expanduser(args[-1])
+    if not os.path.isdir(target_dir):
+        print(f'"{target_dir}" is not a directory')
+        return
     file_ids = [translate_id(id) for id in args[0:-1]]
     if any(id is None for id in file_ids):
         return
@@ -440,19 +443,23 @@ def put_file(args):  # {{{2
     if file_id and len(files) != 1:
         print("You must supply exactly one file to upload a new version")
         return
+    file_id = file_id and translate_id(file_id)
+    folder_id = folder_id and translate_id(folder_id)
+    if not any((file_id, folder_id)):
+        return
     client = get_ops_client()
     if file_id:
-        file = client.file(translate_id(file_id))
+        file = client.file(file_id)
         box_filename = file.get(fields=['name']).name
         filepath = files[0]
-        print(f"Uploading {filepath} as a new version of {box_filename}...", end="")
+        print(f"Uploading {filepath} as a new version of {box_filename}...", end="", flush=True)
         file.update_contents(filepath)
         print("done")
     elif folder_id:
-        folder = client.folder(translate_id(folder_id))
+        folder = client.folder(folder_id)
         foldername = folder.get(fields=['name']).name
         for filepath in files:
-            print(f"Uploading {filepath} to {foldername}...", end="")
+            print(f"Uploading {filepath} to {foldername}...", end="", flush=True)
             folder.upload(filepath)
             print("done")
 
@@ -704,6 +711,8 @@ def shell(args):
             break
         elif cmdline == 'help':
             print(general_usage, end="")
+        elif len(cmdline) == 0 or cmdline.isspace():
+            continue
         else:
             cmd, *args = shlex.split(cmdline)
             if cmd in command_funcs:
