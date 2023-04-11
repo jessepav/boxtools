@@ -96,7 +96,8 @@ def get_ops_client():
         logging.getLogger('boxsdk').setLevel(logging.CRITICAL)
     return ops_client
 
-def print_table(items, fields, colgap=4, *,print_header=True, is_dict=False, is_sequence=False):
+def print_table(items, fields, colgap=2, *,print_header=True, is_dict=False, is_sequence=False):
+    numcols = len(fields)
     # Helper function so we can work with all sorts of items
     def _get_field_val(item, idx, field):
         if is_dict:
@@ -106,22 +107,31 @@ def print_table(items, fields, colgap=4, *,print_header=True, is_dict=False, is_
         else:
             return getattr(item, field)
     #
+    def _print_column_val(val, colidx, fill=" "):
+        print(val, end="")
+        if colidx == numcols - 1:
+            print()
+        else:
+            r = max_field_len[colidx] - len(val)
+            if r > 2:
+                print("  " + fill*(r-2), end="")
+            else:
+                print(" " * r, end="")
+            print(" " * colgap, end="")
+    #
     max_field_len = [len(field) for field in fields]
     for item in items:
         for i, field in enumerate(fields):
             max_field_len[i] = max(max_field_len[i], len(_get_field_val(item, i, field)))
-    for i in range(len(max_field_len) - 1):
-        max_field_len[i] += colgap
+    total_width = sum(max_field_len) + colgap*(numcols-1)
     if print_header:
         for i, field in enumerate(fields):
-            print(f"{field.capitalize():{max_field_len[i]}}", end="")
-        print()
-        print("-" * sum(max_field_len))
+            _print_column_val(field.capitalize(), i)
+        print("-" * total_width)
     for item in items:
         for i, field in enumerate(fields):
-            print(f"{_get_field_val(item, i, field):{max_field_len[i]}}", end="")
-        print()
-    return sum(max_field_len)
+            _print_column_val(_get_field_val(item, i, field), i, fill='·')
+    return total_width
 
 def print_stat_info(item):
     for field in ('name', 'type', 'id', 'content_created_at', 'content_modified_at',
