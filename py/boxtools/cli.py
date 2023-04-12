@@ -344,16 +344,16 @@ def ls_folder(args):  # {{{2
             add_history_item(_p)
         for item in items:
             add_history_item(item, parent=folder)
-        if i != 0:  # Note that table_width is set at the end of this block
-            print("\n" + "=" * table_width + "\n")
+        if i != 0:
+            print()
         if print_header:
-            folder_header_info = f"{folder.name} | {folder.id}"
+            folder_header_info = f"==== {folder.name} ({folder.id}) ===="
             if _p := folder.parent:
-                folder_header_info += f" - (Parent: {_p.name} | {_p.id})"
+                folder_header_info += f"\n  ==== Parent: {_p.name} ({_p.id}) =="
             elif folder_id != '0':
                 folder_header_info += " - (Parent: All Files | 0)"
             print(folder_header_info, end="\n\n")
-        table_width = print_table(items, ('type', 'name', 'id'), print_header=print_header)
+        print_table(items, ('type', 'name', 'id'), print_header=print_header)
 
 def search(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
