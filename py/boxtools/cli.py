@@ -312,19 +312,19 @@ def ls_folder(args):  # {{{2
                 if j == limit: break
         else:
             items = list(item_iter)
-        folder = folder.get()
+        folder = folder.get(fields=['id', 'name', 'type', 'parent'])
         add_history_item(folder)
-        if _p := folder.parent:
-            _p = _p.get()
-            add_history_item(_p)
+        if _parent := folder.parent:
+            _parent = _parent.get(fields=['id', 'name', 'type', 'parent'])
+            add_history_item(_parent)
         for item in items:
             add_history_item(item, parent=folder)
         if i != 0:
             print()
         if print_header:
             folder_header_info = f"==== {folder.name} ({folder.id}) ===="
-            if _p := folder.parent:
-                folder_header_info += f"\n  ==== Parent: {_p.name} ({_p.id}) =="
+            if _parent:
+                folder_header_info += f"\n  ==== Parent: {_parent.name} ({_parent.id}) =="
             elif folder_id != '0':
                 folder_header_info += " - (Parent: All Files | 0)"
             print(folder_header_info, end="\n\n")
@@ -590,7 +590,7 @@ def mkdir(args):  # {{{2
     parent_folder_id = translate_id(args[0])
     foldername = args[1]
     client = get_ops_client()
-    folder = client.folder(folder_id=parent_folder_id).get()
+    folder = client.folder(folder_id=parent_folder_id).get(fields=['id', 'name', 'type', 'parent'])
     print(f'Creating "{foldername}" in "{folder.name}"...')
     folder.create_subfolder(foldername)
 
@@ -661,7 +661,7 @@ def rn_item(args):  # {{{2
         return
     client = get_ops_client()
     item = client.file(item_id) if do_files else client.folder(item_id)
-    oldname = item.get().name
+    oldname = item.get(fields=['id', 'name', 'type', 'parent']).name
     item = item.rename(new_name)
     print(f'"{oldname}" renamed to "{item.name}"')
 
@@ -690,11 +690,11 @@ def ln_items(args):  # {{{2
             file = client.file(id)
             if remove:
                 file.remove_shared_link()
-                file = file.get()
+                file = file.get(fields=['id', 'name', 'type', 'parent'])
                 print(f'Removed shared link for file "{file.name}"')
             else:
                 link = file.get_shared_link(allow_download=True, allow_preview=True, password=password)
-                file = file.get()
+                file = file.get(fields=['id', 'name', 'type', 'parent'])
                 direct_link = file.shared_link['download_url']
                 if i != 0: print()
                 print("== File:", file.name)
@@ -705,11 +705,11 @@ def ln_items(args):  # {{{2
             folder = client.folder(id)
             if remove:
                 folder.remove_shared_link()
-                folder = folder.get()
+                folder = folder.get(fields=['id', 'name', 'type', 'parent'])
                 print(f'Removed shared link for folder "{folder.name}"')
             else:
                 link = folder.get_shared_link(allow_download=True, allow_preview=True, password=password)
-                folder = folder.get()
+                folder = folder.get(fields=['id', 'name', 'type', 'parent'])
                 if i != 0: print()
                 print("== Folder:", folder.name)
                 print("     Link:", link)
