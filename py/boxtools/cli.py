@@ -420,7 +420,7 @@ def get_files(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s get [options] ids... directory',
                                          description='Download files or thumbnails')
-    cli_parser.add_argument('ids', nargs='+', help='File IDs')
+    cli_parser.add_argument('ids', nargs='+', help='File or Folder IDs')
     cli_parser.add_argument('directory', help='Destination directory')
     cli_parser.add_argument('-t', '--thumbnails', action='store_true',
                             help="Download thumbnail images rather than the files themselves")
@@ -433,9 +433,15 @@ def get_files(args):  # {{{2
     cli_parser.add_argument('-e', '--thumbnail-ext', metavar='EXT', default="jpg",
                             help="Set the format for thumbnails (either 'png' or 'jpg'). "
                                  "(Note that it seems png thumbnails don't work.)")
+    cli_parser.add_argument('-d', '--folders', action='store_true',
+                            help="Item IDs specify folders from which to download files")
+    cli_parser.add_argument('-i', '--re-filter', metavar='RE',
+                            help="Applies when -d/--folders is used: rather than downloading all files "
+                                 "from the specified folders, only download those files whose names "
+                                 "fully match the regular expression RE")
     options = cli_parser.parse_args(args)
-    file_ids = [translate_id(id) for id in options.ids]
-    if any(id is None for id in file_ids):
+    item_ids = [translate_id(id) for id in options.ids]
+    if any(id is None for id in item_ids):
         return
     target_dir = os.path.expanduser(options.directory)
     if not os.path.isdir(target_dir):
@@ -449,23 +455,38 @@ def get_files(args):  # {{{2
         return
     if not thumbnail_size:
         thumbnail_size = 1024 if thumbnail_ext == 'png' else 320
+    do_folders = options.folders
+    re_pattern = options.re_filter and re.compile(options.re_filter)
     client = get_ops_client()
-    for file_id in file_ids:
-        file = client.file(file_id)
-        filename = file.get(fields=['name']).name
-        if do_thumbnails:
-            root, ext = os.path.splitext(filename)
-            filename = f"{root}-{thumbnail_size}x{thumbnail_size}.{thumbnail_ext}"
-            print(f'Downloading "{filename}"...')
-            imgbytes = file.get_thumbnail_representation(
-                    dimensions=f"{thumbnail_size}x{thumbnail_size}",
-                    extension=thumbnail_ext)
-            with open(os.path.join(target_dir, filename), "wb") as f:
-                f.write(imgbytes)
+    for item_id in item_ids:
+        if do_folders:
+            folder = client.folder(folder_id=item_id).get(fields=['name'])
+            print(f'== Retrieving files from "{folder.name}" ==')
+            item_iter = folder.get_items(fields=['type', 'name', 'id'])
+            file_ids = []
+            for item in item_iter:
+                if item.type == 'file':
+                    if re_pattern and not re_pattern.fullmatch(item.name):
+                        continue
+                    file_ids.append(item.id)
         else:
-            print(f"Downloading {filename}...")
-            with open(os.path.join(target_dir, filename), "wb") as f:
-                file.download_to(f)
+            file_ids = [item_id]
+        for file_id in file_ids:
+            file = client.file(file_id)
+            filename = file.get(fields=['name']).name
+            if do_thumbnails:
+                root, ext = os.path.splitext(filename)
+                filename = f"{root}-{thumbnail_size}x{thumbnail_size}.{thumbnail_ext}"
+                print(f'Downloading "{filename}"...')
+                imgbytes = file.get_thumbnail_representation(
+                        dimensions=f"{thumbnail_size}x{thumbnail_size}",
+                        extension=thumbnail_ext)
+                with open(os.path.join(target_dir, filename), "wb") as f:
+                    f.write(imgbytes)
+            else:
+                print(f"Downloading {filename}...")
+                with open(os.path.join(target_dir, filename), "wb") as f:
+                    file.download_to(f)
 
 def put_file(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
