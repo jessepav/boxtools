@@ -1,4 +1,5 @@
 import os, os.path, sys, argparse, pprint, re, shutil, logging, readline
+from collections import deque, OrderedDict
 import json, pickle
 import tomli
 
@@ -50,6 +51,9 @@ with open(config_file, 'rb') as f:
 if os.path.exists(item_history_file):
     with open(item_history_file, 'rb') as f:
         item_history_map = pickle.load(f)
+        # Upgrade a normal dict to an OrderedDict
+        if not isinstance(item_history_map, OrderedDict):
+            item_history_map = OrderedDict(item_history_map)
 else:
     item_history_map = {}
 
@@ -247,10 +251,12 @@ def add_history_item(item, parent=None):
     entry = {'id': item.id, 'name': item.name, 'type': item.type,
              'parent_id' : p.id if p else "N/A",
              'parent_name' : p.name if p else "N/A" }
-    # We delete and reinsert so that the history item shows as new in the dict item order
     if item.id in item_history_map:
-        del item_history_map[item.id]
+        item_history_map.move_to_end(item.id)
     item_history_map[item.id] = entry
+    if (n := len(item_history_map) - id_history_size) > 0:
+        for i in range(n):
+            item_history_map.popitem(last=False)
 
 # Define command functions {{{1
 
@@ -297,7 +303,7 @@ def history(args):  # {{{2
                             help='Maximum number of (most-recent) items to return')
     options = cli_parser.parse_args(args)
     limit = options.limit
-    print_table(list(item_history_map.values())[-limit:], ('id', 'name', 'parent_name'), is_dict=True)
+    print_table(list(item_history_map.values())[-limit:], ('name', 'id', 'parent_name'), is_dict=True)
 
 def ls_folder(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
@@ -806,9 +812,5 @@ else:
     except argparse.ArgumentError:
         pass
     finally:
-        if (ndel := len(item_history_map) - id_history_size) > 0:
-            keys = list(item_history_map.keys())
-            for k in keys[0:ndel]:
-                del item_history_map[k]
         with open(item_history_file, "wb") as f:
             pickle.dump(item_history_map, f)
