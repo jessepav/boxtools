@@ -411,27 +411,55 @@ def search(args):  # {{{2
                 is_dict=True)
 
 def get_files(args):  # {{{2
-    if len(args) < 2 or '-h' in args or '--help' in args:
-        print(f"usage: {os.path.basename(sys.argv[0])} get file_id [file_id...] directory\n\n"
-               "Download files")
-        return
-    target_dir = os.path.expanduser(args[-1])
-    if not os.path.isdir(target_dir):
-        print(f'"{target_dir}" is not a directory')
-        return
-    file_ids = [translate_id(id) for id in args[0:-1]]
+    cli_parser = argparse.ArgumentParser(exit_on_error=False,
+                                         usage='%(prog)s get [options] ids... directory',
+                                         description='Download files or thumbnails')
+    cli_parser.add_argument('ids', nargs='+', help='File IDs')
+    cli_parser.add_argument('directory', help='Destination directory')
+    cli_parser.add_argument('-t', '--thumbnails', action='store_true',
+                            help="Download thumbnail images rather than the files themselves")
+    cli_parser.add_argument('-s', '--thumbnail-size', metavar='N', type=int,
+                            help="Retrieve a thumbnail with dimensions NxN. For .png thumbnails, "
+                                 "valid sizes are 1024 and 2048. For .jpg thumbnails, valid sizes "
+                                 "are 32, 94, 160, 320, 1024, and 2048. Attempting to use "
+                                 "an invalid size will result in an empty thumbnail file.")
+    # https://developer.box.com/guides/representations/thumbnail-representation/#supported-file-sizes
+    cli_parser.add_argument('-e', '--thumbnail-ext', metavar='EXT', default="jpg",
+                            help="Set the format for thumbnails (either 'png' or 'jpg'). "
+                                 "(Note that it seems png thumbnails don't work.)")
+    options = cli_parser.parse_args(args)
+    file_ids = [translate_id(id) for id in options.ids]
     if any(id is None for id in file_ids):
         return
+    target_dir = os.path.expanduser(options.directory)
     if not os.path.isdir(target_dir):
         print(f"{target_dir} is not a directory!")
         return
+    do_thumbnails = options.thumbnails
+    thumbnail_size = options.thumbnail_size
+    thumbnail_ext = options.thumbnail_ext.lstrip(".").lower()
+    if thumbnail_ext not in ('jpg', 'png'):
+        print(f"Invalid extensions: {thumbnail_ext}")
+        return
+    if not thumbnail_size:
+        thumbnail_size = 1024 if thumbnail_ext == 'png' else 320
     client = get_ops_client()
     for file_id in file_ids:
         file = client.file(file_id)
         filename = file.get(fields=['name']).name
-        print(f"Downloading {filename}...")
-        with open(os.path.join(target_dir, filename), "wb") as f:
-           file.download_to(f)
+        if do_thumbnails:
+            root, ext = os.path.splitext(filename)
+            filename = f"{root}-{thumbnail_size}x{thumbnail_size}.{thumbnail_ext}"
+            print(f'Downloading "{filename}"...')
+            imgbytes = file.get_thumbnail_representation(
+                    dimensions=f"{thumbnail_size}x{thumbnail_size}",
+                    extension=thumbnail_ext)
+            with open(os.path.join(target_dir, filename), "wb") as f:
+                f.write(imgbytes)
+        else:
+            print(f"Downloading {filename}...")
+            with open(os.path.join(target_dir, filename), "wb") as f:
+                file.download_to(f)
 
 def put_file(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,

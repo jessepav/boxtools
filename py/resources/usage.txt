@@ -43,7 +43,7 @@ Commands:
     ls / list     List contents of a folder
     fd / search   Search for items
 
-    get           Download files
+    get           Download files or thumbnails
     put           Upload a file
     mkdir         Create a new folder
     rm / del      Remove files or folders
