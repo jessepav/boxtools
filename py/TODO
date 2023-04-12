@@ -1,5 +1,3 @@
-* Change the syntax for parent/child double-focus operator to /parent/child (leading slash)
-
 * Add 'foldertree'/'ft' command to print either a pretty tree of folders
   under a given folder, or a raw list of IDs. The folders may be filtered via a
   regexp.

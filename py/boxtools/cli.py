@@ -74,15 +74,13 @@ if len(sys.argv) == 1 or sys.argv[1] in ('-h', '--help'):
 
 # Support functions {{{1
 
-ops_client = None
-
-def save_tokens(access_token, refresh_token):
+def save_tokens(access_token, refresh_token):  # {{{2
     with open(tokens_file, 'wt') as f:
         json.dump({ 'access_token' : access_token, 'refresh_token' : refresh_token }, f,
                   indent=2)
         f.write('\n')  # We want the file to end in a newline, like a usual text file
 
-def load_tokens_or_die():
+def load_tokens_or_die():  # {{{2
     if not os.path.exists(tokens_file):
         print("You must first retrieve auth tokens by using the 'auth' command")
         sys.exit(1)
@@ -90,8 +88,8 @@ def load_tokens_or_die():
         tokendict = json.load(f)
     return tokendict['access_token'], tokendict['refresh_token']
 
-# Retrieves and caches a Box Client object
-def get_ops_client():
+def get_ops_client():  # {{{2
+    # Retrieves and caches a Box Client object
     global ops_client
     if ops_client is None:
         access_token, refresh_token = load_tokens_or_die()
@@ -103,7 +101,10 @@ def get_ops_client():
         boxsdk.config.API.CHUNK_UPLOAD_THREADS = 2
     return ops_client
 
-def print_table(items, fields, colgap=2, *,print_header=True, is_dict=False, is_sequence=False):
+ops_client = None
+
+def print_table(items, fields, colgap=2,                                 # {{{2
+                *,print_header=True, is_dict=False, is_sequence=False):
     numcols = len(fields)
     # Helper function so we can work with all sorts of items
     def _get_field_val(item, idx, field):
@@ -140,7 +141,8 @@ def print_table(items, fields, colgap=2, *,print_header=True, is_dict=False, is_
             _print_column_val(_get_field_val(item, i, field), i, leader='·')
     return total_width
 
-def print_stat_info(item):
+def print_stat_info(item):  # {{{2
+    add_history_item(item)
     for field in ('name', 'type', 'id', 'content_created_at', 'content_modified_at',
                     'created_at', 'description', 'modified_at', 'size'):
         print(f"{field:20}: {getattr(item, field)}")
@@ -150,10 +152,48 @@ def print_stat_info(item):
     if hasattr(item, "item_collection"):
         print(f"{'item_count':20}: {item.item_collection['total_count']}")
     if item.parent:
+        add_history_item(item.parent)
         print(f"{'parent_name':20}: {item.parent.name}")
         print(f"{'parent_id':20}: {item.parent.id}")
 
-def _choose_id(id_, matched_ids):
+def translate_id(id_):  # and helper functions {{{2
+    slash_count = id_.count('/')
+    if id_ in id_aliases:
+        return str(id_aliases[id_])
+    elif id_.startswith('%'):
+        term = id_[1:]
+        return _choose_history_entry(id_, lambda entry : term in entry['name'])
+    elif id_.startswith('='):
+        term = id_[1:]
+        return _choose_history_entry(id_, lambda entry : term == entry['name'])
+    elif id_.startswith('^'):
+        term = id_[1:]
+        return _choose_history_entry(id_, lambda entry : entry['name'].startswith(term))
+    elif id_.endswith('$'):
+        term = id_[0:-1]
+        return _choose_history_entry(id_,
+                    lambda entry : any(entry[k].endswith(term) for k in ('name', 'id')))
+    elif len(id_) >= 3 and id_[0] == '/' and id_[-1] == '/':  # a regex
+        matched_ids = []
+        regexp = re.compile(id_[1:-1], re.IGNORECASE)
+        return _choose_history_entry(id_,
+                    lambda entry : any(regexp.search(entry[k]) for k in ('name', 'id')))
+    elif len(id_) >= 4 and id_[0] == '/' and slash_count == 2:  # /p/s
+        p, s = id_[1:].split('/')
+        return _choose_history_entry(id_,
+                    lambda entry : s in entry['name'] and p in entry['parent_name'])
+    elif len(id_) >= 3 and slash_count == 1:
+        s, n = id_.split('/')
+        return _choose_history_entry(id_,
+                    lambda entry : s in entry['name'] and entry['id'].endswith(n))
+    elif id_.isdigit():
+        return id_
+    else:
+        term = id_.casefold()
+        return _choose_history_entry(id_, lambda entry : term == entry['name'].casefold())
+
+def _choose_history_entry(id_, entry_filter_func):
+    matched_ids = list(filter(entry_filter_func, item_history_map.values()))
     numchoices = len(matched_ids)
     if numchoices == 0:
         print(f'"{id_}" did not match any previous IDs')
@@ -181,72 +221,7 @@ def _choose_id(id_, matched_ids):
     else:
         return matched_ids[0]['id']
 
-def translate_id(id_):
-    if id_ in id_aliases:
-        return str(id_aliases[id_])
-    if id_.startswith('%'):
-        term = id_[1:]
-        matched_ids = []
-        for entry in item_history_map.values():
-            if term in entry['name']:
-                matched_ids.append(entry)
-        return _choose_id(id_, matched_ids)
-    elif id_.startswith('='):
-        term = id_[1:]
-        matched_ids = []
-        for entry in item_history_map.values():
-            if term == entry['name']:
-                matched_ids.append(entry)
-        return _choose_id(id_, matched_ids)
-    elif id_.startswith('^'):
-        term = id_[1:]
-        matched_ids = []
-        for entry in item_history_map.values():
-            if entry['name'].startswith(term):
-                matched_ids.append(entry)
-        return _choose_id(id_, matched_ids)
-    elif id_.endswith('$'):
-        term = id_[0:-1]
-        matched_ids = []
-        for entry in item_history_map.values():
-            if any(part.endswith(term) for part in (entry['name'], entry['id'])):
-                matched_ids.append(entry)
-        return _choose_id(id_, matched_ids)
-    elif id_.count('/') == 1:
-        parts = id_.split('/')
-        search_id = parts[1].isdigit()
-        if search_id:
-            s, n = parts
-        else:
-            p, s = parts
-        matched_ids = []
-        for entry in item_history_map.values():
-            if search_id:
-                if s in entry['name'] and entry['id'].endswith(n):
-                    matched_ids.append(entry)
-            else:
-                if s in entry['name'] and p in entry['parent_name']:
-                    matched_ids.append(entry)
-        return _choose_id(id_, matched_ids)
-    elif len(id_) >= 3 and id_[0] == '/' and id_[-1] == '/':  # a regex
-        matched_ids = []
-        reo = re.compile(id_[1:-1], re.IGNORECASE)
-        for entry in item_history_map.values():
-            if any(reo.search(part) for part in (entry['name'], entry['id'])):
-                matched_ids.append(entry)
-        return _choose_id(id_, matched_ids)
-    elif id_.isdigit():
-        return id_
-    else:
-        term = id_.casefold()
-        matched_ids = []
-        for entry in item_history_map.values():
-            if term == entry['name'].casefold():
-                matched_ids.append(entry)
-        return _choose_id(id_, matched_ids)
-
-
-def add_history_item(item, parent=None):
+def add_history_item(item, parent=None):  # {{{2
     p = parent or getattr(item, 'parent', None)
     entry = {'id': item.id, 'name': item.name, 'type': item.type,
              'parent_id' : p.id if p else "N/A",
