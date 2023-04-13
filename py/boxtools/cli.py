@@ -3,8 +3,6 @@ from collections import deque, OrderedDict
 import json, pickle
 import tomli
 
-from boxsdk.exception import BoxAPIException
-
 # Preliminaries {{{1
 
 # The invoking shell script must set $BOXTOOLS_APP_DIR
@@ -96,7 +94,7 @@ def load_tokens_or_die():  # {{{2
 
 def get_ops_client():  # {{{2
     # Retrieves and caches a Box Client object
-    global ops_client
+    global ops_client, BoxAPIException
     if ops_client is None:
         access_token, refresh_token = load_tokens_or_die()
         from .auth import get_client
@@ -105,6 +103,7 @@ def get_ops_client():  # {{{2
         logging.getLogger('boxsdk').setLevel(logging.CRITICAL)
         import boxsdk.config
         boxsdk.config.API.CHUNK_UPLOAD_THREADS = chunked_upload_num_threads
+        from boxsdk.exception import BoxAPIException
     return ops_client
 
 ops_client = None
