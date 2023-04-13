@@ -367,7 +367,7 @@ def ls_folder(args):  # {{{2
             if _parent:
                 folder_header_info += f"\n  ==== Parent: {_parent.name} ({_parent.id}) =="
             elif folder_id != '0':
-                folder_header_info += " - (Parent: All Files | 0)"
+                folder_header_info += "\n  ==== Parent: All Files (0) =="
             print(folder_header_info, end="\n\n")
         print_table(items, ('type', 'name', 'id'), print_header=print_header)
 
