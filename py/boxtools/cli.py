@@ -246,7 +246,7 @@ def retrieve_folder_items(client, folder, fields=['type', 'name', 'id', 'parent'
     if not getattr(folder, 'item_collection', None):
         folder = folder.get()
     total_items = folder.item_collection['total_count']
-    num_items = (total_items if limit is None else min(limit, total_items)) - start_offset
+    num_items = total_items if limit is None else min(limit, total_items - start_offset)
     offset = start_offset
     items = []
     try:
@@ -340,7 +340,7 @@ def ls_folder(args):  # {{{2
     if options.only_files and options.only_folders:
         print("-F/--only-files and -D/--only-folders are mutually exclusive")
         return
-    if options.only_files:
+    elif options.only_files:
         filter_func = lambda item: item.type == 'file'
     elif options.only_folders:
         filter_func = lambda item: item.type == 'folder'
