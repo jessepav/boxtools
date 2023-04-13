@@ -536,11 +536,11 @@ def put_file(args):  # {{{2
         file = client.file(file_id)
         box_filename = file.get(fields=['name']).name
         filepath = files[0]
-        print(f'Uploading "{filepath}" as a new version of "{box_filename}"...', end="", flush=True)
-        if os.path.getsize(filepath) > chunked_upload_size_threshold:
-            print('(chunked)...', end="", flush=True)
-            uploader = file.get_chunked_uploader(filepath)
-            uploader.start()
+        use_chunked = os.path.getsize(filepath) > chunked_upload_size_threshold
+        chunked_msg = " (chunked)" if use_chunked else ""
+        print(f'Uploading{chunked_msg} "{filepath}" as a new version of "{box_filename}"...', end="", flush=True)
+        if use_chunked:
+            file.get_chunked_uploader(filepath).start()
         else:
             file.update_contents(filepath)
         print("done")
@@ -548,20 +548,25 @@ def put_file(args):  # {{{2
         folder = client.folder(folder_id)
         foldername = folder.get(fields=['name']).name
         for filepath in files:
-            print(f'Uploading "{filepath}" to "{foldername}"...', end="", flush=True)
+            use_chunked = os.path.getsize(filepath) > chunked_upload_size_threshold
+            chunked_msg = " (chunked)" if use_chunked else ""
+            print(f'Uploading{chunked_msg} "{filepath}" to "{foldername}"...', end="", flush=True)
             try:
-                if os.path.getsize(filepath) > chunked_upload_size_threshold:
-                    print('(chunked)...', end="", flush=True)
-                    uploader = folder.get_chunked_uploader(filepath)
-                    uploader.start()
+                if use_chunked:
+                    folder.get_chunked_uploader(filepath).start()
                 else:
                     folder.upload(filepath)
                 print("done")
             except BoxAPIException as ex:
                 if ex.status == 409:
                     _file_id = ex.context_info['conflicts']['id']
-                    print(f'\nFile already exists in folder [ID {_file_id}]! Attempting version upload...')
-                    put_file(['-f', _file_id, filepath])
+                    print('(new version)...', end="", flush=True)
+                    file = client.file(_file_id)
+                    if use_chunked:
+                        file.get_chunked_uploader(filepath).start()
+                    else:
+                        file.update_contents(filepath)
+                    print("done")
                 else:
                     raise ex
 
