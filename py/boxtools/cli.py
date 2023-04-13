@@ -480,15 +480,17 @@ def get_files(args):  # {{{2
     client = get_ops_client()
     for item_id in item_ids:
         if do_folders:
-            folder = client.folder(folder_id=item_id).get(fields=['name'])
+            folder = client.folder(folder_id=item_id).get()
             print(f'== Retrieving files from "{folder.name}" ==')
-            item_iter = folder.get_items(fields=['type', 'name', 'id'])
-            file_ids = []
-            for item in item_iter:
-                if item.type == 'file':
-                    if re_pattern and not re_pattern.fullmatch(item.name):
-                        continue
-                    file_ids.append(item.id)
+            def _filter_func(item):
+                if item.type != 'file':
+                    return False
+                elif re_pattern and not re_pattern.fullmatch(item.name):
+                    return False
+                else:
+                    return True
+            file_ids = [item.id for item in retrieve_folder_items(
+                            client, folder, fields=['type', 'name', 'id'], filter_func=_filter_func)]
         else:
             file_ids = [item_id]
         for file_id in file_ids:
