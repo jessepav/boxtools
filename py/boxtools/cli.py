@@ -447,6 +447,8 @@ def tree(args):  # {{{2
     cli_parser.add_argument('folder_id', help='Folder ID')
     cli_parser.add_argument('-L', '--max-levels', type=int, default=999,
                             help='Maximum number of levels to recurse (>= 1)')
+    cli_parser.add_argument('-i', '--re-filter', metavar='RE',
+                help='Only display and recurse into sub-folders whose names fully match RE')
     options = cli_parser.parse_args(args)
     folder_id = translate_id(options.folder_id)
     if not folder_id:
@@ -455,6 +457,7 @@ def tree(args):  # {{{2
     if max_levels <= 0:
         print('--max-levels must be >= 1')
         return
+    re_pattern = options.re_filter and re.compile(options.re_filter)
     indent_str = " " * 2
     client = get_ops_client()
     ####
@@ -469,7 +472,8 @@ def tree(args):  # {{{2
             folder_items = retrieve_folder_items(client, folder, sort='name', pagesize_limit=30,
                                 filter_func=lambda it: it.type == 'folder', break_on_filter=True)
             for f in folder_items:
-                _tree_helper(f, level + 1)
+                if not re_pattern or re_pattern.fullmatch(f.name):
+                    _tree_helper(f, level + 1)
     ####
     _tree_helper(client.folder(folder_id).get(), 0)
 

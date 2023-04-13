@@ -1,3 +1,0 @@
-* Add 'foldertree'/'ft' command to print either a pretty tree of folders
-  under a given folder, or a raw list of IDs. The folders may be filtered via a
-  regexp.
