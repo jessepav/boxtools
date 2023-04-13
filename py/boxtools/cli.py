@@ -47,6 +47,7 @@ with open(config_file, 'rb') as f:
     config_table = config.get('config', {})
     id_history_size = config_table.get('id-history-size', 500)
     chunked_upload_size_threshold = config_table.get('chunked-upload-size-threshold', 20_971_520)
+    chunked_upload_num_threads = config_table.get('chunked-upload-num-threads', 2)
 
 if os.path.exists(item_history_file):
     with open(item_history_file, 'rb') as f:
@@ -98,7 +99,7 @@ def get_ops_client():  # {{{2
         # Prevent the Box SDK from spewing logging messages
         logging.getLogger('boxsdk').setLevel(logging.CRITICAL)
         import boxsdk.config
-        boxsdk.config.API.CHUNK_UPLOAD_THREADS = 2
+        boxsdk.config.API.CHUNK_UPLOAD_THREADS = chunked_upload_num_threads
     return ops_client
 
 ops_client = None
