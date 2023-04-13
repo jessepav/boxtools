@@ -75,6 +75,8 @@ if len(sys.argv) == 1 or sys.argv[1] in ('-h', '--help'):
     print(general_usage, end="")
     sys.exit(1)
 
+# }}}1
+
 # Support functions {{{1
 
 def save_tokens(access_token, refresh_token):  # {{{2
@@ -159,7 +161,7 @@ def print_stat_info(item):  # {{{2
         print(f"{'parent_name':20}: {item.parent.name}")
         print(f"{'parent_id':20}: {item.parent.id}")
 
-def translate_id(id_):  # and helper functions {{{2
+def translate_id(id_):  # {{{2
     slash_count = id_.count('/')
     if id_ in id_aliases:
         return str(id_aliases[id_])
@@ -236,7 +238,7 @@ def add_history_item(item, parent=None):  # {{{2
         for i in range(n):
             item_history_map.popitem(last=False)
 
-# retrieve_folder_items() and co {{{2
+# def retrieve_folder_items(...) and co {{{2
 
 BOX_GET_ITEMS_LIMIT = 1000
 
@@ -272,6 +274,8 @@ def retrieve_folder_items(client, folder, fields=['type', 'name', 'id', 'parent'
     except StopIteration:
         pass
     return items
+
+# }}}1
 
 # Define command functions {{{1
 
@@ -872,3 +876,5 @@ else:
     finally:
         with open(item_history_file, "wb") as f:
             pickle.dump(item_history_map, f)
+
+# }}}1
