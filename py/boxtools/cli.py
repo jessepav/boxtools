@@ -50,6 +50,7 @@ with open(config_file, 'rb') as f:
     id_history_size = config_table.get('id-history-size', 500)
     chunked_upload_size_threshold = config_table.get('chunked-upload-size-threshold', 20_971_520)
     chunked_upload_num_threads = config_table.get('chunked-upload-num-threads', 2)
+    rclone_remote_name = config_table.get('rclone-remote-name', 'box')
 
 if os.path.exists(item_history_file):
     with open(item_history_file, 'rb') as f:
@@ -667,7 +668,7 @@ def itempaths(args):  # {{{2
     for i, id in enumerate(item_ids):
         item = client.file(id).get() if do_files else client.folder(id).get()
         if id == '0':
-            print('box:/') if rclone else print('/')
+            print('{rclone_remote_name}:/') if rclone else print('/')
         else:
             if verbose:
                 if i != 0: print()

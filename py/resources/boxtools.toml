@@ -7,3 +7,5 @@ external-redirect-url = "https://website.com/authpage"
 [config]
 id-history-size = 500
 chunked-upload-size-threshold = 20971520
+chunked-upload-num-threads = 2
+rclone-remote-name = 'box'
