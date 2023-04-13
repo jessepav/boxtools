@@ -246,7 +246,7 @@ BOX_GET_ITEMS_LIMIT = 1000
 # retrieves all items from the folder. Items are returned as a list. This function
 # paginates requests as necessary to accommodate Box's max per-request limit.
 def retrieve_folder_items(client, folder, fields=['type', 'name', 'id', 'parent'],
-                          limit=None, start_offset=0,
+                          limit=None, start_offset=0, sort=None, pagesize_limit=BOX_GET_ITEMS_LIMIT,
                           filter_func=None, break_on_filter=False):
     if not getattr(folder, 'item_collection', None):
         folder = folder.get()
@@ -256,8 +256,8 @@ def retrieve_folder_items(client, folder, fields=['type', 'name', 'id', 'parent'
     items = []
     try:
         while num_items > 0:
-            pagesize = min(num_items, BOX_GET_ITEMS_LIMIT)
-            item_iter = folder.get_items(fields=fields, limit=pagesize, offset=offset)
+            pagesize = min(num_items, pagesize_limit)
+            item_iter = folder.get_items(fields=fields, limit=pagesize, offset=offset, sort=sort)
             for i in range(pagesize):
                 item = next(item_iter, None)
                 if not item:
@@ -439,6 +439,41 @@ def search(args):  # {{{2
     print_table(items,
                 ('name', 'id', 'parent', 'parent_id') if not no_parent else ('name', 'id'),
                 is_dict=True)
+
+def tree(args):  # {{{2
+    cli_parser = argparse.ArgumentParser(exit_on_error=False,
+                                         usage='%(prog)s tree [options] folder_id',
+                                         description='Display a tree of folders')
+    cli_parser.add_argument('folder_id', help='Folder ID')
+    cli_parser.add_argument('-L', '--max-levels', type=int, default=999,
+                            help='Maximum number of levels to recurse (>= 1)')
+    options = cli_parser.parse_args(args)
+    folder_id = translate_id(options.folder_id)
+    if not folder_id:
+        return
+    max_levels = options.max_levels
+    if max_levels <= 0:
+        print('--max-levels must be >= 1')
+        return
+    indent_str = " " * 2
+    client = get_ops_client()
+    ####
+    def _tree_helper(folder, level):
+        add_history_item(folder)
+        marker = _tree_item_markers[level % len(_tree_item_markers)]
+        print(indent_str * level, f"{marker} {folder.name} / {folder.id}", sep="")
+        if level < max_levels:
+            # Since folders are always returned before other item types, we can break_on_filter;
+            # also, we specify a small pagesize_limit so that we don't retrieve the whole
+            # BOX_GET_ITEMS_LIMIT page from a folder, most of which will be files.
+            folder_items = retrieve_folder_items(client, folder, sort='name', pagesize_limit=30,
+                                filter_func=lambda it: it.type == 'folder', break_on_filter=True)
+            for f in folder_items:
+                _tree_helper(f, level + 1)
+    ####
+    _tree_helper(client.folder(folder_id).get(), 0)
+
+_tree_item_markers = ['*', '-']
 
 def get_files(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
@@ -846,6 +881,7 @@ command_funcs = {
     'history'  : history,
     'ls'       : ls_folder, 'list' : ls_folder,
     'fd'       : search, 'search' : search,
+    'tree'     : tree,
     'get'      : get_files,
     'put'      : put_file,
     'rm'       : rm_items, 'del' : rm_items,
