@@ -3,6 +3,8 @@ from collections import deque, OrderedDict
 import json, pickle
 import tomli
 
+from boxsdk.exception import BoxAPIException
+
 # Preliminaries {{{1
 
 # The invoking shell script must set $BOXTOOLS_APP_DIR
@@ -536,6 +538,7 @@ def put_file(args):  # {{{2
         filepath = files[0]
         print(f'Uploading "{filepath}" as a new version of "{box_filename}"...', end="", flush=True)
         if os.path.getsize(filepath) > chunked_upload_size_threshold:
+            print('(chunked)...', end="", flush=True)
             uploader = file.get_chunked_uploader(filepath)
             uploader.start()
         else:
@@ -546,12 +549,21 @@ def put_file(args):  # {{{2
         foldername = folder.get(fields=['name']).name
         for filepath in files:
             print(f'Uploading "{filepath}" to "{foldername}"...', end="", flush=True)
-            if os.path.getsize(filepath) > chunked_upload_size_threshold:
-                uploader = folder.get_chunked_uploader(filepath)
-                uploader.start()
-            else:
-                folder.upload(filepath)
-            print("done")
+            try:
+                if os.path.getsize(filepath) > chunked_upload_size_threshold:
+                    print('(chunked)...', end="", flush=True)
+                    uploader = folder.get_chunked_uploader(filepath)
+                    uploader.start()
+                else:
+                    folder.upload(filepath)
+                print("done")
+            except BoxAPIException as ex:
+                if ex.status == 409:
+                    _file_id = ex.context_info['conflicts']['id']
+                    print(f'\nFile already exists in folder [ID {_file_id}]! Attempting version upload...')
+                    put_file(['-f', _file_id, filepath])
+                else:
+                    raise ex
 
 def rm_items(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
