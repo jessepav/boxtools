@@ -397,10 +397,12 @@ def search(args):  # {{{2
     offset = options.offset
     name_only = options.name_only
     no_parent = options.no_parent
-    ancestor_ids = [translate_id(id.strip()) for id in options.ancestors.split(",")] \
-                    if options.ancestors else None
-    if any(id is None for id in ancestor_ids):
-        return
+    if options.ancestors:
+        ancestor_ids = [translate_id(id.strip()) for id in options.ancestors.split(",")]
+        if any(id is None for id in ancestor_ids):
+            return
+    else:
+        ancestor_ids = None
     extensions = [ext.strip(" .") for ext in options.extensions.split(",")] \
                     if options.extensions else None
     fields=['name', 'id', 'parent'] if not no_parent else ['name', 'id']
