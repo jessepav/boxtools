@@ -1,5 +1,5 @@
 import os, os.path, sys, argparse, pprint, re, shutil, logging, readline
-from collections import deque, OrderedDict
+from collections import OrderedDict
 import json, pickle
 import tomli
 
