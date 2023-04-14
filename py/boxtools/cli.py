@@ -253,7 +253,8 @@ BOX_GET_ITEMS_LIMIT = 1000
 # retrieves all items from the folder. Items are returned as a list. This function
 # paginates requests as necessary to accommodate Box's max per-request limit.
 def retrieve_folder_items(client, folder, fields=['type', 'name', 'id', 'parent'],
-                          limit=None, start_offset=0, sort=None, pagesize_limit=BOX_GET_ITEMS_LIMIT,
+                          limit=None, start_offset=0, sort=None, direction=None,
+                          pagesize_limit=BOX_GET_ITEMS_LIMIT,
                           filter_func=None, break_on_filter=False):
     if not getattr(folder, 'item_collection', None):
         folder = folder.get()
@@ -264,7 +265,8 @@ def retrieve_folder_items(client, folder, fields=['type', 'name', 'id', 'parent'
     try:
         while num_items > 0:
             pagesize = min(num_items, pagesize_limit)
-            item_iter = folder.get_items(fields=fields, limit=pagesize, offset=offset, sort=sort)
+            item_iter = folder.get_items(fields=fields, limit=pagesize, offset=offset,
+                                         sort=sort, direction=direction)
             for i in range(pagesize):
                 item = next(item_iter, None)
                 if not item:
@@ -342,8 +344,11 @@ def ls_folder(args):  # {{{2
                             help='Maximum number of items to return')
     cli_parser.add_argument('-o', '--offset', type=int, default=0,
                             help='The number of results to skip before displaying results')
-    cli_parser.add_argument('-F', '--only-files', action='store_true', help='Only list files')
-    cli_parser.add_argument('-D', '--only-folders', action='store_true', help='Only list folders')
+    cli_parser.add_argument('-f', '--only-files', action='store_true', help='Only list files')
+    cli_parser.add_argument('-d', '--only-folders', action='store_true', help='Only list folders')
+    cli_parser.add_argument('-n', '--sort-name', action='store_true', help='Sort by name')
+    cli_parser.add_argument('-t', '--sort-date', action='store_true', help='Sort by date')
+    cli_parser.add_argument('-r', '--reverse', action='store_true', help='Reverse sort direction')
     options = cli_parser.parse_args(args)
     folder_ids = [translate_id(_id) for _id in options.id]
     if any(id is None for id in folder_ids):  # translate_id() failed
@@ -352,19 +357,20 @@ def ls_folder(args):  # {{{2
     limit = options.limit
     offset = options.offset
     if options.only_files and options.only_folders:
-        print("-F/--only-files and -D/--only-folders are mutually exclusive")
+        print("-f/--only-files and -d/--only-folders are mutually exclusive")
         return
-    elif options.only_files:
-        filter_func = lambda item: item.type == 'file'
-    elif options.only_folders:
-        filter_func = lambda item: item.type == 'folder'
-    else:
-        filter_func = None
+    filter_func = (lambda item: item.type == 'file') if options.only_files else \
+                  (lambda item: item.type == 'folder') if options.only_folders else \
+                  None
+    sort = 'name' if options.sort_name else \
+           'date' if options.sort_date else \
+           None
+    direction = 'DESC' if options.reverse else 'ASC'
     client = get_ops_client()
     for i, folder_id in enumerate(folder_ids):
         folder = client.folder(folder_id=folder_id).get()
         items = retrieve_folder_items(client, folder, limit=limit, start_offset=offset,
-                                      filter_func=filter_func)
+                                      sort=sort, direction=direction, filter_func=filter_func)
         add_history_item(folder)
         if _parent := folder.parent:
             _parent = _parent.get(fields=['id', 'name', 'type', 'parent'])
