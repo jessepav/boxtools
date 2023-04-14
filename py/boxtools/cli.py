@@ -164,8 +164,8 @@ def print_stat_info(item):  # {{{2
         print(f"{'parent_id':20}: {item.parent.id}")
 
 def translate_id(id_):  # {{{2
-    global last_id
-    if id_ == '=':
+    global current_cmd_last_id
+    if id_ == '@':
         retid = last_id
     elif id_ in id_aliases:
         retid = str(id_aliases[id_])
@@ -201,7 +201,7 @@ def translate_id(id_):  # {{{2
         term = id_.casefold()
         retid = _choose_history_entry(id_, lambda entry : term == entry['name'].casefold())
     if retid:
-        last_id = retid
+        current_cmd_last_id = retid
     return retid
 
 def _choose_history_entry(id_, entry_filter_func):
@@ -889,12 +889,14 @@ def shell(args):  # {{{2
         else:
             cmd, *args = shlex.split(cmdline)
             if cmd in command_funcs:
+                current_cmd_last_id = last_id
                 try:
                     command_funcs[cmd](args)
                 except (SystemExit, argparse.ArgumentError):
                     # We catch these so that the shell doesn't exit when argparse.parse_args()
                     # gets a '--help' or incorrect arguments.
                     pass
+                last_id = current_cmd_last_id
             else:
                 print(f"Unknown command '{cmd}'")
 
@@ -930,11 +932,13 @@ command_args = sys.argv[2:]
 if command not in command_funcs:
     print(f"Unknown command '{command}'")
 else:
+    current_cmd_last_id = last_id
     try:
         command_funcs[command](command_args)
     except argparse.ArgumentError:
         pass
     finally:
+        last_id = current_cmd_last_id
         with open(app_state_file, "wb") as f:
             pickle.dump(file=f,
                         obj={ 'item_history_map' : item_history_map,
