@@ -27,7 +27,7 @@ if not os.path.exists(config_dir):
 # These are the configuration files
 config_file = os.path.join(config_dir, "boxtools.toml")
 tokens_file = os.path.join(config_dir, "auth-tokens.json")
-item_history_file = os.path.join(config_dir, "item-history.pickle")
+app_state_file = os.path.join(config_dir, "app-state.pickle")
 aliases_file = os.path.join(config_dir, "id-aliases.toml")
 
 # If no config file exists, write the default and exit
@@ -50,14 +50,15 @@ with open(config_file, 'rb') as f:
     chunked_upload_num_threads = config_table.get('chunked-upload-num-threads', 2)
     rclone_remote_name = config_table.get('rclone-remote-name', 'box')
 
-if os.path.exists(item_history_file):
-    with open(item_history_file, 'rb') as f:
-        item_history_map = pickle.load(f)
-        # Upgrade a normal dict to an OrderedDict
-        if not isinstance(item_history_map, OrderedDict):
-            item_history_map = OrderedDict(item_history_map)
+if os.path.exists(app_state_file):
+    with open(app_state_file, 'rb') as f:
+        _app_state = pickle.load(f)
+        item_history_map = _app_state['item_history_map']
+        last_id = _app_state['last_id']
+        del _app_state
 else:
-    item_history_map = {}
+    item_history_map = OrderedDict()
+    last_id = None
 
 if not os.path.exists(aliases_file):
     shutil.copyfile(os.path.join(app_dir, 'resources/id-aliases.toml'), aliases_file)
@@ -162,40 +163,45 @@ def print_stat_info(item):  # {{{2
         print(f"{'parent_id':20}: {item.parent.id}")
 
 def translate_id(id_):  # {{{2
-    slash_count = id_.count('/')
-    if id_ in id_aliases:
-        return str(id_aliases[id_])
+    global last_id
+    if id_ == '=':
+        retid = last_id
+    elif id_ in id_aliases:
+        retid = str(id_aliases[id_])
     elif id_.startswith('%'):
         term = id_[1:]
-        return _choose_history_entry(id_, lambda entry : term in entry['name'])
+        retid = _choose_history_entry(id_, lambda entry : term in entry['name'])
     elif id_.startswith('='):
         term = id_[1:]
-        return _choose_history_entry(id_, lambda entry : term == entry['name'])
+        retid = _choose_history_entry(id_, lambda entry : term == entry['name'])
     elif id_.startswith('^'):
         term = id_[1:]
-        return _choose_history_entry(id_, lambda entry : entry['name'].startswith(term))
+        retid = _choose_history_entry(id_, lambda entry : entry['name'].startswith(term))
     elif id_.endswith('$'):
         term = id_[0:-1]
-        return _choose_history_entry(id_,
+        retid = _choose_history_entry(id_,
                     lambda entry : any(entry[k].endswith(term) for k in ('name', 'id')))
     elif len(id_) >= 3 and id_[0] == '/' and id_[-1] == '/':  # a regex
         matched_ids = []
         regexp = re.compile(id_[1:-1], re.IGNORECASE)
-        return _choose_history_entry(id_,
+        retid = _choose_history_entry(id_,
                     lambda entry : any(regexp.search(entry[k]) for k in ('name', 'id')))
-    elif len(id_) >= 4 and id_[0] == '/' and slash_count == 2:  # /p/s
+    elif (slash_count := id_.count('/')) == 2 and len(id_) >= 4 and id_[0] == '/':  # /p/s
         p, s = id_[1:].split('/')
-        return _choose_history_entry(id_,
+        retid = _choose_history_entry(id_,
                     lambda entry : s in entry['name'] and p in entry['parent_name'])
     elif len(id_) >= 3 and slash_count == 1:
         s, n = id_.split('/')
-        return _choose_history_entry(id_,
+        retid = _choose_history_entry(id_,
                     lambda entry : s in entry['name'] and entry['id'].endswith(n))
     elif id_.isdigit():
-        return id_
+        retid = id_
     else:
         term = id_.casefold()
-        return _choose_history_entry(id_, lambda entry : term == entry['name'].casefold())
+        retid = _choose_history_entry(id_, lambda entry : term == entry['name'].casefold())
+    if retid:
+        last_id = retid
+    return retid
 
 def _choose_history_entry(id_, entry_filter_func):
     matched_ids = list(filter(entry_filter_func, item_history_map.values()))
@@ -914,7 +920,9 @@ else:
     except argparse.ArgumentError:
         pass
     finally:
-        with open(item_history_file, "wb") as f:
-            pickle.dump(item_history_map, f)
+        with open(app_state_file, "wb") as f:
+            pickle.dump(file=f,
+                        obj={ 'item_history_map' : item_history_map,
+                              'last_id' : last_id })
 
 # }}}1

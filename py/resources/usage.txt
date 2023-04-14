@@ -20,6 +20,8 @@ If you don't use any special syntax, then if the ID is composed of all
 digits, it's treated as a numeric ID; otherwise, it's matched against
 known item names case-insensitively.
 
+The one-character id '=' refers to the most recent ID successfully used.
+
 Also, you can define aliases for IDs in $BOXTOOLS_DIR/id-aliases.toml
 Any ID entered will first be checked against these aliases.
 
