@@ -115,11 +115,12 @@ def print_table(items, fields, colgap=2,                                 # {{{2
     # Helper function so we can work with all sorts of items
     def _get_field_val(item, idx, field):
         if is_dict:
-            return item[field]
+            v = item[field]
         elif is_sequence:
-            return item[idx]
+            v = item[idx]
         else:
-            return getattr(item, field)
+            v = getattr(item, field)
+        return "(N/A)" if v is None else v
     #
     def _print_column_val(val, colidx, leader=" "):
         print(val, end="")
@@ -127,7 +128,7 @@ def print_table(items, fields, colgap=2,                                 # {{{2
             print()
         else:
             r = max_field_len[colidx] - len(val)
-            if r > 2:
+            if r > 3:  # We do r > 3 because we want at least two leader characters
                 print("  " + leader*(r-2), end="")
             else:
                 print(" " * r, end="")
@@ -235,8 +236,8 @@ def _choose_history_entry(id_, entry_filter_func):
 def add_history_item(item, parent=None):  # {{{2
     p = parent or getattr(item, 'parent', None)
     entry = {'id': item.id, 'name': item.name, 'type': item.type,
-             'parent_id' : p.id if p else "N/A",
-             'parent_name' : p.name if p else "N/A" }
+             'parent_id' : p.id if p else None,
+             'parent_name' : p.name if p else None }
     if item.id in item_history_map:
         item_history_map.move_to_end(item.id)
     item_history_map[item.id] = entry
@@ -418,7 +419,7 @@ def search(args):  # {{{2
         ancestor_ids = None
     extensions = [ext.strip(" .") for ext in options.extensions.split(",")] \
                     if options.extensions else None
-    fields=['name', 'id', 'parent'] if not no_parent else ['name', 'id']
+    fields=['name', 'id', 'parent']
     client = get_ops_client()
     ancestors = [client.folder(id) for id in ancestor_ids] if ancestor_ids else None
     results = client.search().query(query=term, limit=limit, offset=offset,
@@ -432,14 +433,11 @@ def search(args):  # {{{2
         item = { 'name' : r.name,
                  'id'   : r.id }
         add_history_item(r)
-        if not no_parent:
-            parent = r.parent
-            if parent:
-                item['parent'] = parent.name
-                item['parent_id'] = parent.id
-                add_history_item(parent)
-            else:
-                item['parent'] = item['parent_id'] = 'N/A'
+        if _p := r.parent:
+            item['parent'], item['parent_id']  = _p.name, _p.id
+            add_history_item(_p)
+        else:
+            item['parent'] = item['parent_id'] = None
         items.append(item)
         if i == limit: break
     print_table(items,
@@ -466,11 +464,20 @@ def tree(args):  # {{{2
     re_pattern = options.re_filter and re.compile(options.re_filter)
     indent_str = " " * 2
     client = get_ops_client()
+    tree_entries = []
     ####
     def _tree_helper(folder, level):
         add_history_item(folder)
-        marker = _tree_item_markers[level % len(_tree_item_markers)]
-        print(indent_str * level, f"{marker} {folder.name} / {folder.id}", sep="")
+        name_part, id_part = None, folder.id
+        if level == 0:
+            name_part = f"{folder.fullpath}"
+        else:
+            marker = _tree_item_markers[level % len(_tree_item_markers)]
+            name_part = (indent_str * level) + f"{marker} {folder.name}"
+        tree_entries.append((name_part, id_part))
+        if sys.stdout.isatty():  # Display a progress report
+            sys.stdout.write('\033[2K\033[1G') # erase and go to beginning of line
+            print('*', folder.name, end="", flush=True)
         if level < max_levels:
             # Since folders are always returned before other item types, we can break_on_filter;
             # also, we specify a small pagesize_limit so that we don't retrieve the whole
@@ -480,8 +487,16 @@ def tree(args):  # {{{2
             for f in folder_items:
                 if not re_pattern or re_pattern.fullmatch(f.name):
                     _tree_helper(f, level + 1)
+        if level == 0 and sys.stdout.isatty():
+            sys.stdout.write('\033[2K\033[1G')
+
     ####
-    _tree_helper(client.folder(folder_id).get(), 0)
+    initial_folder = client.folder(folder_id).get()
+    path_entries = [folder.name for folder in initial_folder.path_collection['entries'][1:]]
+    path_entries.append(initial_folder.name)
+    initial_folder.fullpath = "/" + "/".join(path_entries)
+    _tree_helper(initial_folder, 0)
+    print_table(tree_entries, ('name_part', 'id_part'), print_header=False, is_sequence=True)
 
 _tree_item_markers = ['*', '-']
 
