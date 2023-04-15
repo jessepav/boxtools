@@ -733,12 +733,12 @@ def itempaths(args):  # {{{2
         else:
             if verbose:
                 if i != 0: print()
-                path_items = item.path_collection['entries'][1:]
+                path_items = item.path_collection['entries'].copy()
                 path_items.append(item)
-                for j, path_item in enumerate(path_items):
+                for j, path_item in enumerate(path_items[1:]):
                     print(" " * (j*2) + '/ ', end="")
                     print(f"{path_item.name} [{path_item.id}]")
-                    add_history_item(path_item)
+                    add_history_item(path_item, parent=path_items[j])
             else:
                 path_entries = [folder.name for folder in item.path_collection['entries'][1:]]
                 path_entries.append(item.name)
