@@ -339,17 +339,17 @@ def history(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s history [options]',
                                          description='Show previous ID history')
-    cli_parser.add_argument('-l', '--limit', type=int, default=0,
+    cli_parser.add_argument('-n', '--max-count', type=int, default=0,
                             help='Maximum number of (most-recent) items to return')
     cli_parser.add_argument('-m', '--max-name-length', metavar='N', type=int,
                             help='Clip the names of items in the displayed table to N characters')
     cli_parser.add_argument('-M', '--max-id-length', metavar='N', type=int,
                             help='Clip the item IDs in the displayed table to N characters')
     options = cli_parser.parse_args(args)
-    limit = options.limit
+    max_count = options.max_count
     max_name_len = options.max_name_length and max(options.max_name_length, MIN_NAME_LEN)
     max_id_len = options.max_id_length and max(options.max_id_length, MIN_ID_LEN)
-    print_table(list(item_history_map.values())[-limit:], ('name', 'id', 'parent_name'),
+    print_table(list(item_history_map.values())[-max_count:], ('name', 'id', 'parent_name'),
                 clip_fields={'name' : (max_name_len, 'r'), 'id' : (max_id_len, 'l'),
                              'parent_name' : (max_name_len, 'r')},
                 is_dict=True)
