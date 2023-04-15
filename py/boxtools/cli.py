@@ -54,6 +54,10 @@ rclone_remote_name = config_table.get('rclone-remote-name', 'box')
 MIN_NAME_LEN = 8
 MIN_ID_LEN   = 5
 
+# Get terminal size for use in default lengths
+screen_cols = shutil.get_terminal_size(fallback=(0, 0))[0] if sys.stdout.isatty() else 0
+
+# Restore pickled app state if available
 if os.path.exists(app_state_file):
     with open(app_state_file, 'rb') as f:
         _app_state = pickle.load(f)
@@ -64,6 +68,7 @@ else:
     item_history_map = OrderedDict()
     last_id = None
 
+# Load ID aliases
 if not os.path.exists(aliases_file):
     shutil.copyfile(os.path.join(app_dir, 'resources/id-aliases.toml'), aliases_file)
 with open(aliases_file, 'rb') as f:
@@ -126,7 +131,7 @@ def print_table(items, fields, *, colgap=2, print_header=True, clip_fields=None,
             return "(N/A)"
         elif clip_fields and field in clip_fields:
             _maxlen, _alignment = clip_fields[field]
-            if _maxlen is not None and len(v) > _maxlen:
+            if _maxlen and len(v) > _maxlen:
                 return v[:_maxlen] + '[…]' if _alignment == 'r' else '[…]' + v[-_maxlen:]
             else:
                 return v
