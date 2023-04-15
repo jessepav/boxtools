@@ -50,7 +50,9 @@ chunked_upload_size_threshold = config_table.get('chunked-upload-size-threshold'
 chunked_upload_num_threads = config_table.get('chunked-upload-num-threads', 2)
 rclone_remote_name = config_table.get('rclone-remote-name', 'box')
 
-MIN_VALUE_LEN = 8  # Minimum name length for commands that allow clipping item names
+# Minimum name and id lengths for commands that allow clipping field values
+MIN_NAME_LEN = 8
+MIN_ID_LEN   = 5
 
 if os.path.exists(app_state_file):
     with open(app_state_file, 'rb') as f:
@@ -111,11 +113,10 @@ def get_ops_client():  # {{{2
 
 ops_client = None
 
-def print_table(items, fields,                      # {{{2
-                *, colgap=2, print_header=True, clip_fields=None, max_value_len=None,
+# def print_table(...)    {{{2
+def print_table(items, fields, *, colgap=2, print_header=True, clip_fields=None,
                 is_dict=False, is_sequence=False):
     numcols = len(fields)
-    do_clip = clip_fields and max_value_len
     # Helper function so we can work with all sorts of items
     def _get_field_val(item, idx, field):
         v = item[field] if is_dict else \
@@ -123,9 +124,12 @@ def print_table(items, fields,                      # {{{2
             getattr(item, field)
         if v is None:
             return "(N/A)"
-        elif do_clip and len(v) > max_value_len and field in clip_fields:
-            return v[:max_value_len] + '[…]' if clip_fields[field] == 'r' else \
-                   '[…]' + v[-max_value_len:]
+        elif clip_fields and field in clip_fields:
+            _maxlen, _alignment = clip_fields[field]
+            if _maxlen is not None and len(v) > _maxlen:
+                return v[:_maxlen] + '[…]' if _alignment == 'r' else '[…]' + v[-_maxlen:]
+            else:
+                return v
         else:
             return v
     #
@@ -336,13 +340,17 @@ def history(args):  # {{{2
                                          description='Show previous ID history')
     cli_parser.add_argument('-l', '--limit', type=int, default=0,
                             help='Maximum number of (most-recent) items to return')
-    cli_parser.add_argument('-m', '--max-value-length', metavar='N', type=int,
-                            help='Clip the values of item fields in the displayed table to N characters')
+    cli_parser.add_argument('-m', '--max-name-length', metavar='N', type=int,
+                            help='Clip the names of items in the displayed table to N characters')
+    cli_parser.add_argument('-M', '--max-id-length', metavar='N', type=int,
+                            help='Clip the item IDs in the displayed table to N characters')
     options = cli_parser.parse_args(args)
     limit = options.limit
-    max_value_len = options.max_value_length and max(options.max_value_length, MIN_VALUE_LEN)
+    max_name_len = options.max_name_length and max(options.max_name_length, MIN_NAME_LEN)
+    max_id_len = options.max_id_length and max(options.max_id_length, MIN_ID_LEN)
     print_table(list(item_history_map.values())[-limit:], ('name', 'id', 'parent_name'),
-                clip_fields={'name':'r', 'id':'l', 'parent_name':'r'}, max_value_len=max_value_len,
+                clip_fields={'name' : (max_name_len, 'r'), 'id' : (max_id_len, 'l'),
+                             'parent_name' : (max_name_len, 'r')},
                 is_dict=True)
 
 def ls_folder(args):  # {{{2
@@ -361,8 +369,10 @@ def ls_folder(args):  # {{{2
     cli_parser.add_argument('-n', '--sort-name', action='store_true', help='Sort by name')
     cli_parser.add_argument('-t', '--sort-date', action='store_true', help='Sort by date')
     cli_parser.add_argument('-r', '--reverse', action='store_true', help='Reverse sort direction')
-    cli_parser.add_argument('-m', '--max-value-length', metavar='N', type=int,
-                            help='Clip the values of item fields in the displayed table to N characters')
+    cli_parser.add_argument('-m', '--max-name-length', metavar='N', type=int,
+                            help='Clip the names of items in the displayed table to N characters')
+    cli_parser.add_argument('-M', '--max-id-length', metavar='N', type=int,
+                            help='Clip the item IDs in the displayed table to N characters')
     options = cli_parser.parse_args(args)
     folder_ids = [translate_id(_id) for _id in options.id]
     if any(id is None for id in folder_ids):  # translate_id() failed
@@ -380,7 +390,8 @@ def ls_folder(args):  # {{{2
            'date' if options.sort_date else \
            None
     direction = 'DESC' if options.reverse else 'ASC'
-    max_value_len = options.max_value_length and max(options.max_value_length, MIN_VALUE_LEN)
+    max_name_len = options.max_name_length and max(options.max_name_length, MIN_NAME_LEN)
+    max_id_len = options.max_id_length and max(options.max_id_length, MIN_ID_LEN)
     client = get_ops_client()
     for i, folder_id in enumerate(folder_ids):
         folder = client.folder(folder_id=folder_id).get()
@@ -402,7 +413,7 @@ def ls_folder(args):  # {{{2
                 folder_header_info += "\n  ==== Parent: All Files (0) =="
             print(folder_header_info, end="\n\n")
         print_table(items, ('type', 'name', 'id'), print_header=print_header,
-                    max_value_len=max_value_len, clip_fields={'name':'r', 'id':'l'})
+                    clip_fields={'name': (max_name_len, 'r'), 'id': (max_id_len, 'l')})
 
 def search(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
@@ -423,8 +434,10 @@ def search(args):  # {{{2
                             help="Comma-separated list of ancestor folders for results")
     cli_parser.add_argument('-e', '--extensions',
                             help="Comma-separated list of extensions considered in search")
-    cli_parser.add_argument('-m', '--max-value-length', metavar='N', type=int,
-                            help='Clip the values of item fields in the displayed table to N characters')
+    cli_parser.add_argument('-m', '--max-name-length', metavar='N', type=int,
+                            help='Clip the names of items in the displayed table to N characters')
+    cli_parser.add_argument('-M', '--max-id-length', metavar='N', type=int,
+                            help='Clip the item IDs in the displayed table to N characters')
     options = cli_parser.parse_args(args)
     term = options.term
     do_files, do_folders = options.files, options.folders
@@ -444,7 +457,8 @@ def search(args):  # {{{2
     extensions = [ext.strip(" .") for ext in options.extensions.split(",")] \
                     if options.extensions else None
     fields=['name', 'id', 'parent']
-    max_value_len = options.max_value_length and max(options.max_value_length, MIN_VALUE_LEN)
+    max_name_len = options.max_name_length and max(options.max_name_length, MIN_NAME_LEN)
+    max_id_len = options.max_id_length and max(options.max_id_length, MIN_ID_LEN)
     client = get_ops_client()
     ancestors = [client.folder(id) for id in ancestor_ids] if ancestor_ids else None
     results = client.search().query(query=term, limit=limit, offset=offset,
@@ -465,10 +479,10 @@ def search(args):  # {{{2
             item['parent'] = item['parent_id'] = None
         items.append(item)
         if i == limit: break
-    print_table(items,
-                ('name', 'id', 'parent', 'parent_id') if not no_parent else ('name', 'id'),
-                is_dict=True, max_value_len=max_value_len,
-                clip_fields={'name':'r', 'id':'l', 'parent':'r', 'parent_id':'l'})
+    print_table(items, is_dict=True,
+                fields=('name', 'id', 'parent', 'parent_id') if not no_parent else ('name', 'id'),
+                clip_fields={'name'   : (max_name_len, 'r'), 'id'        : (max_id_len, 'l'),
+                             'parent' : (max_name_len, 'r'), 'parent_id' : (max_id_len, 'l')})
 
 def tree(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
