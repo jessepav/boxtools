@@ -915,7 +915,7 @@ def stat_items(args):  # {{{2
 def shell(args):  # {{{2
     global current_cmd_last_id, last_id
     import shlex
-    print("Type quit/q/exit/x to exit the shell, and help/h/? for general usage.")
+    print("Type q(uit)/e(xit) to exit the shell, and h(elp)/? for general usage.")
     while True:
         try:
             cmdline = input("> ")
@@ -924,7 +924,7 @@ def shell(args):  # {{{2
             break
         if cmdline in ('quit', 'q', 'exit', 'x'):
             break
-        elif cmdline == ('help', 'h', '?'):
+        elif cmdline in ('help', 'h', '?'):
             print(general_usage, end="")
         elif len(cmdline) == 0 or cmdline.isspace():
             continue
