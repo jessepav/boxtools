@@ -201,7 +201,8 @@ def translate_id(id_):  # {{{2
     elif (slash_count := id_.count('/')) == 2 and len(id_) >= 4 and id_[0] == '/':  # /p/s
         p, s = id_[1:].split('/')
         retid = _choose_history_entry(id_,
-                    lambda entry : s in entry['name'] and p in entry['parent_name'])
+                    lambda entry : (_parent := entry['parent_name']) and
+                                    s in entry['name'] and p in _parent)
     elif len(id_) >= 3 and slash_count == 1:
         s, n = id_.split('/')
         retid = _choose_history_entry(id_,
