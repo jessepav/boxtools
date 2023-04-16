@@ -16,7 +16,7 @@ config_dir = os.environ.get("BOXTOOLS_DIR", os.path.expanduser("~/.boxtools"))
 
 # We keep certain resources as their own files for easy editing
 with open(os.path.join(app_dir, 'resources/usage.txt'), "rt") as f:
-    general_usage = f.read().\
+    general_usage = f.read(). \
         format(progname=os.path.basename(sys.argv[0]),
                app_dir=app_dir, config_dir=config_dir)
 
@@ -30,11 +30,16 @@ tokens_file = os.path.join(config_dir, "auth-tokens.json")
 app_state_file = os.path.join(config_dir, "app-state.pickle")
 aliases_file = os.path.join(config_dir, "id-aliases.toml")
 
+# Print help if we need to
+if len(sys.argv) == 1 or sys.argv[1] in ('-h', '--help'):
+    print(general_usage, end="")
+    sys.exit(1)
+
 # If no config file exists, write the default and exit
 if not os.path.exists(config_file):
     print(f"Edit the default config file at '{config_file}'")
     shutil.copyfile(os.path.join(app_dir, 'resources/boxtools.toml'), config_file)
-    sys.exit(0)
+    sys.exit(1)
 
 # Read the config
 with open(config_file, 'rb') as f:
@@ -77,24 +82,27 @@ with open(aliases_file, 'rb') as f:
 # Ensure the user actually modified the config file
 if client_id == "(your client-id)" or client_secret == "(your client-secret)":
     print(f"Edit '{config_file}' to supply a valid client ID and secret")
-    sys.exit(0)
-
-# Print help if we need to
-if len(sys.argv) == 1 or sys.argv[1] in ('-h', '--help'):
-    print(general_usage, end="")
     sys.exit(1)
 
 # }}}1
 
 # Support functions {{{1
 
-def save_tokens(access_token, refresh_token):  # {{{2
+# save_tokens() {{{2
+
+# Write tokens as JSON to our tokens_file
+
+def save_tokens(access_token, refresh_token):
     with open(tokens_file, 'wt') as f:
         json.dump({ 'access_token' : access_token, 'refresh_token' : refresh_token }, f,
                   indent=2)
         f.write('\n')  # We want the file to end in a newline, like a usual text file
 
-def load_tokens_or_die():  # {{{2
+# load_tokens_or_die() {{{2
+
+# Load tokens from our tokens_file or exit if attempt fails
+
+def load_tokens_or_die():
     if not os.path.exists(tokens_file):
         print("You must first retrieve auth tokens by using the 'auth' command")
         sys.exit(1)
@@ -102,8 +110,12 @@ def load_tokens_or_die():  # {{{2
         tokendict = json.load(f)
     return tokendict['access_token'], tokendict['refresh_token']
 
-def get_ops_client():  # {{{2
-    # Retrieves and caches a Box Client object
+# get_ops_client() {{{2
+
+# Uses our client ID/secret and tokens to get a Box Client object. It caches the client
+# object so that the function can be called multiple times without a performance hit.
+
+def get_ops_client():
     global ops_client, BoxAPIException
     if ops_client is None:
         access_token, refresh_token = load_tokens_or_die()
@@ -119,6 +131,21 @@ def get_ops_client():  # {{{2
 ops_client = None
 
 # def print_table(...)    {{{2
+
+# Print a pretty table of `fields` in `items`.
+#
+#   colgap       : number of spaces between each column
+#   print_header : print the names of the fields above the rows
+#   clip_fields  : a map from field name to a tuple of (max_value_len, clip_side). If a field name
+#                  appears in clip_fields, we ensure that its printed value doesn't exceed
+#                  max_value_len + 3 characters, truncating characters on clip_side if necessary.
+#                  A max_value_len of 0 or None means no limit; clip_side is either 'l' or 'r'.
+#   is_dict      : True if `items` is a dict
+#   is_sequence  : True if `items` is a sequence
+#
+# If both is_dict and is_sequence are False, `items` will be treated as a namespace,
+# and fields will be accessed via getattr()
+
 def print_table(items, fields, *, colgap=2, print_header=True, clip_fields=None,
                 is_dict=False, is_sequence=False):
     numcols = len(fields)
@@ -130,9 +157,9 @@ def print_table(items, fields, *, colgap=2, print_header=True, clip_fields=None,
         if v is None:
             return "(N/A)"
         elif clip_fields and field in clip_fields:
-            _maxlen, _alignment = clip_fields[field]
+            _maxlen, _clip_dir = clip_fields[field]
             if _maxlen and len(v) > _maxlen:
-                return v[:_maxlen] + '[…]' if _alignment == 'r' else '[…]' + v[-_maxlen:]
+                return v[:_maxlen] + '[…]' if _clip_dir == 'r' else '[…]' + v[-_maxlen:]
             else:
                 return v
         else:
@@ -164,7 +191,11 @@ def print_table(items, fields, *, colgap=2, print_header=True, clip_fields=None,
             _print_column_val(_get_field_val(item, i, field), i, leader='·')
     return total_width
 
-def print_stat_info(item):  # {{{2
+# print_stat_info() {{{2
+
+# Print item info as for the stat command
+
+def print_stat_info(item):
     add_history_item(item)
     for field in ('name', 'type', 'id', 'content_created_at', 'content_modified_at',
                     'created_at', 'description', 'modified_at', 'size'):
@@ -179,7 +210,12 @@ def print_stat_info(item):  # {{{2
         print(f"{'parent_name':20}: {item.parent.name}")
         print(f"{'parent_id':20}: {item.parent.id}")
 
-def translate_id(id_):  # {{{2
+# translate_id() and co. {{{2
+
+# Turn a typed ID, in any of the supported shortcuts documented in usage.txt, into a
+# Box ID number, by searching ID aliases and item history.
+
+def translate_id(id_):
     global current_cmd_last_id
     if id_ == '@':
         retid = last_id
@@ -250,7 +286,11 @@ def _choose_history_entry(id_, entry_filter_func):
     else:
         return matched_ids[0]['id']
 
-def add_history_item(item, parent=None):  # {{{2
+# add_history_item() {{{2
+
+# Add a Box item to our item_history_map
+
+def add_history_item(item, parent=None):
     p = parent or getattr(item, 'parent', None)
     entry = {'id': item.id, 'name': item.name, 'type': item.type,
              'parent_id' : p.id if p else None,
@@ -262,13 +302,14 @@ def add_history_item(item, parent=None):  # {{{2
         for i in range(n):
             item_history_map.popitem(last=False)
 
-# def retrieve_folder_items(...) and co {{{2
+# retrieve_folder_items(...) and co {{{2
 
 BOX_GET_ITEMS_LIMIT = 1000
 
 # Retrieves `limit` items from `folder` starting at `start_offset`. If limit is None,
 # retrieves all items from the folder. Items are returned as a list. This function
 # paginates requests as necessary to accommodate Box's max per-request limit.
+
 def retrieve_folder_items(client, folder, fields=['type', 'name', 'id', 'parent'],
                           limit=None, start_offset=0, sort=None, direction=None,
                           pagesize_limit=BOX_GET_ITEMS_LIMIT,
