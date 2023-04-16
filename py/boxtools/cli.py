@@ -5,16 +5,16 @@ import tomli
 
 # Preliminaries {{{1
 
-# The invoking shell script must set $BOXTOOLS_APP_DIR
+# The invoking shell script must set $BOXTOOLS_APP_DIR {{{2
 app_dir = os.environ.get("BOXTOOLS_APP_DIR")
 if not app_dir:
     print("You must set $BOXTOOLS_APP_DIR before running this program!")
     sys.exit(1)
 
-# The user can override the default ~/.boxtools directory by setting $BOXTOOLS_DIR
+# The user can override the default ~/.boxtools directory by setting $BOXTOOLS_DIR {{{2
 config_dir = os.environ.get("BOXTOOLS_DIR", os.path.expanduser("~/.boxtools"))
 
-# We keep certain resources as their own files for easy editing
+# We keep certain resources as their own files for easy editing {{{2
 with open(os.path.join(app_dir, 'resources/usage.txt'), "rt") as f:
     general_usage = f.read(). \
         format(progname=os.path.basename(sys.argv[0]),
@@ -24,24 +24,24 @@ if not os.path.exists(config_dir):
     print(f"Creating {config_dir}...")
     os.mkdir(config_dir)
 
-# These are the configuration files
+# These are the configuration files {{{2
 config_file = os.path.join(config_dir, "boxtools.toml")
 tokens_file = os.path.join(config_dir, "auth-tokens.json")
 app_state_file = os.path.join(config_dir, "app-state.pickle")
 aliases_file = os.path.join(config_dir, "id-aliases.toml")
 
-# Print help if we need to
+# Print help if we need to {{{2
 if len(sys.argv) == 1 or sys.argv[1] in ('-h', '--help'):
     print(general_usage, end="")
     sys.exit(1)
 
-# If no config file exists, write the default and exit
+# If no config file exists, write the default and exit {{{2
 if not os.path.exists(config_file):
     print(f"Edit the default config file at '{config_file}'")
     shutil.copyfile(os.path.join(app_dir, 'resources/boxtools.toml'), config_file)
     sys.exit(1)
 
-# Read the config
+# Read the config {{{2
 with open(config_file, 'rb') as f:
     config = tomli.load(f)
 auth_table = config['auth']
@@ -55,14 +55,14 @@ chunked_upload_size_threshold = config_table.get('chunked-upload-size-threshold'
 chunked_upload_num_threads = config_table.get('chunked-upload-num-threads', 2)
 rclone_remote_name = config_table.get('rclone-remote-name', 'box')
 
-# Minimum name and id lengths for commands that allow clipping field values
+# Minimum name and id lengths for commands that allow clipping field values {{{2
 MIN_NAME_LEN = 8
 MIN_ID_LEN   = 5
 
-# Get terminal size for use in default lengths
+# Get terminal size for use in default lengths {{{2
 screen_cols = shutil.get_terminal_size(fallback=(0, 0))[0] if sys.stdout.isatty() else 0
 
-# Restore pickled app state if available
+# Restore pickled app state if available {{{2
 if os.path.exists(app_state_file):
     with open(app_state_file, 'rb') as f:
         _app_state = pickle.load(f)
@@ -73,13 +73,13 @@ else:
     item_history_map = OrderedDict()
     last_id = None
 
-# Load ID aliases
+# Load ID aliases {{{2
 if not os.path.exists(aliases_file):
     shutil.copyfile(os.path.join(app_dir, 'resources/id-aliases.toml'), aliases_file)
 with open(aliases_file, 'rb') as f:
     id_aliases = tomli.load(f)['aliases']
 
-# Ensure the user actually modified the config file
+# Ensure the user actually modified the config file {{{2
 if client_id == "(your client-id)" or client_secret == "(your client-secret)":
     print(f"Edit '{config_file}' to supply a valid client ID and secret")
     sys.exit(1)
