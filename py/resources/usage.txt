@@ -25,6 +25,8 @@ in the previous command (i.e. "ls 1234 @" won't list folder 1234 twice).
 In the above example, the ID referred to by '@' is not changed to 1234;
 however, if the command were "ls @ 1234" then '@' would become 1234.
 
+The root folder, aka "All Files", has an ID of '0' or '/'.
+
 Also, you can define aliases for IDs in $BOXTOOLS_DIR/id-aliases.toml
 Any ID entered will first be checked against these aliases.
 

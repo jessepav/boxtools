@@ -219,6 +219,8 @@ def translate_id(id_):
     global current_cmd_last_id
     if id_ == '@':
         retid = last_id
+    elif id_ == '/':
+        retid = '0'
     elif id_ in id_aliases:
         retid = str(id_aliases[id_])
     elif id_.startswith('%'):
