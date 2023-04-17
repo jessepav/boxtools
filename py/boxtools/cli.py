@@ -415,8 +415,8 @@ def ls_folder(args):  # {{{2
                             help='The number of results to skip before displaying results')
     cli_parser.add_argument('-f', '--only-files', action='store_true', help='Only list files')
     cli_parser.add_argument('-d', '--only-folders', action='store_true', help='Only list folders')
-    cli_parser.add_argument('-n', '--sort-name', action='store_true', help='Sort by name')
-    cli_parser.add_argument('-t', '--sort-date', action='store_true', help='Sort by date')
+    cli_parser.add_argument('-n', '--sort-name', action='store_true', help='Sort by name (A->Z)')
+    cli_parser.add_argument('-t', '--sort-date', action='store_true', help='Sort by date (Old->New)')
     cli_parser.add_argument('-r', '--reverse', action='store_true', help='Reverse sort direction')
     cli_parser.add_argument('-m', '--max-name-length', metavar='N', type=int,
                             help='Clip the names of items in the displayed table to N characters')
