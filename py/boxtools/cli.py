@@ -907,7 +907,7 @@ def ln_items(args):  # {{{2
                 print(f'Removed shared link for file "{file.name}"')
             else:
                 link = file.get_shared_link(allow_download=True, allow_preview=True, password=password)
-                file = file.get(fields=['id', 'name', 'type', 'parent'])
+                file = file.get(fields=['id', 'name', 'type', 'parent', 'shared_link'])
                 direct_link = file.shared_link['download_url']
                 if i != 0: print()
                 print("== File:", file.name)
@@ -922,7 +922,7 @@ def ln_items(args):  # {{{2
                 print(f'Removed shared link for folder "{folder.name}"')
             else:
                 link = folder.get_shared_link(allow_download=True, allow_preview=True, password=password)
-                folder = folder.get(fields=['id', 'name', 'type', 'parent'])
+                folder = folder.get(fields=['id', 'name', 'type', 'parent', 'shared_link'])
                 if i != 0: print()
                 print("== Folder:", folder.name)
                 print("     Link:", link)
