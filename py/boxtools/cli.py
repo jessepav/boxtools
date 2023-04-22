@@ -733,6 +733,34 @@ def put_file(args):  # {{{2
                 else:
                     raise ex
 
+def cat(args):  # {{{2
+    cli_parser = argparse.ArgumentParser(exit_on_error=False,
+                                         usage='%(prog)s cat [options] ids...',
+                                         description='Write the contents of file(s) to stdout')
+    cli_parser.add_argument('ids', nargs='+', help='File IDs to print')
+    cli_parser.add_argument('-H', '--headers', action='store_true',
+                            help="Print a header before each file's contents")
+    cli_parser.add_argument('-c', '--byte-count', metavar='N', type=int, default=4096,
+                            help='Print the first N bytes of files (default 4096)')
+    options = cli_parser.parse_args(args)
+    item_ids = [translate_id(_id) for _id in options.ids]
+    if any(id is None for id in item_ids):
+        return
+    byte_count = options.byte_count
+    headers = options.headers
+    client = get_ops_client()
+    for i, file_id in enumerate(item_ids):
+        file = client.file(file_id).get(fields=['name'])
+        filename = file.name
+        if headers:
+            if i != 0: print()
+            print( " ┌─", '─' * len(filename), '─┐', sep='')
+            print(f"─┤ {filename} ├", '─' * max(0, screen_cols - len(filename) - 5), sep='')
+            print( " └─", '─' * len(filename), '─┘', sep='')
+        content = file.content(byte_range=(0, byte_count))
+        str_rep = content.decode(errors='backslashreplace')
+        print(str_rep)
+
 def rm_items(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s rm [options] ids...',
@@ -1029,6 +1057,7 @@ command_funcs = {
     'tree'     : tree,
     'get'      : get_files,
     'put'      : put_file,
+    'cat'      : cat,
     'rm'       : rm_items, 'del' : rm_items,
     'path'     : itempaths,
     'mkdir'    : mkdir,
