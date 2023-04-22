@@ -345,6 +345,13 @@ def retrieve_folder_items(client, folder, fields=['type', 'name', 'id', 'parent'
         pass
     return items
 
+# expand_all() {{{2
+
+# Expand both environment variables and the user home dir '~' in path
+
+def expand_all(path):
+    return os.path.expandvars(os.path.expanduser(path)) if path else None
+
 # }}}1
 
 # Define command functions {{{1
@@ -617,7 +624,7 @@ def get_files(args):  # {{{2
     item_ids = [translate_id(id) for id in options.ids]
     if any(id is None for id in item_ids):
         return
-    target_dir = os.path.expanduser(options.directory)
+    target_dir = expand_all(options.directory)
     if not os.path.isdir(target_dir):
         print(f"{target_dir} is not a directory!")
         return
@@ -997,7 +1004,7 @@ def source(args):  # {{{2
         return
     global last_id
     import shlex
-    cmdfile = args[0]
+    cmdfile = expand_all(args[0])
     with open(cmdfile, "rt") as f:
         for cmdline in f:
             cmdline = cmdline.strip()
