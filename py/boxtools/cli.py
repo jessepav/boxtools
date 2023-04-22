@@ -72,6 +72,7 @@ if os.path.exists(app_state_file):
 else:
     item_history_map = OrderedDict()
     last_id = None
+current_cmd_last_id = last_id
 
 # Load ID aliases {{{2
 if not os.path.exists(aliases_file):
