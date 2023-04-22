@@ -990,6 +990,28 @@ def shell(args):  # {{{2
             else:
                 print(f"Unknown command '{cmd}'")
 
+def source(args):  # {{{2
+    if len(args) != 1 or '-h' in args or '--help' in args:
+        print(f"usage: {os.path.basename(sys.argv[0])} source file\n\n"
+               "Read commands from a given file")
+        return
+    global current_cmd_last_id, last_id
+    import shlex
+    cmdfile = args[0]
+    with open(cmdfile, "rt") as f:
+        for cmdline in f:
+            cmdline = cmdline.strip()
+            if len(cmdline) == 0 or cmdline[0] == '#':
+                continue
+            cmd, *args = shlex.split(cmdline)
+            if cmd in command_funcs:
+                current_cmd_last_id = last_id
+                command_funcs[cmd](args)
+                last_id = current_cmd_last_id
+            else:
+                print(f"Unknown command '{cmd}'")
+                break
+
 # Map command names to the implementing command function  # {{{2
 command_funcs = {
     'auth'     : auth_cmd,
@@ -1011,6 +1033,7 @@ command_funcs = {
     'readlink' : readlink,
     'stat'     : stat_items,
     'shell'    : shell,
+    'source'   : source,
 }
 # End command functions }}}1
 

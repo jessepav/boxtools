@@ -58,5 +58,6 @@ Commands:
     stat          Get info about the item referred to by a shared link
 
     shell         Enter an interactive shell
+    source        Read commands from a given file
 
 Use "{progname} [command] --help" for more information about a command.
