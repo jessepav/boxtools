@@ -961,7 +961,7 @@ def stat_items(args):  # {{{2
         print_stat_info(item)
 
 def shell(args):  # {{{2
-    global current_cmd_last_id, last_id
+    global last_id
     import shlex
     print("Type q(uit)/e(xit) to exit the shell, and h(elp)/? for general usage.")
     while True:
@@ -979,7 +979,6 @@ def shell(args):  # {{{2
         else:
             cmd, *args = shlex.split(cmdline)
             if cmd in command_funcs:
-                current_cmd_last_id = last_id
                 try:
                     command_funcs[cmd](args)
                 except (SystemExit, argparse.ArgumentError):
@@ -995,7 +994,7 @@ def source(args):  # {{{2
         print(f"usage: {os.path.basename(sys.argv[0])} source file\n\n"
                "Read commands from a given file")
         return
-    global current_cmd_last_id, last_id
+    global last_id
     import shlex
     cmdfile = args[0]
     with open(cmdfile, "rt") as f:
@@ -1005,7 +1004,6 @@ def source(args):  # {{{2
                 continue
             cmd, *args = shlex.split(cmdline)
             if cmd in command_funcs:
-                current_cmd_last_id = last_id
                 command_funcs[cmd](args)
                 last_id = current_cmd_last_id
             else:
@@ -1045,7 +1043,6 @@ command_args = sys.argv[2:]
 if command not in command_funcs:
     print(f"Unknown command '{command}'")
 else:
-    current_cmd_last_id = last_id
     try:
         command_funcs[command](command_args)
     except argparse.ArgumentError:
