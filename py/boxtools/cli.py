@@ -135,19 +135,22 @@ ops_client = None
 
 # Print a pretty table of `fields` in `items`.
 #
-#   colgap       : number of spaces between each column
-#   print_header : print the names of the fields above the rows
-#   clip_fields  : a map from field name to a tuple of (max_value_len, clip_side). If a field name
-#                  appears in clip_fields, we ensure that its printed value doesn't exceed
-#                  max_value_len + 3 characters, truncating characters on clip_side if necessary.
-#                  A max_value_len of 0 or None means no limit; clip_side is either 'l' or 'r'.
-#   is_dict      : True if `items` is a dict
-#   is_sequence  : True if `items` is a sequence
+#   colgap           : number of spaces between each column
+#   print_header     : print the names of the fields above the rows
+#   clip_fields      : a map from field name to a tuple of (max_value_len, clip_side). If a
+#                      field name appears in clip_fields, we ensure that its printed value
+#                      doesn't exceed max_value_len + 3 characters, truncating characters on
+#                      clip_side if necessary.  A max_value_len of 0 or None means no limit;
+#                      clip_side is either 'l' or 'r'.
+#   no_leader_fields : A sequence of field names. These fields will not have leaders appended.
+#   is_dict          : True if `items` is a dict
+#   is_sequence      : True if `items` is a sequence
 #
 # If both is_dict and is_sequence are False, `items` will be treated as a namespace,
 # and fields will be accessed via getattr()
 
-def print_table(items, fields, *, colgap=2, print_header=True, clip_fields=None,
+def print_table(items, fields, *, colgap=2, print_header=True,
+                clip_fields=None, no_leader_fields=(),
                 is_dict=False, is_sequence=False):
     numcols = len(fields)
     # Helper function so we can work with all sorts of items
@@ -172,13 +175,14 @@ def print_table(items, fields, *, colgap=2, print_header=True, clip_fields=None,
             print()
         else:
             r = max_field_len[colidx] - len(val)
-            if r > 3:  # We do r > 3 because we want at least two leader characters
+            if colidx not in no_leader_colidxs and r > 3:  # We do r > 3 because we want at least two leader characters
                 print("  " + leader*(r-2), end="")
             else:
                 print(" " * r, end="")
             print(" " * colgap, end="")
     #
     max_field_len = [len(field) for field in fields]
+    no_leader_colidxs = {i for i, field in enumerate(fields) if field in no_leader_fields}
     for item in items:
         for i, field in enumerate(fields):
             max_field_len[i] = max(max_field_len[i], len(_get_field_val(item, i, field)))
@@ -189,7 +193,8 @@ def print_table(items, fields, *, colgap=2, print_header=True, clip_fields=None,
         print("-" * total_width)
     for item in items:
         for i, field in enumerate(fields):
-            _print_column_val(_get_field_val(item, i, field), i, leader='·')
+            _print_column_val(_get_field_val(item, i, field), i,
+                              leader=' ' if field in no_leader_fields else '·')
     return total_width
 
 # print_stat_info() {{{2
@@ -498,12 +503,13 @@ def search(args):  # {{{2
     options = cli_parser.parse_args(args)
     term = options.term
     do_files, do_folders = options.files, options.folders
-    if do_files == do_folders:
-        print("You must supply exactly one of --files/-f or --folders/-d")
+    if do_files and do_folders:
+        print("You can supply exactly one of --files/-f or --folders/-d")
         return
+    result_type = 'file' if do_files else 'folder' if do_folders else None
     limit = options.limit
     offset = options.offset
-    name_only = options.name_only
+    content_types=['name'] if options.name_only else None
     no_parent = options.no_parent
     if options.ancestors:
         ancestor_ids = [translate_id(id.strip()) for id in options.ancestors.split(",")]
@@ -513,31 +519,35 @@ def search(args):  # {{{2
         ancestor_ids = None
     extensions = [ext.strip(" .") for ext in options.extensions.split(",")] \
                     if options.extensions else None
-    fields=['name', 'id', 'parent']
+    fields=['name', 'id', 'type', 'parent']
     max_name_len = options.max_name_length and max(options.max_name_length, MIN_NAME_LEN)
     max_id_len = options.max_id_length and max(options.max_id_length, MIN_ID_LEN)
     client = get_ops_client()
     ancestors = [client.folder(id) for id in ancestor_ids] if ancestor_ids else None
     results = client.search().query(query=term, limit=limit, offset=offset,
                                     ancestor_folders=ancestors, file_extensions=extensions,
-                                    result_type='file' if do_files else 'folder',
-                                    content_types=['name'] if name_only else None, fields=fields)
+                                    result_type=result_type, content_types=content_types, fields=fields)
     # We can't just throw the iterator returned by query() into a list(), because it stalls,
     # so we need to manually retrieve 'limit' items
     items = []
-    for i, r in enumerate(results, start=1):
-        item = { 'name' : r.name,
-                 'id'   : r.id }
-        add_history_item(r)
-        if _p := r.parent:
+    for i, result_item in enumerate(results, start=1):
+        item = { 'type' : result_item.type,
+                 'name' : result_item.name,
+                 'id'   : result_item.id }
+        add_history_item(result_item)
+        if _p := result_item.parent:
             item['parent'], item['parent_id']  = _p.name, _p.id
             add_history_item(_p)
         else:
             item['parent'] = item['parent_id'] = None
         items.append(item)
         if i == limit: break
-    print_table(items, is_dict=True,
-                fields=('name', 'id', 'parent', 'parent_id') if not no_parent else ('name', 'id'),
+    fields = ['name', 'id']
+    if result_type is None:
+        fields.insert(0, 'type')
+    if not no_parent:
+        fields.extend(('parent', 'parent_id'))
+    print_table(items, is_dict=True, fields=fields, no_leader_fields=('type',),
                 clip_fields={'name'   : (max_name_len, 'r'), 'id'        : (max_id_len, 'l'),
                              'parent' : (max_name_len, 'r'), 'parent_id' : (max_id_len, 'l')})
 
