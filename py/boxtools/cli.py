@@ -736,30 +736,42 @@ def put_file(args):  # {{{2
 def cat(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s cat [options] ids...',
-                                         description='Write the contents of file(s) to stdout')
-    cli_parser.add_argument('ids', nargs='+', help='File IDs to print')
+                                         description='Write the contents of files or web-links to stdout')
+    cli_parser.add_argument('ids', nargs='+', help='Item IDs to print')
     cli_parser.add_argument('-H', '--headers', action='store_true',
-                            help="Print a header before each file's contents")
+                            help="Print a header before each items's contents")
     cli_parser.add_argument('-c', '--byte-count', metavar='N', type=int, default=4096,
                             help='Print the first N bytes of files (default 4096)')
+    cli_parser.add_argument('-w', '--web-links', action='store_true',
+                            help='The IDs refer to web-links')
     options = cli_parser.parse_args(args)
     item_ids = [translate_id(_id) for _id in options.ids]
     if any(id is None for id in item_ids):
         return
     byte_count = options.byte_count
     headers = options.headers
+    web_links = options.web_links
     client = get_ops_client()
-    for i, file_id in enumerate(item_ids):
-        file = client.file(file_id).get(fields=['name'])
-        filename = file.name
-        if headers:
-            if i != 0: print()
-            print( " ┌─", '─' * len(filename), '─┐', sep='')
-            print(f"─┤ {filename} ├", '─' * max(0, screen_cols - len(filename) - 5), sep='')
-            print( " └─", '─' * len(filename), '─┘', sep='')
-        content = file.content(byte_range=(0, byte_count))
-        str_rep = content.decode(errors='backslashreplace')
-        print(str_rep)
+    for i, item_id in enumerate(item_ids):
+        if web_links:
+            web_link = client.web_link(item_id).get(fields=['name', 'url'])
+            if headers:
+                _cat_print_header(web_link.name, i != 0)
+            print(web_link.url)
+        else:
+            file = client.file(item_id).get(fields=['name'])
+            filename = file.name
+            if headers:
+                _cat_print_header(filename, i != 0)
+            content = file.content(byte_range=(0, byte_count))
+            str_rep = content.decode(errors='backslashreplace')
+            print(str_rep)
+
+def _cat_print_header(itemname, leading_blank):
+    if leading_blank: print()
+    print( " ┌─", '─' * len(itemname), '─┐', sep='')
+    print(f"─┤ {itemname} ├", '─' * max(0, screen_cols - len(itemname) - 5), sep='')
+    print( " └─", '─' * len(itemname), '─┘', sep='')
 
 def rm_items(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,

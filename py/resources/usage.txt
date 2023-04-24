@@ -46,7 +46,7 @@ Commands:
 
     get           Download files or thumbnails
     put           Upload a file
-    cat           Write the contents of a file to stdout
+    cat           Write the contents of files or web-links to stdout
     mkdir         Create a new folder
     rm / del      Remove files or folders
     mv / move     Move files or folders
