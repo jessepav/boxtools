@@ -357,6 +357,15 @@ def retrieve_folder_items(client, folder, fields=['type', 'name', 'id', 'parent'
 def expand_all(path):
     return os.path.expandvars(os.path.expanduser(path)) if path else None
 
+# print_name_header() {{{2
+
+def print_name_header(itemname, leading_blank=False, context_info=""):
+    if leading_blank: print()
+    remaining_cols = max(0, screen_cols - len(itemname) - len(context_info) - 6)
+    print( " ┌─", '─' * len(itemname), '─┐', sep='')
+    print(f"─┤ {itemname} ├─", context_info, '─' * remaining_cols, sep='')
+    print( " └─", '─' * len(itemname), '─┘', sep='')
+
 # }}}1
 
 # Define command functions {{{1
@@ -465,16 +474,13 @@ def ls_folder(args):  # {{{2
             add_history_item(_parent)
         for item in items:
             add_history_item(item, parent=folder)
-        if i != 0:
-            print()
         if print_header:
-            folder_header_info = f"==== {folder.name} ({folder.id}) ===="
-            if _parent:
-                folder_header_info += f"\n  ==== Parent: {_parent.name} ({_parent.id}) =="
-            elif folder_id != '0':
-                folder_header_info += "\n  ==== Parent: All Files (0) =="
-            print(folder_header_info, end="\n\n")
-        print_table(items, ('type', 'name', 'id'), print_header=print_header,
+            print_name_header(f"{folder.name} [{folder.id}]", leading_blank=i != 0,
+                              context_info=f'(Parent: {_parent.name} [{_parent.id}])' if _parent else
+                                            '(Parent: All Files [0])')
+        elif i != 0:
+            print()
+        print_table(items, ('type', 'name', 'id'), print_header=print_header, no_leader_fields=('type',),
                     clip_fields={'name': (max_name_len, 'r'), 'id': (max_id_len, 'l')})
 
 def search(args):  # {{{2
@@ -766,22 +772,16 @@ def cat(args):  # {{{2
         if web_links:
             web_link = client.web_link(item_id).get(fields=['name', 'url'])
             if headers:
-                _cat_print_header(web_link.name, i != 0)
+                print_name_header(web_link.name, leading_blank=i != 0)
             print(web_link.url)
         else:
             file = client.file(item_id).get(fields=['name'])
             filename = file.name
             if headers:
-                _cat_print_header(filename, i != 0)
+                print_name_header(filename, leading_blank=i != 0)
             content = file.content(byte_range=(0, byte_count))
             str_rep = content.decode(errors='backslashreplace')
             print(str_rep)
-
-def _cat_print_header(itemname, leading_blank):
-    if leading_blank: print()
-    print( " ┌─", '─' * len(itemname), '─┐', sep='')
-    print(f"─┤ {itemname} ├", '─' * max(0, screen_cols - len(itemname) - 5), sep='')
-    print( " └─", '─' * len(itemname), '─┘', sep='')
 
 def rm_items(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
