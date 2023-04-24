@@ -1039,10 +1039,12 @@ def shell(args):  # {{{2
             if cmd in command_funcs:
                 try:
                     command_funcs[cmd](args)
-                except (SystemExit, argparse.ArgumentError):
+                except SystemExit:
                     # We catch these so that the shell doesn't exit when argparse.parse_args()
                     # gets a '--help' or incorrect arguments.
                     pass
+                except argparse.ArgumentError as e:
+                    print(e)
                 last_id = current_cmd_last_id
             else:
                 print(f"Unknown command '{cmd}'")
@@ -1104,8 +1106,8 @@ if command not in command_funcs:
 else:
     try:
         command_funcs[command](command_args)
-    except argparse.ArgumentError:
-        pass
+    except argparse.ArgumentError as e:
+        print(e)
     finally:
         last_id = current_cmd_last_id
         with open(app_state_file, "wb") as f:
