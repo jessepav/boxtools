@@ -1,0 +1,10 @@
+/build
+/local
+/__artifacts_temp
+/boxtools-src.7z
+/test
+/.idea/workspace.xml
+/.idea/tasks.xml
+/.idea/dictionaries
+/config/boxtools.properties
+/config/id-aliases.properties
