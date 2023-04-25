@@ -966,6 +966,7 @@ def rn_item(args):  # {{{2
     item = client.file(item_id) if do_files else client.folder(item_id)
     oldname = item.get(fields=['id', 'name', 'type', 'parent']).name
     item = item.rename(new_name)
+    add_history_item(item)
     print(f'"{oldname}" renamed to "{item.name}"')
 
 def ln_items(args):  # {{{2
