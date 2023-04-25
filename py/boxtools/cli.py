@@ -1,4 +1,4 @@
-import os, os.path, sys, argparse, re, shutil, logging, readline
+import os, os.path, sys, argparse, re, shutil, logging, readline, pprint
 from collections import OrderedDict
 import json, pickle
 import tomli
@@ -1079,10 +1079,8 @@ def shell(args):  # {{{2
                     print(e)
                 except BoxAPIException as e:
                     err = e.context_info['errors'][0]
-                    print( "# BoxAPIException\n"
-                          f"   reason: {err['reason']}\n"
-                          f"     name: {err['name']}\n"
-                          f"  message: {err['message']}")
+                    print("# BoxAPIException #\n")
+                    pprint.pp(e.context_info.get('errors'), indent=2, width=screen_cols)
                 last_id = current_cmd_last_id
             else:
                 print(f"Unknown command '{cmd}'")
