@@ -151,19 +151,24 @@ ops_client = None
 #   no_leader_fields : A sequence of field names. These fields will not have leaders appended.
 #   is_dict          : True if `items` is a dict
 #   is_sequence      : True if `items` is a sequence
+#   field_val_func   : If provided, will be called when retrieving the field value for each item,
+#                      so that the value may be transformed, if desired. (See code below for usage)
 #
 # If both is_dict and is_sequence are False, `items` will be treated as a namespace,
 # and fields will be accessed via getattr()
 
 def print_table(items, fields, *, colgap=2, print_header=True,
                 clip_fields=None, no_leader_fields=(),
-                is_dict=False, is_sequence=False):
+                is_dict=False, is_sequence=False,
+                field_val_func=None):
     numcols = len(fields)
     # Helper function so we can work with all sorts of items
     def _get_field_val(item, idx, field):
         v = item[field] if is_dict else \
             item[idx] if is_sequence else \
             getattr(item, field)
+        if field_val_func:
+            v = field_val_func(v, item, idx, field)
         if v is None:
             return "(N/A)"
         elif clip_fields and field in clip_fields:
@@ -210,7 +215,7 @@ def print_table(items, fields, *, colgap=2, print_header=True,
 def print_stat_info(item):
     add_history_item(item)
     for field in ('name', 'type', 'id', 'content_created_at', 'content_modified_at',
-                    'created_at', 'description', 'modified_at', 'size'):
+                    'created_at', 'modified_at', 'size'):
         print(f"{field:20}: {getattr(item, field)}")
     if item.shared_link:
         print(f"{'url':20}: {item.shared_link['url']}")
@@ -221,6 +226,12 @@ def print_stat_info(item):
         add_history_item(item.parent)
         print(f"{'parent_name':20}: {item.parent.name}")
         print(f"{'parent_id':20}: {item.parent.id}")
+    if desc := item.description:
+        print(f"{'description':20}:", end='')
+        if '\n' in desc or len(desc) > screen_cols - 22:
+            print('', '~' * (screen_cols//2), desc, '~' * (screen_cols//2), sep='\n')
+        else:
+            print(' ' + desc)
 
 # translate_id() and co. {{{2
 
@@ -501,6 +512,7 @@ def ls_folder(args):  # {{{2
     for i, folder_id in enumerate(folder_ids):
         folder = client.folder(folder_id=folder_id).get()
         items = retrieve_folder_items(client, folder, limit=limit, start_offset=offset,
+                                      fields=['type', 'name', 'id', 'parent', 'description'],
                                       sort=sort, direction=direction, filter_func=filter_func)
         add_history_item(folder)
         if _parent := folder.parent:
@@ -518,8 +530,12 @@ def ls_folder(args):  # {{{2
                 print('~' * (screen_cols//2))
         elif i != 0:
             print()
+        # We use the field_val_func to indicate if an item has a description, similar to the web interface
         print_table(items, ('type', 'name', 'id'), print_header=print_header, no_leader_fields=('type',),
-                    clip_fields={'name': (max_name_len, 'r'), 'id': (max_id_len, 'l')})
+                    clip_fields={'name': (max_name_len, 'r'), 'id': (max_id_len, 'l')},
+                    field_val_func =
+                        lambda v, item, idx, field :
+                            v + " (i)" if field == 'name' and item.description else v)
 
 def search(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
@@ -977,6 +993,28 @@ def rn_item(args):  # {{{2
     add_history_item(item)
     print(f'"{oldname}" renamed to "{item.name}"')
 
+def desc(args):  # {{{2
+    cli_parser = argparse.ArgumentParser(exit_on_error=False,
+                                         usage='%(prog)s desc [options] id description',
+                                         description='Update the description of a file or folder')
+    cli_parser.add_argument('id', help='Item ID')
+    cli_parser.add_argument('description', help='Description')
+    cli_parser.add_argument('-f', '--file', action='store_true', help='ID refers to a file')
+    cli_parser.add_argument('-d', '--folder', action='store_true', help='ID refers to a folder')
+    options = cli_parser.parse_args(args)
+    do_file, do_folder = options.file, options.folder
+    if do_file == do_folder:
+        print("You must supply exactly one of --file/-f or --folder/-d")
+        return
+    item_id = translate_id(options.id)
+    if item_id is None:
+        return
+    description = options.description
+    client = get_ops_client()
+    item = client.file(item_id) if do_file else client.folder(item_id)
+    item = item.update_info(data = {'description' : description})
+    print(f'Updated the description of "{item.name}"')
+
 def ln_items(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s ln [options] ids...',
@@ -1133,6 +1171,7 @@ command_funcs = {
     'mv'       : mv_items, 'move' : mv_items,
     'cp'       : cp_items, 'copy' : cp_items,
     'rn'       : rn_item, 'rename' : rn_item,
+    'desc'     : desc,
     'ln'       : ln_items, 'link' : ln_items,
     'readlink' : readlink,
     'stat'     : stat_items,
