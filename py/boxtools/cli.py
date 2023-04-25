@@ -512,6 +512,10 @@ def ls_folder(args):  # {{{2
             print_name_header(f"{folder.name} [{folder.id}]", leading_blank=i != 0,
                               context_info=f'(Parent: {_parent.name} [{_parent.id}])' if _parent else
                                             '(Parent: All Files [0])')
+            if desc := folder.description:
+                print("~~ Description", '~' * (screen_cols//2 - 15))
+                print(desc)
+                print('~' * (screen_cols//2))
         elif i != 0:
             print()
         print_table(items, ('type', 'name', 'id'), print_header=print_header, no_leader_fields=('type',),
