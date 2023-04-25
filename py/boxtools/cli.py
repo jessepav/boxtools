@@ -888,7 +888,8 @@ def mkdir(args):  # {{{2
     client = get_ops_client()
     folder = client.folder(folder_id=parent_folder_id).get(fields=['id', 'name', 'type', 'parent'])
     print(f'Creating "{foldername}" in "{folder.name}"...')
-    folder.create_subfolder(foldername)
+    newfolder = folder.create_subfolder(foldername)
+    add_history_item(newfolder, folder)
 
 def mv_items(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
