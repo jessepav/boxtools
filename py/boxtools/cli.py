@@ -32,7 +32,7 @@ aliases_file = os.path.join(config_dir, "id-aliases.toml")
 readline_history_file = os.path.join(config_dir, "readline-history")
 
 # Print help if we need to {{{2
-if len(sys.argv) == 1 or sys.argv[1] in ('-h', '--help'):
+if len(sys.argv) > 1 and sys.argv[1] in ('-h', '--help'):
     print(general_usage, end="")
     sys.exit(1)
 
@@ -1139,8 +1139,12 @@ command_funcs = {
 
 # Run the appropriate command function {{{1
 
-command = sys.argv[1]
-command_args = sys.argv[2:]
+if len(sys.argv) > 1:
+    command = sys.argv[1]
+    command_args = sys.argv[2:]
+else:
+    command = 'shell'
+    command_args = []
 
 if command not in command_funcs:
     print(f"Unknown command '{command}'")
