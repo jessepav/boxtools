@@ -29,6 +29,7 @@ config_file = os.path.join(config_dir, "boxtools.toml")
 tokens_file = os.path.join(config_dir, "auth-tokens.json")
 app_state_file = os.path.join(config_dir, "app-state.pickle")
 aliases_file = os.path.join(config_dir, "id-aliases.toml")
+readline_history_file = os.path.join(config_dir, "readline-history")
 
 # Print help if we need to {{{2
 if len(sys.argv) == 1 or sys.argv[1] in ('-h', '--help'):
@@ -51,6 +52,7 @@ redirect_urls = {'internal' : auth_table['internal-redirect-url'],
                     'external' : auth_table['external-redirect-url']}
 config_table = config.get('config', {})
 id_history_size = config_table.get('id-history-size', 500)
+readline_history_size = config_table.get('readline-history-size', 500)
 chunked_upload_size_threshold = config_table.get('chunked-upload-size-threshold', 20_971_520)
 chunked_upload_num_threads = config_table.get('chunked-upload-num-threads', 2)
 rclone_remote_name = config_table.get('rclone-remote-name', 'box')
@@ -62,7 +64,7 @@ MIN_ID_LEN   = 5
 # Get terminal size for use in default lengths {{{2
 screen_cols = shutil.get_terminal_size(fallback=(0, 0))[0] if sys.stdout.isatty() else 0
 
-# Restore pickled app state if available {{{2
+# Restore app state and readline history if available {{{2
 if os.path.exists(app_state_file):
     with open(app_state_file, 'rb') as f:
         _app_state = pickle.load(f)
@@ -73,6 +75,10 @@ else:
     item_history_map = OrderedDict()
     last_id = None
 current_cmd_last_id = last_id
+
+readline.set_history_length(readline_history_size)
+if os.path.exists(readline_history_file):
+    readline.read_history_file(readline_history_file)
 
 # Load ID aliases {{{2
 if not os.path.exists(aliases_file):
@@ -1140,5 +1146,6 @@ else:
             pickle.dump(file=f,
                         obj={ 'item_history_map' : item_history_map,
                               'last_id' : last_id })
+        readline.write_history_file(readline_history_file)
 
 # }}}1
