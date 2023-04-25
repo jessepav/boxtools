@@ -431,6 +431,10 @@ def history(args):  # {{{2
     no_parent = options.no_parent
     max_name_len = options.max_name_length and max(options.max_name_length, MIN_NAME_LEN)
     max_id_len = options.max_id_length and max(options.max_id_length, MIN_ID_LEN)
+    if filter_word and len(filter_word) <= 2 and filter_word.isdigit():
+        # I just forgot to type the '-n', but meant to limit the count
+        max_count = int(filter_word)
+        filter_word = None
     #
     history_view = item_history_map.values()
     if max_count:
