@@ -1,4 +1,4 @@
-import os, os.path, sys, argparse, pprint, re, shutil, logging, readline
+import os, os.path, sys, argparse, re, shutil, logging, readline
 from collections import OrderedDict
 import json, pickle
 import tomli
@@ -688,6 +688,7 @@ def get_files(args):  # {{{2
                     file.download_to(f)
 
 def put_file(args):  # {{{2
+    import glob
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s put [options] file(s)',
                                          description='Upload a file')
@@ -699,7 +700,7 @@ def put_file(args):  # {{{2
     options = cli_parser.parse_args(args)
     file_id = options.file_version
     folder_id = options.folder
-    files = options.files
+    files = [file for pathspec in options.files for file in glob.glob(pathspec)]
     if not any((file_id, folder_id)) or all((file_id, folder_id)):
         print("You must supply exactly one of --version/-f or --folder/-d")
         return
