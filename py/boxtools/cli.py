@@ -407,22 +407,46 @@ def userinfo_cmd(args):  # {{{2
 
 def history(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
-                                         usage='%(prog)s history [options]',
+                                         usage='%(prog)s history [options] [filter]',
                                          description='Show previous ID history')
+    cli_parser.add_argument('filter', nargs='?',
+                            help='If given, only entries whose names match (case-insensitively) will be shown.')
     cli_parser.add_argument('-n', '--max-count', type=int, default=0,
                             help='Maximum number of (most-recent) items to return')
+    cli_parser.add_argument('-P', '--no-parent', action='store_true',
+                            help="Don't include parent folder information in output")
     cli_parser.add_argument('-m', '--max-name-length', metavar='N', type=int,
                             help='Clip the names of items in the displayed table to N characters')
     cli_parser.add_argument('-M', '--max-id-length', metavar='N', type=int,
                             help='Clip the item IDs in the displayed table to N characters')
     options = cli_parser.parse_args(args)
+    filter_word = options.filter
     max_count = options.max_count
+    no_parent = options.no_parent
     max_name_len = options.max_name_length and max(options.max_name_length, MIN_NAME_LEN)
     max_id_len = options.max_id_length and max(options.max_id_length, MIN_ID_LEN)
-    print_table(list(item_history_map.values())[-max_count:], ('name', 'id', 'parent_name'),
+    #
+    history_view = item_history_map.values()
+    if max_count:
+        history_view = reversed(history_view)
+    if filter_word:
+        history_view = filter(lambda entry : filter_word.lower() in entry['name'].lower(),
+                              history_view)
+    if max_count:
+        history_items = []
+        for i in range(max_count):
+            if item := next(history_view, None):
+                history_items.append(item)
+            else:
+                break
+        history_items.reverse()
+    else:
+        history_items = list(history_view)
+    fields = ['name', 'id']
+    if not no_parent: fields.append('parent_name')
+    print_table(history_items, fields, is_dict=True,
                 clip_fields={'name' : (max_name_len, 'r'), 'id' : (max_id_len, 'l'),
-                             'parent_name' : (max_name_len, 'r')},
-                is_dict=True)
+                             'parent_name' : (max_name_len, 'r')})
 
 def ls_folder(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
