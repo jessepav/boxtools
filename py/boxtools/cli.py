@@ -793,9 +793,12 @@ def put_file(args):  # {{{2
         chunked_msg = " (chunked)" if use_chunked else ""
         print(f'Uploading{chunked_msg} "{filepath}" as a new version of "{box_filename}"...', end="", flush=True)
         if use_chunked:
-            file.get_chunked_uploader(filepath).start()
+            file = file.get_chunked_uploader(filepath).start()
         else:
-            file.update_contents(filepath)
+            file = file.update_contents(filepath)
+        if os.path.basename(filepath) != box_filename:
+            file = file.rename(os.path.basename(filepath))
+        add_history_item(file)
         print("done")
     elif folder_id:
         folder = client.folder(folder_id)
@@ -806,9 +809,10 @@ def put_file(args):  # {{{2
             print(f'Uploading{chunked_msg} "{filepath}" to "{foldername}"...', end="", flush=True)
             try:
                 if use_chunked:
-                    folder.get_chunked_uploader(filepath).start()
+                    file = folder.get_chunked_uploader(filepath).start()
                 else:
-                    folder.upload(filepath)
+                    file = folder.upload(filepath)
+                add_history_item(file)
                 print("done")
             except BoxAPIException as ex:
                 if ex.status == 409:
@@ -816,9 +820,10 @@ def put_file(args):  # {{{2
                     print('(new version)...', end="", flush=True)
                     file = client.file(_file_id)
                     if use_chunked:
-                        file.get_chunked_uploader(filepath).start()
+                        file = file.get_chunked_uploader(filepath).start()
                     else:
-                        file.update_contents(filepath)
+                        file = file.update_contents(filepath)
+                    add_history_item(file)
                     print("done")
                 else:
                     raise ex
@@ -875,16 +880,16 @@ def rm_items(args):  # {{{2
     client = get_ops_client()
     if do_files:
         for file_id in item_ids:
-            file = client.file(file_id)
-            box_filename = file.get(fields=['name']).name
-            print(f"Deleting file {box_filename}...")
+            file = client.file(file_id).get(fields=['id', 'name'])
+            print(f"Deleting file {file.name}...")
             file.delete()
+            item_history_map.pop(file.id, None)
     elif do_folders:
         for folder_id in item_ids:
-            folder = client.folder(folder_id)
-            box_foldername = folder.get(fields=['name']).name
-            print(f"Deleting folder {box_foldername}...")
+            folder = client.folder(folder_id).get(fields=['id', 'name'])
+            print(f"Deleting folder {folder.name}...")
             folder.delete()
+            item_history_map.pop(folder.id, None)
 
 def itempaths(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
@@ -963,6 +968,7 @@ def mv_items(args):  # {{{2
         item = client.file(item_id) if do_files else client.folder(item_id)
         moved_item = item.move(parent_folder=folder)
         print(f'Moved "{moved_item.name}" into "{moved_item.parent.name}"')
+        add_history_item(moved_item)
 
 def cp_items(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
@@ -987,6 +993,7 @@ def cp_items(args):  # {{{2
         item = client.file(item_id) if do_files else client.folder(item_id)
         copied_item = item.copy(parent_folder=folder)
         print(f'Copied "{copied_item.name}" into "{copied_item.parent.name}"')
+        add_history_item(copied_item)
 
 def rn_item(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
