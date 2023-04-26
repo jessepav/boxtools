@@ -1115,7 +1115,9 @@ def shell(args):  # {{{2
             continue
         else:
             cmd, *args = shlex.split(cmdline)
-            if cmd in command_funcs:
+            if cmd.startswith('@'):
+                print("(@alias = ID TBD)")
+            elif cmd in command_funcs:
                 try:
                     command_funcs[cmd](args)
                 except SystemExit:
@@ -1183,25 +1185,27 @@ command_funcs = {
 # Run the appropriate command function {{{1
 
 if len(sys.argv) > 1:
-    command = sys.argv[1]
+    cmd = sys.argv[1]
     command_args = sys.argv[2:]
 else:
-    command = 'shell'
+    cmd = 'shell'
     command_args = []
 
-if command not in command_funcs:
-    print(f"Unknown command '{command}'")
-else:
-    try:
-        command_funcs[command](command_args)
-    except argparse.ArgumentError as e:
-        print(e)
-    finally:
-        last_id = current_cmd_last_id
-        with open(app_state_file, "wb") as f:
-            pickle.dump(file=f,
-                        obj={ 'item_history_map' : item_history_map,
-                              'last_id' : last_id })
-        readline.write_history_file(readline_history_file)
+try:
+    if cmd.startswith('@'):
+        print("(@alias = ID TBD)")
+    elif cmd in command_funcs:
+        command_funcs[cmd](command_args)
+    else:
+        print(f"Unknown command '{cmd}'")
+except argparse.ArgumentError as e:
+    print(e)
+finally:
+    last_id = current_cmd_last_id
+    with open(app_state_file, "wb") as f:
+        pickle.dump(file=f,
+                    obj={ 'item_history_map' : item_history_map,
+                            'last_id' : last_id })
+    readline.write_history_file(readline_history_file)
 
 # }}}1
