@@ -143,7 +143,7 @@ def get_ops_client():
         from boxsdk.exception import BoxAPIException
     return ops_client
 
-# def print_table(...)    {{{2
+# print_table()    {{{2
 
 # Print a pretty table of `fields` in `items`.
 #
@@ -333,7 +333,7 @@ def add_history_item(item, parent=None):
         for i in range(n):
             item_history_map.popitem(last=False)
 
-# retrieve_folder_items(...) and co {{{2
+# retrieve_folder_items() and co {{{2
 
 BOX_GET_ITEMS_LIMIT = 1000
 
