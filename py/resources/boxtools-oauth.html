@@ -29,15 +29,44 @@
 
       td:nth-child(1) { text-align: right; }
       td:nth-child(2) { font-weight: bold; }
+      td:nth-child(3) { border: none; }
+
+      tr:nth-child(3) > td { border: none; }
+
+      #message-span {
+        font-style: italic;
+        font-weight: normal;
+        color: #333333;
+      }
     </style>
     <script type="module">
-      window.onload = () => {
-        const params = new URLSearchParams(document.location.search);
-        const ctoken = params.get('state') ?? 'N/A';
-        const authcode = params.get('code') ?? 'N/A';
-        document.getElementById('csrf-token').textContent = ctoken;
-        document.getElementById('authcode').textContent = authcode;
-      };
+        window.onload = () => {
+            const params = new URLSearchParams(document.location.search);
+            const ctoken = params.get('state') ?? 'N/A';
+            const authcode = params.get('code') ?? 'N/A';
+            document.getElementById('csrf-token').textContent = ctoken;
+            document.getElementById('authcode').textContent = authcode;
+
+            const copyButton = document.getElementById('copy-button');
+            const messageSpan = document.getElementById('message-span');
+            let copying = false;  // to debounce the button
+            copyButton.addEventListener('click', () => {
+                if (copying)
+                    return;
+                copying = true;
+                messageSpan.ontransitionend = (ev) => {
+                    messageSpan.textContent = '';
+                    messageSpan.style.removeProperty('transition');
+                    messageSpan.style.opacity = '1';
+                    copying = false;
+                };
+                navigator.clipboard.writeText(authcode).then(() => {
+                    messageSpan.textContent = 'Copied';
+                    messageSpan.style.transition = 'opacity 0.5s 1.8s';
+                    messageSpan.style.opacity = '0';
+                });
+            });
+        };
     </script>
   </head>
   <body>
@@ -45,8 +74,9 @@
     paste the <code>Authcode</code> into the program (and do it quickly, because it expires
     fast).
     <table>
-      <tr><td>CSRF Token:</td><td id="csrf-token"></td></tr>
-      <tr><td>  Authcode:</td><td id="authcode"></td></tr>
+      <tr><td>CSRF Token:</td><td id="csrf-token"></td><td></td></tr>
+      <tr><td>  Authcode:</td><td id="authcode"></td><td><button id="copy-button">Copy</button></td></tr>
+      <tr><td></td><td><span id="message-span"></span></td><td></td></tr>
     </table>
   </body>
 </html>
