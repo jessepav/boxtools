@@ -1,6 +1,8 @@
-import os, os.path, sys, argparse, re, shutil, logging, readline, pprint
+import os, os.path, sys, argparse, re
+import shutil, shlex, logging, readline, pprint
 from collections import OrderedDict
 import json, pickle
+
 import tomli
 
 # Preliminaries {{{1
@@ -125,6 +127,8 @@ def load_tokens_or_die():
 # Uses our client ID/secret and tokens to get a Box Client object. It caches the client
 # object so that the function can be called multiple times without a performance hit.
 
+ops_client = None
+
 def get_ops_client():
     global ops_client, BoxAPIException
     if ops_client is None:
@@ -135,10 +139,9 @@ def get_ops_client():
         logging.getLogger('boxsdk').setLevel(logging.CRITICAL)
         import boxsdk.config
         boxsdk.config.API.CHUNK_UPLOAD_THREADS = chunked_upload_num_threads
+        # We lazy-import BoxAPIException because importing boxsdk is slow
         from boxsdk.exception import BoxAPIException
     return ops_client
-
-ops_client = None
 
 # def print_table(...)    {{{2
 
@@ -389,11 +392,14 @@ def print_name_header(itemname, leading_blank=False, context_info=""):
 # define_alias() {{{2
 
 def define_alias(cmdline):
-    if len(cmdline) == 3 and cmdline[0].startswith('@') and cmdline[1] == '=':
+    if len(cmdline) == 3 and len(cmdline[0]) >= 2 and cmdline[0][0] == '@' and cmdline[1] == '=':
         alias = cmdline[0][1:]
-        if (len(cmdline[2]) == 0 or cmdline[2].lower() == 'none') and alias in id_aliases:
-            oldid = id_aliases.pop(alias)
-            print(f"@{alias} deleted (was {oldid})")
+        if (len(cmdline[2]) == 0 or cmdline[2].lower() == 'none'):
+            if alias in id_aliases:
+                oldid = id_aliases.pop(alias)
+                print(f"@{alias} deleted (was {oldid})")
+            else:
+                print(f'Alias "@{alias}" did not exist')
         else:
             id = translate_id(cmdline[2])
             if id is not None:
@@ -401,6 +407,63 @@ def define_alias(cmdline):
                 print(f"@{alias} = {id}")
     else:
         print("Incorrect alias definition syntax! [ @alias = ID ]")
+
+# list_aliases() {{{2
+
+def list_aliases():
+    entries = list(id_aliases.items())
+    print_table(entries, fields=('alias', 'ID'), no_leader_fields=('alias', 'ID'), is_sequence=True)
+
+# process_cmdline() {{{2
+
+def process_cmdline(cmdline):
+    global last_id
+    #
+    if len(cmdline) == 0:
+        return
+    if type(cmdline) == str:
+        cmdline = shlex.split(cmdline)
+    #
+    if cmdline == ['@']:
+        print(f"Last ID: {last_id}")
+    elif cmdline == ['@list']:
+        list_aliases()
+    elif cmdline[0].startswith('@'):
+        define_alias(cmdline)
+    else:
+        cmd, *args = cmdline
+        if cmd in command_funcs:
+            try:
+                command_funcs[cmd](args)
+            except SystemExit:
+                # We catch this so that the program doesn't exit when argparse.parse_args()
+                # gets a '--help' or incorrect arguments.
+                pass
+            except argparse.ArgumentError as e:
+                print(e)
+            except BoxAPIException as e:
+                print("# BoxAPIException #\n")
+                print(f"Message: {e.message}",
+                        f" Status: {e.status}",
+                        sep='\n')
+            last_id = current_cmd_last_id
+        else:
+            print(f"Unknown command '{cmd}'")
+
+# save_state() {{{2
+
+def save_state():
+    # Save "app state"
+    with open(app_state_file, "wb") as f:
+        pickle.dump(file=f,
+                    obj={ 'item_history_map' : item_history_map,
+                          'last_id' : last_id })
+    # Save readline history
+    readline.write_history_file(readline_history_file)
+    # Save ID aliases
+    with open(aliases_file, "wt") as f:
+        for alias, id in id_aliases.items():
+            print(alias, '=', id, file=f)
 
 # }}}1
 
@@ -1123,13 +1186,7 @@ def stat_items(args):  # {{{2
         if i != 0: print()
         print_stat_info(item)
 
-def list_aliases(args): # {{{2
-    entries = list(id_aliases.items())
-    print_table(entries, fields=('alias', 'ID'), no_leader_fields=('alias', 'ID'), is_sequence=True)
-
 def shell(args):  # {{{2
-    global last_id
-    import shlex
     print("Type q(uit)/e(xit) to exit the shell, and h(elp)/? for general usage.")
     while True:
         try:
@@ -1144,46 +1201,20 @@ def shell(args):  # {{{2
         elif len(cmdline) == 0 or cmdline.isspace():
             continue
         else:
-            cmd, *args = shlex.split(cmdline)
-            if len(args) != 0 and cmd.startswith('@'):
-                define_alias((cmd, *args))
-            elif cmd in command_funcs:
-                try:
-                    command_funcs[cmd](args)
-                except SystemExit:
-                    # We catch these so that the shell doesn't exit when argparse.parse_args()
-                    # gets a '--help' or incorrect arguments.
-                    pass
-                except argparse.ArgumentError as e:
-                    print(e)
-                except BoxAPIException as e:
-                    print("# BoxAPIException #\n")
-                    print(f"Message: {e.message}",
-                          f" Status: {e.status}", sep='\n')
-                last_id = current_cmd_last_id
-            else:
-                print(f"Unknown command '{cmd}'")
+            process_cmdline(cmdline)
 
 def source(args):  # {{{2
     if len(args) != 1 or '-h' in args or '--help' in args:
         print(f"usage: {os.path.basename(sys.argv[0])} source file\n\n"
                "Read commands from a given file")
         return
-    global last_id
-    import shlex
     cmdfile = expand_all(args[0])
     with open(cmdfile, "rt") as f:
         for cmdline in f:
             cmdline = cmdline.strip()
             if len(cmdline) == 0 or cmdline[0] == '#':
                 continue
-            cmd, *args = shlex.split(cmdline)
-            if cmd in command_funcs:
-                command_funcs[cmd](args)
-                last_id = current_cmd_last_id
-            else:
-                print(f"Unknown command '{cmd}'")
-                break
+            process_cmdline(cmdline)
 
 # Map command names to the implementing command function  # {{{2
 command_funcs = {
@@ -1209,40 +1240,16 @@ command_funcs = {
     'stat'     : stat_items,
     'shell'    : shell,
     'source'   : source,
-    '@list'    : list_aliases,
 }
 # End command functions }}}1
 
-# Run the appropriate command function {{{1
+# main {{{1
 
-if len(sys.argv) > 1:
-    cmd = sys.argv[1]
-    command_args = sys.argv[2:]
-else:
-    cmd = 'shell'
-    command_args = []
-
-try:
-    if len(command_args) != 0 and cmd.startswith('@'):
-        define_alias((cmd, *command_args))
-    elif cmd in command_funcs:
-        command_funcs[cmd](command_args)
-    else:
-        print(f"Unknown command '{cmd}'")
-except argparse.ArgumentError as e:
-    print(e)
-finally:
-    # Save app state
-    last_id = current_cmd_last_id
-    with open(app_state_file, "wb") as f:
-        pickle.dump(file=f,
-                    obj={ 'item_history_map' : item_history_map,
-                            'last_id' : last_id })
-    # Save readline history
-    readline.write_history_file(readline_history_file)
-    # Save ID aliases
-    with open(aliases_file, "wt") as f:
-        for alias, id in id_aliases.items():
-            print(alias, '=', id, file=f)
+if __name__ == '__main__':
+    cmdline = sys.argv[1:]
+    if len(cmdline) == 0:
+        cmdline = ['shell']
+    process_cmdline(cmdline)
+    save_state()
 
 # }}}1
