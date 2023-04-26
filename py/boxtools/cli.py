@@ -860,7 +860,7 @@ def cat(args):  # {{{2
                 print_name_header(filename, leading_blank=i != 0)
             content = file.content(byte_range=(0, byte_count))
             str_rep = content.decode(errors='backslashreplace')
-            print(str_rep)
+            print(str_rep, end='' if str_rep[-1] == '\n' else '\n')
 
 def rm_items(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
