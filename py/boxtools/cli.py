@@ -1153,9 +1153,9 @@ def shell(args):  # {{{2
                 except argparse.ArgumentError as e:
                     print(e)
                 except BoxAPIException as e:
-                    err = e.context_info['errors'][0]
                     print("# BoxAPIException #\n")
-                    pprint.pp(e.context_info.get('errors'), indent=2, width=screen_cols)
+                    print(f"Message: {e.message}",
+                          f" Status: {e.status}", sep='\n')
                 last_id = current_cmd_last_id
             else:
                 print(f"Unknown command '{cmd}'")
