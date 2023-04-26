@@ -1123,6 +1123,10 @@ def stat_items(args):  # {{{2
         if i != 0: print()
         print_stat_info(item)
 
+def list_aliases(args): # {{{2
+    entries = list(id_aliases.items())
+    print_table(entries, fields=('alias', 'ID'), no_leader_fields=('alias', 'ID'), is_sequence=True)
+
 def shell(args):  # {{{2
     global last_id
     import shlex
@@ -1180,10 +1184,6 @@ def source(args):  # {{{2
             else:
                 print(f"Unknown command '{cmd}'")
                 break
-
-def list_aliases(args): # {{{2
-    entries = list(id_aliases.items())
-    print_table(entries, fields=('alias', 'ID'), no_leader_fields=('alias', 'ID'), is_sequence=True)
 
 # Map command names to the implementing command function  # {{{2
 command_funcs = {
