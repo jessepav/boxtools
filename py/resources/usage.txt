@@ -27,11 +27,15 @@ however, if the command were "ls @ 1234" then '@' would become 1234.
 
 The root folder, aka "All Files", has an ID of '0' or '/'.
 
-Also, you can define aliases for IDs in $BOXTOOLS_DIR/id-aliases.toml
-Any ID entered will first be checked against these aliases.
+Aliases may be defined via an '@alias = ID' command.  If a typed ID
+begins with '@', the rest of the ID word will be checked against these
+aliases. '@list' will list all defined aliases. To delete an alias, use
+'@alias = None' or '@alias = ""'.
 
+------------------------------------------------------------------------
   BOXTOOLS_APP_DIR = {app_dir}
   BOXTOOLS_DIR     = {config_dir}
+------------------------------------------------------------------------
 
 Commands:
     auth          Obtain auth tokens via OAuth2

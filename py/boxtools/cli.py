@@ -28,7 +28,7 @@ if not os.path.exists(config_dir):
 config_file = os.path.join(config_dir, "boxtools.toml")
 tokens_file = os.path.join(config_dir, "auth-tokens.json")
 app_state_file = os.path.join(config_dir, "app-state.pickle")
-aliases_file = os.path.join(config_dir, "id-aliases.toml")
+aliases_file = os.path.join(config_dir, "id-aliases.txt")
 readline_history_file = os.path.join(config_dir, "readline-history")
 
 # Print help if we need to {{{2
@@ -81,10 +81,13 @@ if os.path.exists(readline_history_file):
     readline.read_history_file(readline_history_file)
 
 # Load ID aliases {{{2
-if not os.path.exists(aliases_file):
-    shutil.copyfile(os.path.join(app_dir, 'resources/id-aliases.toml'), aliases_file)
-with open(aliases_file, 'rb') as f:
-    id_aliases = tomli.load(f)['aliases']
+id_aliases = {}
+if os.path.exists(aliases_file):
+    with open(aliases_file, 'rt') as f:
+        for line in f:
+            parts = line.split()
+            if len(parts) == 3 and parts[1] == '=' and parts[2].isdigit():
+                id_aliases[parts[0]] = parts[2]
 
 # Ensure the user actually modified the config file {{{2
 if client_id == "(your client-id)" or client_secret == "(your client-secret)":
@@ -242,10 +245,10 @@ def translate_id(id_):
     global current_cmd_last_id
     if id_ == '@':
         retid = last_id
+    elif id_.startswith('@'):
+        retid = id_aliases.get(id_[1:])
     elif id_ == '/':
         retid = '0'
-    elif id_ in id_aliases:
-        retid = str(id_aliases[id_])
     elif id_.startswith('%'):
         term = id_[1:]
         retid = _choose_history_entry(id_, lambda entry : term in entry['name'])
@@ -382,6 +385,22 @@ def print_name_header(itemname, leading_blank=False, context_info=""):
     print( " ┌─", '─' * len(itemname), '─┐', sep='')
     print(f"─┤ {itemname} ├─", context_info, '─' * remaining_cols, sep='')
     print( " └─", '─' * len(itemname), '─┘', sep='')
+
+# define_alias() {{{2
+
+def define_alias(cmdline):
+    if len(cmdline) == 3 and cmdline[0].startswith('@') and cmdline[1] == '=':
+        alias = cmdline[0][1:]
+        if (len(cmdline[2]) == 0 or cmdline[2].lower() == 'none') and alias in id_aliases:
+            oldid = id_aliases.pop(alias)
+            print(f"@{alias} deleted (was {oldid})")
+        else:
+            id = translate_id(cmdline[2])
+            if id is not None:
+                id_aliases[alias] = id
+                print(f"@{alias} = {id}")
+    else:
+        print("Incorrect alias definition syntax! [ @alias = ID ]")
 
 # }}}1
 
@@ -1115,8 +1134,8 @@ def shell(args):  # {{{2
             continue
         else:
             cmd, *args = shlex.split(cmdline)
-            if cmd.startswith('@'):
-                print("(@alias = ID TBD)")
+            if len(args) != 0 and cmd.startswith('@'):
+                define_alias((cmd, *args))
             elif cmd in command_funcs:
                 try:
                     command_funcs[cmd](args)
@@ -1155,6 +1174,10 @@ def source(args):  # {{{2
                 print(f"Unknown command '{cmd}'")
                 break
 
+def list_aliases(args): # {{{2
+    entries = list(id_aliases.items())
+    print_table(entries, fields=('alias', 'ID'), no_leader_fields=('alias', 'ID'), is_sequence=True)
+
 # Map command names to the implementing command function  # {{{2
 command_funcs = {
     'auth'     : auth_cmd,
@@ -1179,6 +1202,7 @@ command_funcs = {
     'stat'     : stat_items,
     'shell'    : shell,
     'source'   : source,
+    '@list'    : list_aliases,
 }
 # End command functions }}}1
 
@@ -1192,8 +1216,8 @@ else:
     command_args = []
 
 try:
-    if cmd.startswith('@'):
-        print("(@alias = ID TBD)")
+    if len(command_args) != 0 and cmd.startswith('@'):
+        define_alias((cmd, *command_args))
     elif cmd in command_funcs:
         command_funcs[cmd](command_args)
     else:
@@ -1201,11 +1225,17 @@ try:
 except argparse.ArgumentError as e:
     print(e)
 finally:
+    # Save app state
     last_id = current_cmd_last_id
     with open(app_state_file, "wb") as f:
         pickle.dump(file=f,
                     obj={ 'item_history_map' : item_history_map,
                             'last_id' : last_id })
+    # Save readline history
     readline.write_history_file(readline_history_file)
+    # Save ID aliases
+    with open(aliases_file, "wt") as f:
+        for alias, id in id_aliases.items():
+            print(alias, '=', id, file=f)
 
 # }}}1
