@@ -410,8 +410,11 @@ def define_alias(cmdline):
 
 # list_aliases() {{{2
 
-def list_aliases():
-    entries = list(id_aliases.items())
+def list_aliases(filter_term=None):
+    items = id_aliases.items()
+    if filter_term:
+        items = filter(lambda item : filter_term in item[0], items)
+    entries = list(items)
     print_table(entries, fields=('alias', 'ID'), no_leader_fields=('alias', 'ID'), is_sequence=True)
 
 # process_cmdline() {{{2
@@ -426,8 +429,8 @@ def process_cmdline(cmdline):
     #
     if cmdline == ['@']:
         print(f"Last ID: {last_id}")
-    elif cmdline == ['@list']:
-        list_aliases()
+    elif len(cmdline) in (1,2) and cmdline[0] == '@list':
+        list_aliases(cmdline[1] if len(cmdline) == 2 else None)
     elif cmdline[0].startswith('@'):
         define_alias(cmdline)
     else:

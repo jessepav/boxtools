@@ -29,7 +29,8 @@ The root folder, aka "All Files", has an ID of '0' or '/'.
 
 Aliases may be defined via an '@alias = ID' command.  If a typed ID
 begins with '@', the rest of the ID word will be checked against these
-aliases. '@list' will list all defined aliases. To delete an alias, use
+aliases. '@list' will list all defined aliases. '@list term' will list
+only those aliases that contain 'term'. To delete an alias, use
 '@alias = None' or '@alias = ""'.
 
 ------------------------------------------------------------------------
