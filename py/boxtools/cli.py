@@ -1084,10 +1084,10 @@ def rn_item(args):  # {{{2
 
 def desc(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
-                                         usage='%(prog)s desc [options] id description',
-                                         description='Update the description of a file or folder')
+                                         usage='%(prog)s desc [options] id [description]',
+                                         description='Print or update the description of a file or folder')
     cli_parser.add_argument('id', help='Item ID')
-    cli_parser.add_argument('description', help='Description')
+    cli_parser.add_argument('description', nargs='?', help='If present, set the item description')
     cli_parser.add_argument('-f', '--file', action='store_true', help='ID refers to a file')
     cli_parser.add_argument('-d', '--folder', action='store_true', help='ID refers to a folder')
     options = cli_parser.parse_args(args)
@@ -1101,8 +1101,16 @@ def desc(args):  # {{{2
     description = options.description
     client = get_ops_client()
     item = client.file(item_id) if do_file else client.folder(item_id)
-    item = item.update_info(data = {'description' : description})
-    print(f'Updated the description of "{item.name}"')
+    if description:
+        item = item.update_info(data = {'description' : description})
+        print(f'Updated the description of "{item.name}"')
+    else:
+        item = item.get(fields=('name', 'description'))
+        if item.description:
+            print_name_header(item.name)
+            print(item.description)
+        else:
+            print(f'"{item.name}" has no description attached')
 
 def ln_items(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,

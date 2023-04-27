@@ -56,7 +56,7 @@ Commands:
     mv / move     Move files or folders
     cp / copy     Copy files or folders
     rn / rename   Rename a file or folder
-    desc          Update the description of a file or folder
+    desc          Print or update the description of a file or folder
 
     ln / link     Get links for files or folders
     readlink      Get the item referred to by a shared link
