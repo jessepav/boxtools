@@ -870,7 +870,7 @@ def put_file(args):  # {{{2
     options = cli_parser.parse_args(args)
     file_id = options.file_version
     folder_id = options.folder
-    files = [file for pathspec in options.files for file in glob.glob(pathspec)]
+    files = [file for pathspec in options.files for file in glob.glob(expand_all(pathspec))]
     if not any((file_id, folder_id)) or all((file_id, folder_id)):
         print("You must supply exactly one of --version/-f or --folder/-d")
         return
