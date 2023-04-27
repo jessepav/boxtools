@@ -413,7 +413,11 @@ def define_alias(cmdline):
 def list_aliases(filter_term=None):
     items = id_aliases.items()
     if filter_term:
-        items = filter(lambda item : filter_term in item[0], items)
+        if filter_term.startswith('^'):
+            filter_term = filter_term[1:]
+            items = filter(lambda item : item[0].startswith(filter_term), items)
+        else:
+            items = filter(lambda item : filter_term in item[0], items)
     entries = list(items)
     print_table(entries, fields=('alias', 'ID'), no_leader_fields=('alias', 'ID'), is_sequence=True)
 
