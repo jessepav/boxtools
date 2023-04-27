@@ -1,6 +1,6 @@
 import os, os.path, sys, argparse, re
 import shutil, shlex, logging, readline, pprint
-from collections import OrderedDict
+from collections import OrderedDict, deque
 import json, pickle
 
 import tomli
@@ -55,6 +55,7 @@ redirect_urls = {'internal' : auth_table['internal-redirect-url'],
 config_table = config.get('config', {})
 id_history_size = config_table.get('id-history-size', 500)
 readline_history_size = config_table.get('readline-history-size', 500)
+ls_history_size = config_table.get('ls-history-size', 10)
 chunked_upload_size_threshold = config_table.get('chunked-upload-size-threshold', 20_971_520)
 chunked_upload_num_threads = config_table.get('chunked-upload-num-threads', 2)
 rclone_remote_name = config_table.get('rclone-remote-name', 'box')
@@ -67,12 +68,17 @@ MIN_ID_LEN   = 5
 screen_cols = shutil.get_terminal_size(fallback=(0, 0))[0] if sys.stdout.isatty() else 0
 
 # Restore app state and readline history if available {{{2
+
+ls_history_deque = deque(maxlen = ls_history_size)
+
 if os.path.exists(app_state_file):
     with open(app_state_file, 'rb') as f:
         _app_state = pickle.load(f)
-        item_history_map = _app_state['item_history_map']
-        last_id = _app_state['last_id']
-        del _app_state
+    item_history_map = _app_state['item_history_map']
+    last_id = _app_state['last_id']
+    _lshist = _app_state.get('ls_history', [])
+    ls_history_deque.extend(_lshist[:ls_history_size])
+    del _app_state
 else:
     item_history_map = OrderedDict()
     last_id = None
@@ -462,10 +468,12 @@ def process_cmdline(cmdline):
 
 def save_state():
     # Save "app state"
+    _lshist = list(ls_history_deque)
     with open(app_state_file, "wb") as f:
         pickle.dump(file=f,
                     obj={ 'item_history_map' : item_history_map,
-                          'last_id' : last_id })
+                          'last_id' : last_id,
+                          'ls_history' : _lshist })
     # Save readline history
     readline.write_history_file(readline_history_file)
     # Save ID aliases
@@ -561,9 +569,10 @@ def history(args):  # {{{2
 
 def ls_folder(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
-                                         usage='%(prog)s ls [options] id [id...]',
-                                         description='List a folder')
-    cli_parser.add_argument('id', nargs='+', help='Folder ID(s)')
+                                         usage='%(prog)s ls [options] [folder-id...]',
+                                         description='List a folder. If no folder-id is given, it will list '
+                                                     'the folder most recently listed, if available.')
+    cli_parser.add_argument('id', nargs='*', help='Folder ID(s)')
     cli_parser.add_argument('-H', '--no-header', action='store_true',
                             help='Do not print header text for the listing')
     cli_parser.add_argument('-l', '--limit', type=int, default=None,
@@ -579,6 +588,8 @@ def ls_folder(args):  # {{{2
                             help='Clip the names of items in the displayed table to N characters')
     cli_parser.add_argument('-M', '--max-id-length', metavar='N', type=int,
                             help='Clip the item IDs in the displayed table to N characters')
+    cli_parser.add_argument('-q', '--history', action='store_true',
+                            help='Display queue of ls folder history')
     options = cli_parser.parse_args(args)
     folder_ids = [translate_id(_id) for _id in options.id]
     if any(id is None for id in folder_ids):  # translate_id() failed
@@ -598,6 +609,19 @@ def ls_folder(args):  # {{{2
     direction = 'DESC' if options.reverse else 'ASC'
     max_name_len = options.max_name_length and max(options.max_name_length, MIN_NAME_LEN)
     max_id_len = options.max_id_length and max(options.max_id_length, MIN_ID_LEN)
+    if options.history:
+        print_table(ls_history_deque, is_sequence=True,
+                    fields=('name', 'id', 'parent'), no_leader_fields=('ID',),
+                    clip_fields={'name': (max_name_len, 'r'), 'id': (max_id_len, 'l'), 'parent': (max_name_len, 'r')})
+        return
+    if len(folder_ids) == 0:
+        if len(ls_history_deque) > 0:
+            global current_cmd_last_id
+            current_cmd_last_id = ls_history_deque[-1][1]
+            folder_ids = (current_cmd_last_id,)
+        else:
+            print("No folder ID given and history is empty")
+            return
     client = get_ops_client()
     for i, folder_id in enumerate(folder_ids):
         folder = client.folder(folder_id=folder_id).get()
@@ -605,6 +629,8 @@ def ls_folder(args):  # {{{2
                                       fields=['type', 'name', 'id', 'parent', 'description'],
                                       sort=sort, direction=direction, filter_func=filter_func)
         add_history_item(folder)
+        if len(ls_history_deque) == 0 or ls_history_deque[-1][1] != folder.id:
+            ls_history_deque.append((folder.name, folder.id, folder.parent.name if folder.parent else None))
         if _parent := folder.parent:
             _parent = _parent.get(fields=['id', 'name', 'type', 'parent'])
             add_history_item(_parent)
