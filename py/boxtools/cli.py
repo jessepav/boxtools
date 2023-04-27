@@ -126,6 +126,8 @@ def load_tokens_or_die():
 
 # Uses our client ID/secret and tokens to get a Box Client object. It caches the client
 # object so that the function can be called multiple times without a performance hit.
+# It also is the first import of boxsdk and sub-modules, which is done lazily (as opposed
+# to at the top of the module) because importing these modules is slow.
 
 ops_client = None
 
@@ -139,7 +141,6 @@ def get_ops_client():
         logging.getLogger('boxsdk').setLevel(logging.CRITICAL)
         import boxsdk.config
         boxsdk.config.API.CHUNK_UPLOAD_THREADS = chunked_upload_num_threads
-        # We lazy-import BoxAPIException because importing boxsdk is slow
         from boxsdk.exception import BoxAPIException
     return ops_client
 
