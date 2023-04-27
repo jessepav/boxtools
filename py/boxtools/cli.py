@@ -568,10 +568,12 @@ def history(args):  # {{{2
                              'parent_name' : (max_name_len, 'r')})
 
 def ls_folder(args):  # {{{2
-    cli_parser = argparse.ArgumentParser(exit_on_error=False,
-                                         usage='%(prog)s ls [options] [folder-id...]',
-                                         description='List a folder. If no folder-id is given, it will list '
-                                                     'the folder most recently listed, if available.')
+    cli_parser = argparse.ArgumentParser(
+         exit_on_error=False,
+         usage='%(prog)s ls [options] [id...]',
+         description='List one or more folders. If no folder IDs are given, use '
+                     'the ID of the folder most recently listed, if available.'
+    )
     cli_parser.add_argument('id', nargs='*', help='Folder ID(s)')
     cli_parser.add_argument('-H', '--no-header', action='store_true',
                             help='Do not print header text for the listing')
