@@ -592,6 +592,8 @@ def ls_folder(args):  # {{{2
                             help='Clip the item IDs in the displayed table to N characters')
     cli_parser.add_argument('-q', '--history', action='store_true',
                             help='Display queue of ls folder history')
+    cli_parser.add_argument('-Q', '--clear-history', action='store_true',
+                            help='Clear queue of ls folder history')
     options = cli_parser.parse_args(args)
     folder_ids = [translate_id(_id) for _id in options.id]
     if any(id is None for id in folder_ids):  # translate_id() failed
@@ -611,6 +613,10 @@ def ls_folder(args):  # {{{2
     direction = 'DESC' if options.reverse else 'ASC'
     max_name_len = options.max_name_length and max(options.max_name_length, MIN_NAME_LEN)
     max_id_len = options.max_id_length and max(options.max_id_length, MIN_ID_LEN)
+    if options.clear_history:
+        ls_history_deque.clear()
+        print("ls history cleared")
+        return
     if options.history:
         print_table(ls_history_deque, is_sequence=True,
                     fields=('name', 'id', 'parent'), no_leader_fields=('ID',),
