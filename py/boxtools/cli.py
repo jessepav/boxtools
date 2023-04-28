@@ -199,8 +199,8 @@ def print_table(items, fields, *, colgap=2, print_header=True,
             print()
         else:
             r = max_field_len[colidx] - len(val)
-            if colidx not in no_leader_colidxs and r > 3:  # We do r > 3 because we want at least two leader characters
-                print("  " + leader*(r-2), end="")
+            if colidx not in no_leader_colidxs and r > 1:
+                print(" " + leader*(r-1), end="")
             else:
                 print(" " * r, end="")
             print(" " * colgap, end="")
