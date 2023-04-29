@@ -479,7 +479,8 @@ def save_state():
     # Save ID aliases
     with open(aliases_file, "wt") as f:
         for alias, id in id_aliases.items():
-            print(alias, '=', id, file=f)
+            if alias[0] != '_' and not alias.isdigit():
+                print(alias, '=', id, file=f)
 
 # }}}1
 
@@ -1241,6 +1242,9 @@ def shell(args):  # {{{2
     while True:
         try:
             cmdline = input("> ")
+        except KeyboardInterrupt:
+            print('^C')
+            cmdline = ''
         except EOFError:
             print()
             break
@@ -1251,6 +1255,8 @@ def shell(args):  # {{{2
         elif len(cmdline) == 0 or cmdline.isspace():
             continue
         else:
+            # If a KeyboardInterrupt occurs during process_cmdline(), we allow it to terminate
+            # the program, so that if an API call spazzes out the user can stop it.
             process_cmdline(cmdline)
 
 def source(args):  # {{{2
