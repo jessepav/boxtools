@@ -59,12 +59,13 @@ Commands:
     mv / move     Move files or folders
     cp / copy     Copy files or folders
     rn / rename   Rename a file or folder
-    desc          Print or update the description of a file or folder
 
     ln / link     Get links for files or folders
     readlink      Get the item referred to by a shared link
     path          Get full path of files or folders
     stat          Get info about the item referred to by a shared link
+    desc          Print or update the description of a file or folder
+    trash         List, view, or restore items in the trash
 
     shell         Enter an interactive shell
     source        Read commands from a given file

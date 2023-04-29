@@ -225,8 +225,9 @@ def print_table(items, fields, *, colgap=2, print_header=True,
 
 # Print item info as for the stat command
 
-def print_stat_info(item):
-    add_history_item(item)
+def print_stat_info(item, add_history=True):
+    if add_history:
+        add_history_item(item)
     for field in ('name', 'type', 'id', 'content_created_at', 'content_modified_at',
                     'created_at', 'modified_at', 'size'):
         print(f"{field:20}: {getattr(item, field)}")
@@ -1237,6 +1238,75 @@ def stat_items(args):  # {{{2
         if i != 0: print()
         print_stat_info(item)
 
+def trash(args):  # {{{2
+    cli_parser = argparse.ArgumentParser(
+        exit_on_error=False,
+        usage='%(prog)s trash [options] action [id...]',
+        description='List, view, or restore items in the trash.',
+        epilog='To get a reasonable listing of recently deleted items, use "trash list -trl 10", '
+                'which will show the 10 most-recently-deleted items, newest first.'
+    )
+    cli_parser.add_argument('action', help='Action to perform: l[ist], s[tat], or r[estore]')
+    cli_parser.add_argument('id', nargs='*', help='Item ID(s)')
+    type_group = cli_parser.add_mutually_exclusive_group(required=False)
+    type_group.add_argument('-f', '--files', action='store_true', help='Item IDs refer to files')
+    type_group.add_argument('-d', '--folders', action='store_true', help='Item IDs refer to folders')
+    type_group.add_argument('-w', '--web-links', action='store_true', help='The IDs refer to web-links')
+    cli_parser.add_argument('-l', '--limit', type=int, default=BOX_GET_ITEMS_LIMIT,
+                            help='Maximum number of items to return')
+    cli_parser.add_argument('-o', '--offset', type=int, default=0,
+                            help='The number of results to skip before displaying results')
+    cli_parser.add_argument('-n', '--sort-name', action='store_true', help='Sort listing by name (A->Z)')
+    cli_parser.add_argument('-t', '--sort-date', action='store_true', help='Sort listing by date (Old->New)')
+    cli_parser.add_argument('-r', '--reverse', action='store_true', help='Reverse listing sort direction')
+    cli_parser.add_argument('-m', '--max-name-length', metavar='N', type=int,
+                            help='Clip the names of listed items to N characters')
+    cli_parser.add_argument('-M', '--max-id-length', metavar='N', type=int,
+                            help='Clip the item IDs of listed items to N characters')
+    options = cli_parser.parse_intermixed_args(args)
+    do_list, do_stat, do_restore = (_a.startswith(options.action) for _a in ('list', 'stat', 'restore'))
+    if not (do_list or do_stat or do_restore):
+        print("Valid actions are l[ist], s[tat], and r[estore]")
+        return
+    item_ids = [translate_id(id) for id in options.id]
+    if any(id is None for id in item_ids):
+        return
+    do_files, do_folders, do_weblinks = options.files, options.folders, options.web_links
+    if (do_restore or do_stat) and sum((do_files, do_folders, do_weblinks)) != 1:
+        print("For stat or restore, you must supply one of --files, --folders, or --web-links")
+        return
+    limit = options.limit
+    offset = options.offset
+    sort = 'name' if options.sort_name else \
+           'date' if options.sort_date else \
+           None
+    direction = 'DESC' if options.reverse else 'ASC'
+    max_name_len = options.max_name_length and max(options.max_name_length, MIN_NAME_LEN)
+    max_id_len = options.max_id_length and max(options.max_id_length, MIN_ID_LEN)
+    client = get_ops_client()
+    if do_list:
+        items = []
+        trashed_items = client.trash().get_items(limit=limit, offset=offset, sort=sort, direction=direction)
+        for i, trashed_item in enumerate(trashed_items):
+            if i == limit: break
+            add_history_item(trashed_item)
+            items.append((trashed_item.type, trashed_item.name, trashed_item.id))
+        print_table(items, is_sequence=True, fields=('type', 'name', 'id'), no_leader_fields=('type',),
+                    clip_fields={'name': (max_name_len, 'r'), 'id': (max_id_len, 'l')})
+    else:
+        for i, item_id in enumerate(item_ids):
+            item = client.file(item_id) if do_files else \
+                   client.folder(item_id) if do_folders else \
+                   client.web_link(item_id)
+            if do_stat:
+                item_from_trash = client.trash().get_item(item)
+                if i != 0: print()
+                print_stat_info(item_from_trash, add_history=False)
+            elif do_restore:
+                restored_item = client.trash().restore_item(item)
+                add_history_item(restored_item)
+                print(f'Restored {restored_item.type} "{restored_item.name}" to "{restored_item.parent.name}"')
+
 def shell(args):  # {{{2
     print("Type q(uit)/e(xit) to exit the shell, and h(elp)/? for general usage.")
     while True:
@@ -1294,6 +1364,7 @@ command_funcs = {
     'ln'       : ln_items, 'link' : ln_items,
     'readlink' : readlink,
     'stat'     : stat_items,
+    'trash'    : trash,
     'shell'    : shell,
     'source'   : source,
 }
