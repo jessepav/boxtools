@@ -1256,13 +1256,16 @@ def trash(args):  # {{{2
                             help='Maximum number of items to return')
     cli_parser.add_argument('-o', '--offset', type=int, default=0,
                             help='The number of results to skip before displaying results')
-    cli_parser.add_argument('-n', '--sort-name', action='store_true', help='Sort listing by name (A->Z)')
-    cli_parser.add_argument('-t', '--sort-date', action='store_true', help='Sort listing by date (Old->New)')
+    sort_group = cli_parser.add_mutually_exclusive_group()
+    sort_group.add_argument('-n', '--sort-name', action='store_true', help='Sort listing by name (A->Z)')
+    sort_group.add_argument('-t', '--sort-date', action='store_true', help='Sort listing by date (Old->New)')
     cli_parser.add_argument('-r', '--reverse', action='store_true', help='Reverse listing sort direction')
     cli_parser.add_argument('-m', '--max-name-length', metavar='N', type=int,
                             help='Clip the names of listed items to N characters')
     cli_parser.add_argument('-M', '--max-id-length', metavar='N', type=int,
                             help='Clip the item IDs of listed items to N characters')
+    # We use parse_intermixed_args() here so that we can type natural command lines like
+    # "trash stat -f 1234", which doesn't work with parse_args().
     options = cli_parser.parse_intermixed_args(args)
     do_list, do_stat, do_restore = (_a.startswith(options.action) for _a in ('list', 'stat', 'restore'))
     if not (do_list or do_stat or do_restore):
