@@ -1390,7 +1390,9 @@ if __name__ == '__main__':
     cmdline = sys.argv[1:]
     if len(cmdline) == 0:
         cmdline = ['shell']
-    process_cmdline(cmdline)
-    save_state()
+    try:
+        process_cmdline(cmdline)
+    finally:
+        save_state()
 
 # }}}1
