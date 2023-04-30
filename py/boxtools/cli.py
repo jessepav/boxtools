@@ -1246,7 +1246,7 @@ def trash(args):  # {{{2
         epilog='To get a reasonable listing of recently deleted items, use "trash list -trl 10", '
                 'which will show the 10 most-recently-deleted items, newest first.'
     )
-    cli_parser.add_argument('action', help='Action to perform: l[ist], s[tat], r[estore], p[urge]')
+    cli_parser.add_argument('action', help='Action to perform: l[ist]/ls, s[tat], r[estore], p[urge]')
     cli_parser.add_argument('id', nargs='*', help='Item ID(s)')
     type_group = cli_parser.add_mutually_exclusive_group(required=False)
     type_group.add_argument('-f', '--files', action='store_true', help='Item IDs refer to files')
@@ -1270,10 +1270,10 @@ def trash(args):  # {{{2
     # We use parse_intermixed_args() here so that we can type natural command lines like
     # "trash stat -f 1234", which doesn't work with parse_args().
     options = cli_parser.parse_intermixed_args(args)
-    do_list, do_stat, do_restore, do_purge = (_a.startswith(options.action) for _a in
-                                                ('list', 'stat', 'restore', 'purge'))
+    do_list, do_list, do_stat, do_restore, do_purge = (_a.startswith(options.action) for _a in
+                                                ('list', 'ls', 'stat', 'restore', 'purge'))
     if not (do_list or do_stat or do_restore or do_purge):
-        print("Valid actions are l[ist], s[tat], r[estore], p[urge]")
+        print("Valid actions are l[ist]/ls, s[tat], r[estore], p[urge]")
         return
     item_ids = [translate_id(id) for id in options.id]
     if any(id is None for id in item_ids):
