@@ -522,7 +522,7 @@ def userinfo_cmd(args):  # {{{2
     infodict = {field : getattr(user, field) for field in ('id', 'login', 'name')}
     print(json.dumps(infodict, indent=2))
 
-def history(args):  # {{{2
+def history_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s history [options] [filter]',
                                          description='Show previous ID history')
@@ -569,7 +569,7 @@ def history(args):  # {{{2
                 clip_fields={'name' : (max_name_len, 'r'), 'id' : (max_id_len, 'l'),
                              'parent_name' : (max_name_len, 'r')})
 
-def ls_folder(args):  # {{{2
+def ls_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(
          exit_on_error=False,
          usage='%(prog)s ls [options] [id...]',
@@ -663,7 +663,7 @@ def ls_folder(args):  # {{{2
                         lambda v, item, idx, field :
                             v + " (i)" if field == 'name' and item.description else v)
 
-def search(args):  # {{{2
+def search_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s fd [options] term',
                                          description='Search for items')
@@ -737,7 +737,7 @@ def search(args):  # {{{2
                 clip_fields={'name'   : (max_name_len, 'r'), 'id'        : (max_id_len, 'l'),
                              'parent' : (max_name_len, 'r'), 'parent_id' : (max_id_len, 'l')})
 
-def tree(args):  # {{{2
+def tree_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s tree [options] folder_id',
                                          description='Display a tree of folders')
@@ -793,7 +793,7 @@ def tree(args):  # {{{2
 
 _tree_item_markers = ['*', '-']
 
-def get_files(args):  # {{{2
+def get_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s get [options] ids... directory',
                                          description='Download files or thumbnails')
@@ -867,7 +867,7 @@ def get_files(args):  # {{{2
                 with open(os.path.join(target_dir, filename), "wb") as f:
                     file.download_to(f)
 
-def put_file(args):  # {{{2
+def put_cmd(args):  # {{{2
     import glob
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s put [options] file(s)',
@@ -935,7 +935,7 @@ def put_file(args):  # {{{2
                 else:
                     raise ex
 
-def cat(args):  # {{{2
+def cat_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s cat [options] ids...',
                                          description='Write the contents of files or web-links to stdout')
@@ -969,7 +969,7 @@ def cat(args):  # {{{2
             str_rep = content.decode(errors='backslashreplace')
             print(str_rep, end='' if str_rep[-1] == '\n' else '\n')
 
-def rm_items(args):  # {{{2
+def rm_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s rm [options] ids...',
                                          description='Remove files or folders')
@@ -998,7 +998,7 @@ def rm_items(args):  # {{{2
             folder.delete()
             item_history_map.pop(folder.id, None)
 
-def itempaths(args):  # {{{2
+def path_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s path [options] ids...',
                                          description='Get full path of files or folders')
@@ -1039,7 +1039,7 @@ def itempaths(args):  # {{{2
                     print('box:', end="")
                 print(path)
 
-def mkdir(args):  # {{{2
+def mkdir_cmd(args):  # {{{2
     if len(args) < 2 or '-h' in args or '--help' in args:
         print(f"usage: {os.path.basename(sys.argv[0])} mkdir parent_folder_id folder_name\n\n"
                "Create a new folder")
@@ -1052,7 +1052,7 @@ def mkdir(args):  # {{{2
     newfolder = folder.create_subfolder(foldername)
     add_history_item(newfolder, folder)
 
-def mv_items(args):  # {{{2
+def mv_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s mv [options] ids... dest_folder_id',
                                          description='Move files or folders')
@@ -1077,7 +1077,7 @@ def mv_items(args):  # {{{2
         print(f'Moved "{moved_item.name}" into "{moved_item.parent.name}"')
         add_history_item(moved_item)
 
-def cp_items(args):  # {{{2
+def cp_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s cp [options] ids... dest_folder_id',
                                          description='Copy files or folders')
@@ -1102,7 +1102,7 @@ def cp_items(args):  # {{{2
         print(f'Copied "{copied_item.name}" into "{copied_item.parent.name}"')
         add_history_item(copied_item)
 
-def rn_item(args):  # {{{2
+def rn_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s rn [options] id new_name',
                                          description='Rename a file or folder')
@@ -1126,7 +1126,7 @@ def rn_item(args):  # {{{2
     add_history_item(item)
     print(f'"{oldname}" renamed to "{item.name}"')
 
-def desc(args):  # {{{2
+def desc_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s desc [options] id [description]',
                                          description='Print or update the description of a file or folder')
@@ -1156,7 +1156,7 @@ def desc(args):  # {{{2
         else:
             print(f'"{item.name}" has no description attached')
 
-def ln_items(args):  # {{{2
+def ln_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s ln [options] ids...',
                                          description='Get links for files or folders')
@@ -1205,7 +1205,7 @@ def ln_items(args):  # {{{2
                 print("== Folder:", folder.name)
                 print("     Link:", link)
 
-def readlink(args):  # {{{2
+def readlink_cmd(args):  # {{{2
     if len(args) != 1 or '-h' in args or '--help' in args:
         print(f"usage: {os.path.basename(sys.argv[0])} readlink shared_url\n\n"
                "Get info about the item referred to by a shared link.\n\n"
@@ -1216,7 +1216,7 @@ def readlink(args):  # {{{2
     item = client.get_shared_item(shared_url)
     print_stat_info(item)
 
-def stat_items(args):  # {{{2
+def stat_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s stat [options] ids...',
                                          description='Get info about files or folders')
@@ -1238,7 +1238,7 @@ def stat_items(args):  # {{{2
         if i != 0: print()
         print_stat_info(item)
 
-def trash(args):  # {{{2
+def trash_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(
         exit_on_error=False,
         usage='%(prog)s trash [options] action [id...]',
@@ -1321,7 +1321,7 @@ def trash(args):  # {{{2
                 client.trash().permanently_delete_item(item)
                 print("done")
 
-def shell(args):  # {{{2
+def shell_cmd(args):  # {{{2
     print("Type q(uit)/e(xit) to exit the shell, and h(elp)/? for general usage.")
     while True:
         try:
@@ -1343,44 +1343,47 @@ def shell(args):  # {{{2
             # the program, so that if an API call spazzes out the user can stop it.
             process_cmdline(cmdline)
 
-def source(args):  # {{{2
+def source_cmd(args):  # {{{2
     if len(args) != 1 or '-h' in args or '--help' in args:
         print(f"usage: {os.path.basename(sys.argv[0])} source file\n\n"
                "Read commands from a given file")
         return
     cmdfile = expand_all(args[0])
-    with open(cmdfile, "rt") as f:
-        for cmdline in f:
-            cmdline = cmdline.strip()
-            if len(cmdline) == 0 or cmdline[0] == '#':
-                continue
-            process_cmdline(cmdline)
+    if not os.path.exists(cmdfile):
+        print(f'"{cmdfile}" is not a file.')
+    else:
+        with open(cmdfile, "rt") as f:
+            for cmdline in f:
+                cmdline = cmdline.strip()
+                if len(cmdline) == 0 or cmdline[0] == '#':
+                    continue
+                process_cmdline(cmdline)
 
 # Map command names to the implementing command function  # {{{2
 command_funcs = {
     'auth'     : auth_cmd,
     'refresh'  : refresh_cmd,
     'userinfo' : userinfo_cmd,
-    'history'  : history,
-    'ls'       : ls_folder, 'list' : ls_folder,
-    'fd'       : search, 'search' : search,
-    'tree'     : tree,
-    'get'      : get_files,
-    'put'      : put_file,
-    'cat'      : cat,
-    'rm'       : rm_items, 'del' : rm_items,
-    'path'     : itempaths,
-    'mkdir'    : mkdir,
-    'mv'       : mv_items, 'move' : mv_items,
-    'cp'       : cp_items, 'copy' : cp_items,
-    'rn'       : rn_item, 'rename' : rn_item,
-    'desc'     : desc,
-    'ln'       : ln_items, 'link' : ln_items,
-    'readlink' : readlink,
-    'stat'     : stat_items,
-    'trash'    : trash,
-    'shell'    : shell,
-    'source'   : source,
+    'history'  : history_cmd,
+    'ls'       : ls_cmd, 'list' : ls_cmd,
+    'fd'       : search_cmd, 'search' : search_cmd, 'find' : search_cmd,
+    'tree'     : tree_cmd,
+    'get'      : get_cmd,
+    'put'      : put_cmd,
+    'cat'      : cat_cmd,
+    'rm'       : rm_cmd, 'del' : rm_cmd,
+    'path'     : path_cmd,
+    'mkdir'    : mkdir_cmd,
+    'mv'       : mv_cmd, 'move' : mv_cmd,
+    'cp'       : cp_cmd, 'copy' : cp_cmd,
+    'rn'       : rn_cmd, 'rename' : rn_cmd,
+    'desc'     : desc_cmd,
+    'ln'       : ln_cmd, 'link' : ln_cmd,
+    'readlink' : readlink_cmd,
+    'stat'     : stat_cmd,
+    'trash'    : trash_cmd,
+    'shell'    : shell_cmd,
+    'source'   : source_cmd,
 }
 # End command functions }}}1
 
