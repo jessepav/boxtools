@@ -459,8 +459,8 @@ def process_cmdline(cmdline):
             except BoxAPIException as e:
                 print("# BoxAPIException #\n")
                 print(f"Message: {e.message}",
-                        f" Status: {e.status}",
-                        sep='\n')
+                      f" Status: {e.status}",
+                      sep='\n')
             last_id = current_cmd_last_id
         else:
             print(f"Unknown command '{cmd}'")
@@ -1264,6 +1264,9 @@ def trash(args):  # {{{2
                             help='Clip the names of listed items to N characters')
     cli_parser.add_argument('-M', '--max-id-length', metavar='N', type=int,
                             help='Clip the item IDs of listed items to N characters')
+    cli_parser.add_argument('-s', '--name-suffix', metavar='SUFFIX', default="-restored",
+                            help='When restoring, if an item with the same name exists, the restored '
+                                 'item will be renamed by appending this suffix to its basename')
     # We use parse_intermixed_args() here so that we can type natural command lines like
     # "trash stat -f 1234", which doesn't work with parse_args().
     options = cli_parser.parse_intermixed_args(args)
@@ -1286,6 +1289,7 @@ def trash(args):  # {{{2
     direction = 'DESC' if options.reverse else 'ASC'
     max_name_len = options.max_name_length and max(options.max_name_length, MIN_NAME_LEN)
     max_id_len = options.max_id_length and max(options.max_id_length, MIN_ID_LEN)
+    name_suffix = options.name_suffix
     client = get_ops_client()
     if do_list:
         items = []
@@ -1306,7 +1310,10 @@ def trash(args):  # {{{2
                 if i != 0: print()
                 print_stat_info(item_from_trash, add_history=False)
             elif do_restore:
-                restored_item = client.trash().restore_item(item)
+                item_from_trash = client.trash().get_item(item)
+                root, ext = os.path.splitext(item_from_trash.name)
+                new_name = root + name_suffix + ext;
+                restored_item = client.trash().restore_item(item, name=new_name)
                 add_history_item(restored_item)
                 print(f'Restored {restored_item.type} "{restored_item.name}" to "{restored_item.parent.name}"')
 
