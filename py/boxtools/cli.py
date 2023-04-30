@@ -1242,11 +1242,11 @@ def trash(args):  # {{{2
     cli_parser = argparse.ArgumentParser(
         exit_on_error=False,
         usage='%(prog)s trash [options] action [id...]',
-        description='List, view, or restore items in the trash.',
+        description='List, view, restore, or purge items in the trash.',
         epilog='To get a reasonable listing of recently deleted items, use "trash list -trl 10", '
                 'which will show the 10 most-recently-deleted items, newest first.'
     )
-    cli_parser.add_argument('action', help='Action to perform: l[ist], s[tat], or r[estore]')
+    cli_parser.add_argument('action', help='Action to perform: l[ist], s[tat], r[estore], p[urge]')
     cli_parser.add_argument('id', nargs='*', help='Item ID(s)')
     type_group = cli_parser.add_mutually_exclusive_group(required=False)
     type_group.add_argument('-f', '--files', action='store_true', help='Item IDs refer to files')
@@ -1270,16 +1270,17 @@ def trash(args):  # {{{2
     # We use parse_intermixed_args() here so that we can type natural command lines like
     # "trash stat -f 1234", which doesn't work with parse_args().
     options = cli_parser.parse_intermixed_args(args)
-    do_list, do_stat, do_restore = (_a.startswith(options.action) for _a in ('list', 'stat', 'restore'))
-    if not (do_list or do_stat or do_restore):
-        print("Valid actions are l[ist], s[tat], and r[estore]")
+    do_list, do_stat, do_restore, do_purge = (_a.startswith(options.action) for _a in
+                                                ('list', 'stat', 'restore', 'purge'))
+    if not (do_list or do_stat or do_restore or do_purge):
+        print("Valid actions are l[ist], s[tat], r[estore], p[urge]")
         return
     item_ids = [translate_id(id) for id in options.id]
     if any(id is None for id in item_ids):
         return
     do_files, do_folders, do_weblinks = options.files, options.folders, options.web_links
-    if (do_restore or do_stat) and sum((do_files, do_folders, do_weblinks)) != 1:
-        print("For stat or restore, you must supply one of --files, --folders, or --web-links")
+    if (do_restore or do_stat or do_purge) and sum((do_files, do_folders, do_weblinks)) != 1:
+        print("For stat, restore, and purge, you must supply one of --files, --folders, or --web-links")
         return
     limit = options.limit
     offset = options.offset
@@ -1305,17 +1306,20 @@ def trash(args):  # {{{2
             item = client.file(item_id) if do_files else \
                    client.folder(item_id) if do_folders else \
                    client.web_link(item_id)
+            item_from_trash = client.trash().get_item(item)
             if do_stat:
-                item_from_trash = client.trash().get_item(item)
                 if i != 0: print()
                 print_stat_info(item_from_trash, add_history=False)
             elif do_restore:
-                item_from_trash = client.trash().get_item(item)
                 root, ext = os.path.splitext(item_from_trash.name)
                 new_name = root + name_suffix + ext;
                 restored_item = client.trash().restore_item(item, name=new_name)
                 add_history_item(restored_item)
                 print(f'Restored {restored_item.type} "{restored_item.name}" to "{restored_item.parent.name}"')
+            elif do_purge:
+                print(f'Permanently deleting "{item_from_trash.name}"...', end='')
+                client.trash().permanently_delete_item(item)
+                print("done")
 
 def shell(args):  # {{{2
     print("Type q(uit)/e(xit) to exit the shell, and h(elp)/? for general usage.")

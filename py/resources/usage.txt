@@ -65,7 +65,7 @@ Commands:
     path          Get full path of files or folders
     stat          Get info about the item referred to by a shared link
     desc          Print or update the description of a file or folder
-    trash         List, view, or restore items in the trash
+    trash         List, view, restore, or purge items in the trash.
 
     shell         Enter an interactive shell
     source        Read commands from a given file
