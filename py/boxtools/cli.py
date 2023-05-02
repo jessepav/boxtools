@@ -1264,7 +1264,7 @@ def trash_cmd(args):  # {{{2
                             help='Clip the names of listed items to N characters')
     cli_parser.add_argument('-M', '--max-id-length', metavar='N', type=int,
                             help='Clip the item IDs of listed items to N characters')
-    cli_parser.add_argument('-s', '--name-suffix', metavar='SUFFIX', default="-restored",
+    cli_parser.add_argument('-s', '--name-suffix', metavar='SUFFIX',
                             help='When restoring, if an item with the same name exists, the restored '
                                  'item will be renamed by appending this suffix to its basename')
     # We use parse_intermixed_args() here so that we can type natural command lines like
@@ -1312,7 +1312,7 @@ def trash_cmd(args):  # {{{2
                 print_stat_info(item_from_trash, add_history=False)
             elif do_restore:
                 root, ext = os.path.splitext(item_from_trash.name)
-                new_name = root + name_suffix + ext;
+                new_name = (root + name_suffix + ext) if name_suffix else None
                 restored_item = client.trash().restore_item(item, name=new_name)
                 add_history_item(restored_item)
                 print(f'Restored {restored_item.type} "{restored_item.name}" to "{restored_item.parent.name}"')
