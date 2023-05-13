@@ -1,5 +1,5 @@
 import os, os.path, sys, argparse, re
-import shutil, shlex, logging, readline, pprint
+import shutil, shlex, subprocess, logging, readline, pprint
 from collections import OrderedDict, deque
 import json, pickle
 
@@ -1332,12 +1332,14 @@ def shell_cmd(args):  # {{{2
         except EOFError:
             print()
             break
-        if cmdline in ('quit', 'q', 'exit', 'x'):
+        if len(cmdline) == 0 or cmdline.isspace():
+            continue
+        elif cmdline in ('quit', 'q', 'exit', 'x'):
             break
         elif cmdline in ('help', 'h', '?'):
             print(general_usage, end="")
-        elif len(cmdline) == 0 or cmdline.isspace():
-            continue
+        elif cmdline[0] == '!':
+            subprocess.run(cmdline[1:], shell=True)
         else:
             # If a KeyboardInterrupt occurs during process_cmdline(), we allow it to terminate
             # the program, so that if an API call spazzes out the user can stop it.

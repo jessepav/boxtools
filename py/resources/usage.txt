@@ -35,6 +35,9 @@ anchors the search to the start of the alias name. To delete an alias,
 use '@alias = None' or '@alias = ""'. Aliases that begin with '_' or
 whose names are all digits will not be persisted to the next session.
 
+When using the 'shell' command, any input line that starts with '!' will
+be passed to the system shell after stripping off the '!'.
+
 ------------------------------------------------------------------------
   BOXTOOLS_APP_DIR = {app_dir}
   BOXTOOLS_DIR     = {config_dir}
