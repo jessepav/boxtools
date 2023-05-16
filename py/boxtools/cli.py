@@ -1108,8 +1108,8 @@ def rn_cmd(args):  # {{{2
                                          description='Rename a file or folder')
     cli_parser.add_argument('id', help='File or folder ID')
     cli_parser.add_argument('new_name', help='New name for the item')
-    cli_parser.add_argument('-f', '--files', action='store_true', help='Item IDs are files')
-    cli_parser.add_argument('-d', '--folders', action='store_true', help='Item IDs are folders')
+    cli_parser.add_argument('-f', '--files', action='store_true', help='Item ID is a file')
+    cli_parser.add_argument('-d', '--folders', action='store_true', help='Item ID is a folder')
     options = cli_parser.parse_args(args)
     do_files, do_folders = options.files, options.folders
     if do_files == do_folders:
