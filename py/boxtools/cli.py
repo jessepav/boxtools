@@ -51,7 +51,7 @@ auth_table = config['auth']
 client_id = auth_table['client-id']
 client_secret = auth_table['client-secret']
 redirect_urls = {'internal' : auth_table['internal-redirect-url'],
-                    'external' : auth_table['external-redirect-url']}
+                 'external' : auth_table['external-redirect-url']}
 config_table = config.get('config', {})
 id_history_size = config_table.get('id-history-size', 500)
 readline_history_size = config_table.get('readline-history-size', 500)
