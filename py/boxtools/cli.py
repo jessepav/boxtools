@@ -230,7 +230,7 @@ def print_stat_info(item, add_history=True):
         add_history_item(item)
     for field in ('name', 'type', 'id', 'content_created_at', 'content_modified_at',
                     'created_at', 'modified_at', 'size'):
-        print(f"{field:20}: {getattr(item, field)}")
+        print(f"{field:20}: {getattr(item, field, 'N/A')}")
     if item.shared_link:
         print(f"{'url':20}: {item.shared_link['url']}")
         print(f"{'download_url':20}: {item.shared_link['download_url']}")
@@ -340,6 +340,44 @@ def add_history_item(item, parent=None):
     if (n := len(item_history_map) - id_history_size) > 0:
         for i in range(n):
             item_history_map.popitem(last=False)
+
+# determine_item_type() {{{2
+
+# Makes a API requests to determine the type of an item.
+#
+# Returns a tuple of (type, object), where `type` is 'file', 'folder', or 'web_link',
+# and the `object` is a File, Folder, or WebLink object from a boxsdk sub-package
+#
+# If the item_id is invalid, returns (None, None)
+
+def determine_item_type(client, item_id):
+    for _type in ('file', 'folder', 'web_link'):
+        try:
+            cstr = getattr(client, _type)
+            obj = cstr(item_id)
+            return (_type, obj)
+        except BoxAPIException:
+            continue
+    else:
+        return (None, None)
+
+# get_api_item() {{{2
+
+# Return a tuple of (type, object) [as documented in determine_item_type()]
+
+def get_api_item(client, item_id):
+    # First we check if our history has the item type
+    histentry = item_history_map.get(item_id)
+    if histentry:
+        _type = histentry['type']
+        try:
+            item = getattr(client, _type)(item_id)
+        except BoxAPIException:  # Maybe the recorded type was wrong and the API errored
+            return determine_item_type(client, item_id)
+        else:
+            return (_type, item)
+    else:
+        return determine_item_type(client, item_id)
 
 # retrieve_folder_items() and co {{{2
 
@@ -882,7 +920,7 @@ def put_cmd(args):  # {{{2
     folder_id = options.folder
     files = [file for pathspec in options.files for file in glob.glob(expand_all(pathspec))]
     if not any((file_id, folder_id)) or all((file_id, folder_id)):
-        print("You must supply exactly one of --version/-f or --folder/-d")
+        print("You must supply exactly one of --file-version/-f or --folder/-d")
         return
     if file_id and len(files) != 1:
         print("You must supply exactly one file to upload a new version")
@@ -944,74 +982,56 @@ def cat_cmd(args):  # {{{2
                             help="Print a header before each items's contents")
     cli_parser.add_argument('-c', '--byte-count', metavar='N', type=int, default=4096,
                             help='Print the first N bytes of files (default 4096)')
-    cli_parser.add_argument('-w', '--web-links', action='store_true',
-                            help='The IDs refer to web-links')
     options = cli_parser.parse_args(args)
     item_ids = [translate_id(_id) for _id in options.ids]
     if any(id is None for id in item_ids):
         return
     byte_count = options.byte_count
     headers = options.headers
-    web_links = options.web_links
     client = get_ops_client()
     for i, item_id in enumerate(item_ids):
-        if web_links:
-            web_link = client.web_link(item_id).get(fields=['name', 'url'])
+        _type, item = get_api_item(client, item_id)
+        if _type == 'web_link':
+            web_link = item.get(fields=['name', 'url'])
             if headers:
                 print_name_header(web_link.name, leading_blank=i != 0)
             print(web_link.url)
-        else:
-            file = client.file(item_id).get(fields=['name'])
+        elif _type == 'file':
+            file = item.get(fields=['name'])
             filename = file.name
             if headers:
                 print_name_header(filename, leading_blank=i != 0)
             content = file.content(byte_range=(0, byte_count))
             str_rep = content.decode(errors='backslashreplace')
             print(str_rep, end='' if str_rep[-1] == '\n' else '\n')
+        else:
+            print(f"You cannot cat a {_type}")
 
 def rm_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s rm [options] ids...',
-                                         description='Remove files or folders')
-    cli_parser.add_argument('ids', nargs='+', help='File or folder IDs to remove')
-    cli_parser.add_argument('-f', '--files', action='store_true', help='Remove files')
-    cli_parser.add_argument('-d', '--folders', action='store_true', help='Remove folders')
+                                         description='Remove items')
+    cli_parser.add_argument('ids', nargs='+', help='Item IDs to remove')
     options = cli_parser.parse_args(args)
-    do_files, do_folders = options.files, options.folders
-    if do_files == do_folders:
-        print("You must supply exactly one of --files/-f or --folders/-d")
-        return
     item_ids = [translate_id(_id) for _id in options.ids]
     if any(id is None for id in item_ids):
         return
     client = get_ops_client()
-    if do_files:
-        for file_id in item_ids:
-            file = client.file(file_id).get(fields=['id', 'name'])
-            print(f"Deleting file {file.name}...")
-            file.delete()
-            item_history_map.pop(file.id, None)
-    elif do_folders:
-        for folder_id in item_ids:
-            folder = client.folder(folder_id).get(fields=['id', 'name'])
-            print(f"Deleting folder {folder.name}...")
-            folder.delete()
-            item_history_map.pop(folder.id, None)
+    for item_id in item_ids:
+        _type, item = get_api_item(client, item_id)
+        item = item.get(fields=['id', 'name'])
+        print(f"Deleting {_type} {item.name}...")
+        item.delete()
+        item_history_map.pop(item_id, None)
 
 def path_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s path [options] ids...',
-                                         description='Get full path of files or folders')
-    cli_parser.add_argument('ids', nargs='+', help='File or folder IDs')
-    cli_parser.add_argument('-f', '--files', action='store_true', help='Get file paths')
-    cli_parser.add_argument('-d', '--folders', action='store_true', help='Get folder paths')
+                                         description='Get full path of items')
+    cli_parser.add_argument('ids', nargs='+', help='Item IDs')
     cli_parser.add_argument('-R', '--rclone', action='store_true', help='Format paths for use with rclone')
     cli_parser.add_argument('-v', '--verbose', action='store_true', help="Verbose output format")
     options = cli_parser.parse_args(args)
-    do_files, do_folders = options.files, options.folders
-    if do_files == do_folders:
-        print("You must supply exactly one of --files/-f or --folders/-d")
-        return
     rclone = options.rclone
     verbose = options.verbose
     item_ids = [translate_id(_id) for _id in options.ids]
@@ -1019,10 +1039,11 @@ def path_cmd(args):  # {{{2
         return
     client = get_ops_client()
     for i, id in enumerate(item_ids):
-        item = client.file(id).get() if do_files else client.folder(id).get()
         if id == '0':
             print('{rclone_remote_name}:/') if rclone else print('/')
         else:
+            _type, item = get_api_item(client, id)
+            item = item.get()
             if verbose:
                 if i != 0: print()
                 path_items = item.path_collection['entries'].copy()
@@ -1055,155 +1076,117 @@ def mkdir_cmd(args):  # {{{2
 def mv_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s mv [options] ids... dest_folder_id',
-                                         description='Move files or folders')
-    cli_parser.add_argument('ids', nargs='+', help='File or folder IDs to move')
+                                         description='Move items')
+    cli_parser.add_argument('ids', nargs='+', help='Item IDs to move')
     cli_parser.add_argument('dest_folder_id', help='Destination folder ID')
-    cli_parser.add_argument('-f', '--files', action='store_true', help='Item IDs are files')
-    cli_parser.add_argument('-d', '--folders', action='store_true', help='Item IDs are folders')
     options = cli_parser.parse_args(args)
-    do_files, do_folders = options.files, options.folders
-    if do_files == do_folders:
-        print("You must supply exactly one of --files/-f or --folders/-d")
-        return
     item_ids = [translate_id(_id) for _id in options.ids]
     dest_folder_id = translate_id(options.dest_folder_id)
     if dest_folder_id is None or any(id is None for id in item_ids):
         return
     client = get_ops_client()
-    folder = client.folder(folder_id=dest_folder_id)
+    dest_folder = client.folder(folder_id=dest_folder_id)
     for item_id in item_ids:
-        item = client.file(item_id) if do_files else client.folder(item_id)
-        moved_item = item.move(parent_folder=folder)
-        print(f'Moved "{moved_item.name}" into "{moved_item.parent.name}"')
+        _type, item = get_api_item(client, item_id)
+        moved_item = item.move(parent_folder=dest_folder)
+        print(f'Moved {_type} "{moved_item.name}" into "{moved_item.parent.name}"')
         add_history_item(moved_item)
 
 def cp_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s cp [options] ids... dest_folder_id',
-                                         description='Copy files or folders')
-    cli_parser.add_argument('ids', nargs='+', help='File or folder IDs to copy')
+                                         description='Copy items')
+    cli_parser.add_argument('ids', nargs='+', help='Item IDs to copy')
     cli_parser.add_argument('dest_folder_id', help='Destination folder ID')
-    cli_parser.add_argument('-f', '--files', action='store_true', help='Item IDs are files')
-    cli_parser.add_argument('-d', '--folders', action='store_true', help='Item IDs are folders')
     options = cli_parser.parse_args(args)
-    do_files, do_folders = options.files, options.folders
-    if do_files == do_folders:
-        print("You must supply exactly one of --files/-f or --folders/-d")
-        return
     item_ids = [translate_id(_id) for _id in options.ids]
     dest_folder_id = translate_id(options.dest_folder_id)
     if dest_folder_id is None or any(id is None for id in item_ids):
         return
     client = get_ops_client()
-    folder = client.folder(folder_id=dest_folder_id)
+    dest_folder = client.folder(folder_id=dest_folder_id)
     for item_id in item_ids:
-        item = client.file(item_id) if do_files else client.folder(item_id)
-        copied_item = item.copy(parent_folder=folder)
-        print(f'Copied "{copied_item.name}" into "{copied_item.parent.name}"')
+        _type, item = get_api_item(client, item_id)
+        copied_item = item.copy(parent_folder=dest_folder)
+        print(f'Copied {_type} "{copied_item.name}" into "{copied_item.parent.name}"')
         add_history_item(copied_item)
 
 def rn_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s rn [options] id new_name',
-                                         description='Rename a file or folder')
-    cli_parser.add_argument('id', help='File or folder ID')
+                                         description='Rename an item')
+    cli_parser.add_argument('id', help='Item ID')
     cli_parser.add_argument('new_name', help='New name for the item')
-    cli_parser.add_argument('-f', '--files', action='store_true', help='Item ID is a file')
-    cli_parser.add_argument('-d', '--folders', action='store_true', help='Item ID is a folder')
     options = cli_parser.parse_args(args)
-    do_files, do_folders = options.files, options.folders
-    if do_files == do_folders:
-        print("You must supply exactly one of --files/-f or --folders/-d")
-        return
     item_id = translate_id(options.id)
     new_name = options.new_name
     if item_id is None:
         return
     client = get_ops_client()
-    item = client.file(item_id) if do_files else client.folder(item_id)
-    oldname = item.get(fields=['id', 'name', 'type', 'parent']).name
+    _type, item = get_api_item(client, item_id)
+    item = item.get(fields=['id', 'name', 'type', 'parent'])
+    oldname = item.name
     item = item.rename(new_name)
     add_history_item(item)
-    print(f'"{oldname}" renamed to "{item.name}"')
+    print(f'{_type.capitalize()} "{oldname}" renamed to "{item.name}"')
 
 def desc_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s desc [options] id [description]',
-                                         description='Print or update the description of a file or folder')
+                                         description='Print or update the description of an item')
     cli_parser.add_argument('id', help='Item ID')
     cli_parser.add_argument('description', nargs='?', help='If present, set the item description')
-    cli_parser.add_argument('-f', '--file', action='store_true', help='ID refers to a file')
-    cli_parser.add_argument('-d', '--folder', action='store_true', help='ID refers to a folder')
     options = cli_parser.parse_args(args)
-    do_file, do_folder = options.file, options.folder
-    if do_file == do_folder:
-        print("You must supply exactly one of --file/-f or --folder/-d")
-        return
     item_id = translate_id(options.id)
     if item_id is None:
         return
     description = options.description
     client = get_ops_client()
-    item = client.file(item_id) if do_file else client.folder(item_id)
+    _type, item = get_api_item(client, item_id)
     if description:
         item = item.update_info(data = {'description' : description})
-        print(f'Updated the description of "{item.name}"')
+        print(f'Updated the description of {_type} "{item.name}"')
     else:
         item = item.get(fields=('name', 'description'))
         if item.description:
             print_name_header(item.name)
             print(item.description)
         else:
-            print(f'"{item.name}" has no description attached')
+            print(f'{_type.capitalize()} "{item.name}" has no description attached')
 
 def ln_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s ln [options] ids...',
                                          description='Get links for files or folders')
     cli_parser.add_argument('ids', nargs='+', help='Item IDs')
-    cli_parser.add_argument('-f', '--files', action='store_true', help='Item IDs are files')
-    cli_parser.add_argument('-d', '--folders', action='store_true', help='Item IDs are folders')
     cli_parser.add_argument('-p', '--password', help='Set a password to access items')
     cli_parser.add_argument('-r', '--remove', action='store_true', help='Remove shared link from items')
     options = cli_parser.parse_args(args)
-    do_files, do_folders = options.files, options.folders
-    if do_files == do_folders:
-        print("You must supply exactly one of --files/-f or --folders/-d")
-        return
     password = options.password
     remove = options.remove
     item_ids = [translate_id(_id) for _id in options.ids]
     if any(id is None for id in item_ids):
         return
     client = get_ops_client()
-    if do_files:
-        for i, id in enumerate(item_ids):
-            file = client.file(id)
-            if remove:
-                file.remove_shared_link()
-                file = file.get(fields=['id', 'name', 'type', 'parent'])
-                print(f'Removed shared link for file "{file.name}"')
-            else:
-                link = file.get_shared_link(allow_download=True, allow_preview=True, password=password)
-                file = file.get(fields=['id', 'name', 'type', 'parent', 'shared_link'])
-                direct_link = file.shared_link['download_url']
-                if i != 0: print()
-                print("== File:", file.name)
+    for i, item_id in enumerate(item_ids):
+        _type, item = get_api_item(client, item_id)
+        if remove:
+            item.remove_shared_link()
+            item = item.get(fields=['id', 'name', 'type', 'parent'])
+            print(f'Removed shared link for {_type} "{item.name}"')
+        else:
+            link = item.get_shared_link(allow_download=True, allow_preview=True, password=password)
+            item = item.get(fields=['id', 'name', 'type', 'parent', 'shared_link'])
+            if i != 0: print()
+            if _type == 'file':
+                print("== File:", item.name)
                 print("   Link:", link)
-                print(" Direct:", direct_link)
-    elif do_folders:
-        for i, id in enumerate(item_ids):
-            folder = client.folder(id)
-            if remove:
-                folder.remove_shared_link()
-                folder = folder.get(fields=['id', 'name', 'type', 'parent'])
-                print(f'Removed shared link for folder "{folder.name}"')
-            else:
-                link = folder.get_shared_link(allow_download=True, allow_preview=True, password=password)
-                folder = folder.get(fields=['id', 'name', 'type', 'parent', 'shared_link'])
-                if i != 0: print()
-                print("== Folder:", folder.name)
+                print(" Direct:", item.shared_link['download_url'])
+            elif _type == 'folder':
+                print("== Folder:", item.name)
                 print("     Link:", link)
+            else:
+                print(f"Unable to get link for type \"{_type}\"")
 
 def readlink_cmd(args):  # {{{2
     if len(args) != 1 or '-h' in args or '--help' in args:
@@ -1219,21 +1202,15 @@ def readlink_cmd(args):  # {{{2
 def stat_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s stat [options] ids...',
-                                         description='Get info about files or folders')
+                                         description='Get info about items')
     cli_parser.add_argument('ids', nargs='+', help='Item IDs')
-    cli_parser.add_argument('-f', '--files', action='store_true', help='Item IDs are files')
-    cli_parser.add_argument('-d', '--folders', action='store_true', help='Item IDs are folders')
     options = cli_parser.parse_args(args)
-    do_files, do_folders = options.files, options.folders
-    if do_files == do_folders:
-        print("You must supply exactly one of --files/-f or --folders/-d")
-        return
     item_ids = [translate_id(_id) for _id in options.ids]
     if any(id is None for id in item_ids):
         return
     client = get_ops_client()
     for i, item_id in enumerate(item_ids):
-        item = client.file(item_id) if do_files else client.folder(item_id)
+        _type, item = get_api_item(client, item_id)
         item = item.get()
         if i != 0: print()
         print_stat_info(item)
@@ -1249,9 +1226,6 @@ def trash_cmd(args):  # {{{2
     cli_parser.add_argument('action', help='Action to perform: l[ist]/ls, s[tat], r[estore], p[urge]')
     cli_parser.add_argument('id', nargs='*', help='Item ID(s)')
     type_group = cli_parser.add_mutually_exclusive_group(required=False)
-    type_group.add_argument('-f', '--files', action='store_true', help='Item IDs refer to files')
-    type_group.add_argument('-d', '--folders', action='store_true', help='Item IDs refer to folders')
-    type_group.add_argument('-w', '--web-links', action='store_true', help='The IDs refer to web-links')
     cli_parser.add_argument('-l', '--limit', type=int, default=BOX_GET_ITEMS_LIMIT,
                             help='Maximum number of items to return')
     cli_parser.add_argument('-o', '--offset', type=int, default=0,
@@ -1265,10 +1239,9 @@ def trash_cmd(args):  # {{{2
     cli_parser.add_argument('-M', '--max-id-length', metavar='N', type=int,
                             help='Clip the item IDs of listed items to N characters')
     cli_parser.add_argument('-s', '--name-suffix', metavar='SUFFIX',
-                            help='When restoring, if an item with the same name exists, the restored '
-                                 'item will be renamed by appending this suffix to its basename')
+        help='When restoring, the item will be renamed by appending "-SUFFIX" to its basename')
     # We use parse_intermixed_args() here so that we can type natural command lines like
-    # "trash stat -f 1234", which doesn't work with parse_args().
+    # "trash restore -s restored 1234", which doesn't work with parse_args().
     options = cli_parser.parse_intermixed_args(args)
     do_list, do_list, do_stat, do_restore, do_purge = (_a.startswith(options.action) for _a in
                                                 ('list', 'ls', 'stat', 'restore', 'purge'))
@@ -1277,10 +1250,6 @@ def trash_cmd(args):  # {{{2
         return
     item_ids = [translate_id(id) for id in options.id]
     if any(id is None for id in item_ids):
-        return
-    do_files, do_folders, do_weblinks = options.files, options.folders, options.web_links
-    if (do_restore or do_stat or do_purge) and sum((do_files, do_folders, do_weblinks)) != 1:
-        print("For stat, restore, and purge, you must supply one of --files, --folders, or --web-links")
         return
     limit = options.limit
     offset = options.offset
@@ -1303,21 +1272,22 @@ def trash_cmd(args):  # {{{2
                     clip_fields={'name': (max_name_len, 'r'), 'id': (max_id_len, 'l')})
     else:
         for i, item_id in enumerate(item_ids):
-            item = client.file(item_id) if do_files else \
-                   client.folder(item_id) if do_folders else \
-                   client.web_link(item_id)
+            _type, item = get_api_item(client, item_id)
             item_from_trash = client.trash().get_item(item)
             if do_stat:
                 if i != 0: print()
                 print_stat_info(item_from_trash, add_history=False)
             elif do_restore:
-                root, ext = os.path.splitext(item_from_trash.name)
-                new_name = (root + name_suffix + ext) if name_suffix else None
+                if name_suffix:
+                    root, ext = os.path.splitext(item_from_trash.name)
+                    new_name = root + '-' + name_suffix + ext
+                else:
+                    new_name = None
                 restored_item = client.trash().restore_item(item, name=new_name)
                 add_history_item(restored_item)
                 print(f'Restored {restored_item.type} "{restored_item.name}" to "{restored_item.parent.name}"')
             elif do_purge:
-                print(f'Permanently deleting "{item_from_trash.name}"...', end='')
+                print(f'Permanently deleting {_type} "{item_from_trash.name}"...', end='')
                 client.trash().permanently_delete_item(item)
                 print("done")
 
