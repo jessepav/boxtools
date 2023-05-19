@@ -11,3 +11,17 @@ ls-history-size = 10
 chunked-upload-size-threshold = 20971520
 chunked-upload-num-threads = 2
 rclone-remote-name = 'box'
+
+# These determine the default --max-name-length and --max-id-length for
+# commands that accept those arguments, if they're not explicitly given.
+#
+# The value can be an integer or a string; if it is a string, it will be
+# eval()'d and can make use of the 'cols' variable, which represents the number
+# of columns of the terminal window.
+#
+# Ex:
+#   default-max-name-length = 'cols / 2.2'
+#   default-max-id-length = 10
+#
+default-max-name-length = 60
+default-max-id-length = 8

@@ -60,12 +60,26 @@ chunked_upload_size_threshold = config_table.get('chunked-upload-size-threshold'
 chunked_upload_num_threads = config_table.get('chunked-upload-num-threads', 2)
 rclone_remote_name = config_table.get('rclone-remote-name', 'box')
 
-# Minimum name and id lengths for commands that allow clipping field values {{{2
+# Get terminal size for use in default lengths {{{2
+screen_cols = shutil.get_terminal_size(fallback=(0, 0))[0] if sys.stdout.isatty() else 0
+
+# Default and minimum name and id lengths for commands that allow clipping field values {{{2
 MIN_NAME_LEN = 8
 MIN_ID_LEN   = 5
 
-# Get terminal size for use in default lengths {{{2
-screen_cols = shutil.get_terminal_size(fallback=(0, 0))[0] if sys.stdout.isatty() else 0
+def _decode_length_val(val):
+    _type = type(val)
+    if _type is int:
+        return val
+    elif _type is str:
+        return int(eval(val, {'cols' : screen_cols}))
+    else:
+        return 0
+
+default_max_name_length = _decode_length_val(config_table.get('default-max-name-length', 0))
+default_max_id_length   = _decode_length_val(config_table.get('default-max-id-length',   0))
+
+del _decode_length_val
 
 # Restore app state and readline history if available {{{2
 
@@ -520,6 +534,24 @@ def save_state():
             if alias[0] != '_' and not alias.isdigit():
                 print(alias, '=', id, file=f)
 
+# get_name_len() and get_id_len() {{{2
+
+def get_name_len(argval):
+    if argval is None:
+        return default_max_name_length
+    elif argval == 0:
+        return 0
+    else:
+        return max(argval, MIN_NAME_LEN)
+
+def get_id_len(argval):
+    if argval is None:
+        return default_max_id_length
+    elif argval == 0:
+        return None
+    else:
+        return max(argval, MIN_ID_LEN)
+
 # }}}1
 
 # Define command functions {{{1
@@ -598,8 +630,8 @@ def history_cmd(args):  # {{{2
     # Done with clear/delete
     max_count = options.max_count
     no_parent = options.no_parent
-    max_name_len = options.max_name_length and max(options.max_name_length, MIN_NAME_LEN)
-    max_id_len = options.max_id_length and max(options.max_id_length, MIN_ID_LEN)
+    max_name_len = get_name_len(options.max_name_length)
+    max_id_len = get_id_len(options.max_id_length)
     if filter_word and len(filter_word) <= 2 and filter_word.isdigit():
         # I just forgot to type the '-n', but meant to limit the count
         max_count = int(filter_word)
@@ -671,8 +703,8 @@ def ls_cmd(args):  # {{{2
            'date' if options.sort_date else \
            None
     direction = 'DESC' if options.reverse else 'ASC'
-    max_name_len = options.max_name_length and max(options.max_name_length, MIN_NAME_LEN)
-    max_id_len = options.max_id_length and max(options.max_id_length, MIN_ID_LEN)
+    max_name_len = get_name_len(options.max_name_length)
+    max_id_len = get_id_len(options.max_id_length)
     if options.clear_history:
         ls_history_deque.clear()
         print("ls history cleared")
@@ -764,8 +796,8 @@ def search_cmd(args):  # {{{2
     extensions = [ext.strip(" .") for ext in options.extensions.split(",")] \
                     if options.extensions else None
     fields=['name', 'id', 'type', 'parent']
-    max_name_len = options.max_name_length and max(options.max_name_length, MIN_NAME_LEN)
-    max_id_len = options.max_id_length and max(options.max_id_length, MIN_ID_LEN)
+    max_name_len = get_name_len(options.max_name_length)
+    max_id_len = get_id_len(options.max_id_length)
     client = get_ops_client()
     ancestors = [client.folder(id) for id in ancestor_ids] if ancestor_ids else None
     results = client.search().query(query=term, limit=limit, offset=offset,
@@ -1288,8 +1320,8 @@ def trash_cmd(args):  # {{{2
            'date' if options.sort_date else \
            None
     direction = 'DESC' if options.reverse else 'ASC'
-    max_name_len = options.max_name_length and max(options.max_name_length, MIN_NAME_LEN)
-    max_id_len = options.max_id_length and max(options.max_id_length, MIN_ID_LEN)
+    max_name_len = get_name_len(options.max_name_length)
+    max_id_len = get_id_len(options.max_id_length)
     name_suffix = options.name_suffix
     client = get_ops_client()
     if do_list:
