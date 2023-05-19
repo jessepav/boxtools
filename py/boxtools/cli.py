@@ -566,6 +566,8 @@ def history_cmd(args):  # {{{2
     cli_parser.add_argument('filter', nargs='?',
                             help='If given, only entries whose names match (case-insensitively) will be shown.')
     cli_parser.add_argument('-c', '--clear', action='store_true', help='Clear history')
+    cli_parser.add_argument('-d', '--delete', metavar='ID', action='append',
+                            help='Delete the given item ID from history')
     cli_parser.add_argument('-n', '--max-count', type=int, default=0,
                             help='Maximum number of (most-recent) items to return')
     cli_parser.add_argument('-P', '--no-parent', action='store_true',
@@ -576,11 +578,24 @@ def history_cmd(args):  # {{{2
                             help='Clip the item IDs in the displayed table to N characters')
     options = cli_parser.parse_args(args)
     filter_word = options.filter
+    # First let's handle any of the clear/delete options if need be, since we can then exit
     if options.clear:
         n = len(item_history_map)
         item_history_map.clear()
         print(f"Removed {n} entries from our item history")
         return
+    elif options.delete:
+        for _id in options.delete:
+            if (item_id := translate_id(_id)) is None:
+                continue  # A message was already printed by translate_id()
+            elif item_id not in item_history_map:
+                print(f"Item with ID {_id} not found in history")
+            else:
+                entry = item_history_map.pop(item_id)
+                name = entry['name']
+                print(f'Removed item {item_id} "{name}" from history')
+        return
+    # Done with clear/delete
     max_count = options.max_count
     no_parent = options.no_parent
     max_name_len = options.max_name_length and max(options.max_name_length, MIN_NAME_LEN)
