@@ -354,11 +354,12 @@ def determine_item_type(client, item_id):
     for _type in ('file', 'folder', 'web_link'):
         try:
             cstr = getattr(client, _type)
-            obj = cstr(item_id)
+            obj = cstr(item_id).get(fields=['id', 'name'])
             return (_type, obj)
         except BoxAPIException:
             continue
     else:
+        print(f"** Item ID {item_id} not found **")
         return (None, None)
 
 # get_api_item() {{{2
@@ -991,6 +992,7 @@ def cat_cmd(args):  # {{{2
     client = get_ops_client()
     for i, item_id in enumerate(item_ids):
         _type, item = get_api_item(client, item_id)
+        if not _type: continue
         if _type == 'web_link':
             web_link = item.get(fields=['name', 'url'])
             if headers:
@@ -1019,6 +1021,7 @@ def rm_cmd(args):  # {{{2
     client = get_ops_client()
     for item_id in item_ids:
         _type, item = get_api_item(client, item_id)
+        if not _type: continue
         item = item.get(fields=['id', 'name'])
         print(f"Deleting {_type} {item.name}...")
         item.delete()
@@ -1043,6 +1046,7 @@ def path_cmd(args):  # {{{2
             print('{rclone_remote_name}:/') if rclone else print('/')
         else:
             _type, item = get_api_item(client, id)
+            if not _type: continue
             item = item.get()
             if verbose:
                 if i != 0: print()
@@ -1088,6 +1092,7 @@ def mv_cmd(args):  # {{{2
     dest_folder = client.folder(folder_id=dest_folder_id)
     for item_id in item_ids:
         _type, item = get_api_item(client, item_id)
+        if not _type: continue
         moved_item = item.move(parent_folder=dest_folder)
         print(f'Moved {_type} "{moved_item.name}" into "{moved_item.parent.name}"')
         add_history_item(moved_item)
@@ -1107,6 +1112,7 @@ def cp_cmd(args):  # {{{2
     dest_folder = client.folder(folder_id=dest_folder_id)
     for item_id in item_ids:
         _type, item = get_api_item(client, item_id)
+        if not _type: continue
         copied_item = item.copy(parent_folder=dest_folder)
         print(f'Copied {_type} "{copied_item.name}" into "{copied_item.parent.name}"')
         add_history_item(copied_item)
@@ -1124,6 +1130,8 @@ def rn_cmd(args):  # {{{2
         return
     client = get_ops_client()
     _type, item = get_api_item(client, item_id)
+    if not _type:
+        return
     item = item.get(fields=['id', 'name', 'type', 'parent'])
     oldname = item.name
     item = item.rename(new_name)
@@ -1143,6 +1151,8 @@ def desc_cmd(args):  # {{{2
     description = options.description
     client = get_ops_client()
     _type, item = get_api_item(client, item_id)
+    if not _type:
+        return
     if description:
         item = item.update_info(data = {'description' : description})
         print(f'Updated the description of {_type} "{item.name}"')
@@ -1170,6 +1180,7 @@ def ln_cmd(args):  # {{{2
     client = get_ops_client()
     for i, item_id in enumerate(item_ids):
         _type, item = get_api_item(client, item_id)
+        if not _type: continue
         if remove:
             item.remove_shared_link()
             item = item.get(fields=['id', 'name', 'type', 'parent'])
@@ -1211,6 +1222,7 @@ def stat_cmd(args):  # {{{2
     client = get_ops_client()
     for i, item_id in enumerate(item_ids):
         _type, item = get_api_item(client, item_id)
+        if not _type: continue
         item = item.get()
         if i != 0: print()
         print_stat_info(item)
@@ -1273,6 +1285,7 @@ def trash_cmd(args):  # {{{2
     else:
         for i, item_id in enumerate(item_ids):
             _type, item = get_api_item(client, item_id)
+            if not _type: continue
             item_from_trash = client.trash().get_item(item)
             if do_stat:
                 if i != 0: print()
