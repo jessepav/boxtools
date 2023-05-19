@@ -567,6 +567,7 @@ def history_cmd(args):  # {{{2
                                          description='Show previous ID history')
     cli_parser.add_argument('filter', nargs='?',
                             help='If given, only entries whose names match (case-insensitively) will be shown.')
+    cli_parser.add_argument('-c', '--clear', action='store_true', help='Clear history')
     cli_parser.add_argument('-n', '--max-count', type=int, default=0,
                             help='Maximum number of (most-recent) items to return')
     cli_parser.add_argument('-P', '--no-parent', action='store_true',
@@ -577,6 +578,11 @@ def history_cmd(args):  # {{{2
                             help='Clip the item IDs in the displayed table to N characters')
     options = cli_parser.parse_args(args)
     filter_word = options.filter
+    if options.clear:
+        n = len(item_history_map)
+        item_history_map.clear()
+        print(f"Removed {n} entries from our item history")
+        return
     max_count = options.max_count
     no_parent = options.no_parent
     max_name_len = options.max_name_length and max(options.max_name_length, MIN_NAME_LEN)
