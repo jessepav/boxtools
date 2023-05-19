@@ -353,7 +353,9 @@ def add_history_item(item, parent=None):
 def determine_item_type(client, item_id):
     for _type in ('file', 'folder', 'web_link'):
         try:
+            # cstr will be a bound method like client.file(), etc
             cstr = getattr(client, _type)
+            # Just calling the constructor function isn't enough: we need the get() to hit the API.
             obj = cstr(item_id).get(fields=['id', 'name'])
             return (_type, obj)
         except BoxAPIException:
