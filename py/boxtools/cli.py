@@ -369,16 +369,12 @@ def determine_item_type(client, item_id):
 # Return a tuple of (type, object) [as documented in determine_item_type()]
 
 def get_api_item(client, item_id):
-    # First we check if our history has the item type
+    # Check first if our history has the item type
     histentry = item_history_map.get(item_id)
     if histentry:
         _type = histentry['type']
-        try:
-            item = getattr(client, _type)(item_id)
-        except BoxAPIException:  # Maybe the recorded type was wrong and the API errored
-            return determine_item_type(client, item_id)
-        else:
-            return (_type, item)
+        item = getattr(client, _type)(item_id)
+        return (_type, item)
     else:
         return determine_item_type(client, item_id)
 
