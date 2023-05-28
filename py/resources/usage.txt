@@ -7,6 +7,7 @@ to lookup an ID encountered in recent ls or search commands:
 
   =name     Do an exact match on item names
   %name     Do a substring search on item names
+  name%     (same)
   ^name     Do a prefix search on item names
   name$     Do a suffix search on item names and IDs
   /re/      use the ID of the item whose name or ID is matched by the

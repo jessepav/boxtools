@@ -268,22 +268,24 @@ def print_stat_info(item, add_history=True):
 
 def translate_id(id_):
     global current_cmd_last_id
-    if id_ == '@':
+    if not id_:
+        return None
+    elif id_ == '@':
         retid = last_id
-    elif id_.startswith('@'):
+    elif id_[0] == '@':
         retid = id_aliases.get(id_[1:])
     elif id_ == '/':
         retid = '0'
-    elif id_.startswith('%'):
-        term = id_[1:]
+    elif id_[0] == '%' or id_[-1] == '%':
+        term = id_.strip('%')
         retid = _choose_history_entry(id_, lambda entry : term in entry['name'])
-    elif id_.startswith('='):
+    elif id_[0] == '=':
         term = id_[1:]
         retid = _choose_history_entry(id_, lambda entry : term == entry['name'])
-    elif id_.startswith('^'):
+    elif id_[0] == '^':
         term = id_[1:]
         retid = _choose_history_entry(id_, lambda entry : entry['name'].startswith(term))
-    elif id_.endswith('$'):
+    elif id_[-1] == '$':
         term = id_[0:-1]
         retid = _choose_history_entry(id_,
                     lambda entry : any(entry[k].endswith(term) for k in ('name', 'id')))
