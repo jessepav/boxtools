@@ -1290,7 +1290,6 @@ def trash_cmd(args):  # {{{2
     )
     cli_parser.add_argument('action', help='Action to perform: l[ist]/ls, s[tat], r[estore], p[urge]')
     cli_parser.add_argument('id', nargs='*', help='Item ID(s)')
-    type_group = cli_parser.add_mutually_exclusive_group(required=False)
     cli_parser.add_argument('-l', '--limit', type=int, default=BOX_GET_ITEMS_LIMIT,
                             help='Maximum number of items to return')
     cli_parser.add_argument('-o', '--offset', type=int, default=0,
@@ -1308,8 +1307,9 @@ def trash_cmd(args):  # {{{2
     # We use parse_intermixed_args() here so that we can type natural command lines like
     # "trash restore -s restored 1234", which doesn't work with parse_args().
     options = cli_parser.parse_intermixed_args(args)
-    do_list, do_list, do_stat, do_restore, do_purge = (_a.startswith(options.action) for _a in
+    do_list1, do_list2, do_stat, do_restore, do_purge = (_a.startswith(options.action) for _a in
                                                 ('list', 'ls', 'stat', 'restore', 'purge'))
+    do_list = any((do_list1, do_list2))
     if not (do_list or do_stat or do_restore or do_purge):
         print("Valid actions are l[ist]/ls, s[tat], r[estore], p[urge]")
         return
@@ -1356,6 +1356,62 @@ def trash_cmd(args):  # {{{2
                 print(f'Permanently deleting {_type} "{item_from_trash.name}"...', end='')
                 client.trash().permanently_delete_item(item)
                 print("done")
+
+def ver_cmd(args):  # {{{2
+    cli_parser = argparse.ArgumentParser(exit_on_error=False,
+                                         usage='%(prog)s ver [options] id',
+                                         description='List and manipulate file versions')
+    cli_parser.add_argument('id', help='File ID')
+    action_group = cli_parser.add_mutually_exclusive_group(required=True)
+    action_group.add_argument('-t', '--list', action='store_true', help='List file versions')
+    action_group.add_argument('-d', '--delete', help='Delete file version')
+    action_group.add_argument('-p', '--promote', help='Promote file version')
+    action_group.add_argument('-g', '--get', nargs=2, metavar=('version_id', 'path'),
+        help='Get (download) a specific file version. The first argument is the version ID, '
+             'and the second is the full path to the local destination file.')
+    cli_parser.add_argument('-l', '--limit', type=int, default=BOX_GET_ITEMS_LIMIT,
+                            help='Maximum number of versions to list')
+    cli_parser.add_argument('-o', '--offset', type=int, default=0,
+                            help='The number of versions to skip before displaying results')
+    options = cli_parser.parse_args(args)
+    file_id = translate_id(options.id)
+    do_list, do_delete, do_promote, do_get = (False,) * 4
+    if options.list:
+        do_list = True
+        limit = options.limit
+        offset = options.offset
+    elif version_id := options.delete:
+        do_delete = True
+    elif version_id := options.promote:
+        do_promote = True
+    elif options.get:
+        do_get = True
+        version_id, filepath = options.get
+    client = get_ops_client()
+    file = client.file(file_id).get(fields=['id', 'name', 'content_modified_at'])
+    if do_list:
+        versions_iter = file.get_previous_versions(limit=limit, offset=offset)
+        versions = []
+        for ver in versions_iter:
+            if not ver.trashed_at:
+                versions.append({'version_id' : ver.id, 'modified' : ver.modified_at, 'name' : ver.name})
+        print_name_header(file.name, context_info=f"( Modified: {file.content_modified_at} )")
+        print_table(versions, ('version_id', 'modified', 'name'), is_dict=True)
+    elif do_delete:
+        version_to_delete = client.file_version(version_id)
+        file.delete_version(version_to_delete)
+        print(f'Version {version_id} of file "{file.name}" trashed')
+    elif do_promote:
+        version_to_promote = client.file_version(version_id)
+        new_version = file.promote_version(version_to_promote)
+        print(f'Promoted version {version_id} of file "{file.name}"',
+              f'(new name "{new_version.name}")' if new_version.name != file.name else "")
+    elif do_get:
+        filepath = expand_all(filepath)
+        file_version = client.file_version(version_id)
+        print(f'Downloading version {version_id} of "{file.name}" to "{os.path.basename(filepath)}"...')
+        with open(filepath, "wb") as f:
+            file.download_to(f, file_version=file_version)
 
 def shell_cmd(args):  # {{{2
     print("Type q(uit)/e(xit) to exit the shell, and h(elp)/? for general usage.")
@@ -1420,6 +1476,7 @@ command_funcs = {
     'readlink' : readlink_cmd,
     'stat'     : stat_cmd,
     'trash'    : trash_cmd,
+    'ver'      : ver_cmd, 'version' : ver_cmd,
     'shell'    : shell_cmd,
     'source'   : source_cmd,
 }
