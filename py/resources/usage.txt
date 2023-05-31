@@ -70,7 +70,7 @@ Commands:
     stat          Get info about the item referred to by a shared link
     desc          Print or update the description of a file or folder
     trash         List, view, restore, or purge items in the trash.
-    ver, version  List and manipulate file versions
+    ver, version  List, download, and manipulate file versions
 
     shell         Enter an interactive shell
     source        Read commands from a given file

@@ -1360,7 +1360,7 @@ def trash_cmd(args):  # {{{2
 def ver_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          usage='%(prog)s ver [options] id',
-                                         description='List and manipulate file versions')
+                                         description='List, download, and manipulate file versions')
     cli_parser.add_argument('id', help='File ID')
     action_group = cli_parser.add_mutually_exclusive_group(required=True)
     action_group.add_argument('-t', '--list', action='store_true', help='List file versions')
