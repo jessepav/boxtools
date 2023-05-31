@@ -2,5 +2,5 @@
 
 cd "$(realpath $(dirname "$0"))"
 
-python -m venv venv
-./venv/bin/python -m pip install -r requirements.txt
+[[ ! -d venv ]] && python -m venv venv
+[[ -f requirements.txt ]] && ./venv/bin/python -m pip install -r requirements.txt
