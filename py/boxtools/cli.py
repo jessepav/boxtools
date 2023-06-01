@@ -13,14 +13,15 @@ if not app_dir:
     print("You must set $BOXTOOLS_APP_DIR before running this program!")
     sys.exit(1)
 
+progname = os.environ.get("BOXTOOLS_PROGNAME", os.path.basename(sys.argv[0]))
+
 # The user can override the default ~/.boxtools directory by setting $BOXTOOLS_DIR {{{2
 config_dir = os.environ.get("BOXTOOLS_DIR", os.path.expanduser("~/.boxtools"))
 
 # We keep certain resources as their own files for easy editing {{{2
 with open(os.path.join(app_dir, 'resources/usage.txt'), "rt") as f:
     general_usage = f.read(). \
-        format(progname=os.path.basename(sys.argv[0]),
-               app_dir=app_dir, config_dir=config_dir)
+        format(progname=progname, app_dir=app_dir, config_dir=config_dir)
 
 if not os.path.exists(config_dir):
     print(f"Creating {config_dir}...")
@@ -562,7 +563,7 @@ def get_id_len(argval):
 
 def auth_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
-                                         usage='%(prog)s auth [options]',
+                                         prog=progname, usage='%(prog)s auth [options]',
                                          description='Authenticate (via OAuth2) with Box')
     cli_parser.add_argument('-B', '--no-browser', action='store_true',
                             help="Do not open a browser window to the authorization URL")
@@ -597,7 +598,7 @@ def userinfo_cmd(args):  # {{{2
 
 def history_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
-                                         usage='%(prog)s history [options] [filter]',
+                                         prog=progname, usage='%(prog)s history [options] [filter]',
                                          description='Show previous ID history')
     cli_parser.add_argument('filter', nargs='?',
                             help='If given, only entries whose names match (case-insensitively) will be shown.')
@@ -666,7 +667,7 @@ def history_cmd(args):  # {{{2
 def ls_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(
          exit_on_error=False,
-         usage='%(prog)s ls [options] [id...]',
+         prog=progname, usage='%(prog)s ls [options] [id...]',
          description='List one or more folders. If no folder IDs are given, use '
                      'the ID of the folder most recently listed, if available.'
     )
@@ -759,7 +760,7 @@ def ls_cmd(args):  # {{{2
 
 def search_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
-                                         usage='%(prog)s fd [options] term',
+                                         prog=progname, usage='%(prog)s fd [options] term',
                                          description='Search for items')
     cli_parser.add_argument('term', help='Search term')
     cli_parser.add_argument('-f', '--files', action='store_true', help='Search for files')
@@ -833,7 +834,7 @@ def search_cmd(args):  # {{{2
 
 def tree_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
-                                         usage='%(prog)s tree [options] folder_id',
+                                         prog=progname, usage='%(prog)s tree [options] folder_id',
                                          description='Display a tree of folders')
     cli_parser.add_argument('folder_id', help='Folder ID')
     cli_parser.add_argument('-L', '--max-levels', type=int, default=999,
@@ -889,7 +890,7 @@ _tree_item_markers = ['*', '-']
 
 def get_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
-                                         usage='%(prog)s get [options] ids... directory',
+                                         prog=progname, usage='%(prog)s get [options] ids... directory',
                                          description='Download files or thumbnails')
     cli_parser.add_argument('ids', nargs='+', help='File or Folder IDs')
     cli_parser.add_argument('directory', help='Destination directory')
@@ -964,7 +965,7 @@ def get_cmd(args):  # {{{2
 def put_cmd(args):  # {{{2
     import glob
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
-                                         usage='%(prog)s put [options] file(s)',
+                                         prog=progname, usage='%(prog)s put [options] file(s)',
                                          description='Upload a file')
     cli_parser.add_argument('files', nargs='+', help='File(s) to upload')
     cli_parser.add_argument('-f', '--file-version', metavar='file_id',
@@ -1031,13 +1032,13 @@ def put_cmd(args):  # {{{2
 
 def cat_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
-                                         usage='%(prog)s cat [options] ids...',
+                                         prog=progname, usage='%(prog)s cat [options] ids...',
                                          description='Write the contents of files or web-links to stdout')
     cli_parser.add_argument('ids', nargs='+', help='Item IDs to print')
     cli_parser.add_argument('-H', '--headers', action='store_true',
                             help="Print a header before each items's contents")
     cli_parser.add_argument('-c', '--byte-count', metavar='N', type=int, default=4096,
-                            help='Print the first N bytes of files (default 4096)')
+                            help='Print the first N bytes of files (default %(default)s)')
     options = cli_parser.parse_args(args)
     item_ids = [translate_id(_id) for _id in options.ids]
     if any(id is None for id in item_ids):
@@ -1066,7 +1067,7 @@ def cat_cmd(args):  # {{{2
 
 def rm_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
-                                         usage='%(prog)s rm [options] ids...',
+                                         prog=progname, usage='%(prog)s rm [options] ids...',
                                          description='Remove items')
     cli_parser.add_argument('ids', nargs='+', help='Item IDs to remove')
     options = cli_parser.parse_args(args)
@@ -1084,7 +1085,7 @@ def rm_cmd(args):  # {{{2
 
 def path_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
-                                         usage='%(prog)s path [options] ids...',
+                                         prog=progname, usage='%(prog)s path [options] ids...',
                                          description='Get full path of items')
     cli_parser.add_argument('ids', nargs='+', help='Item IDs')
     cli_parser.add_argument('-R', '--rclone', action='store_true', help='Format paths for use with rclone')
@@ -1134,7 +1135,7 @@ def mkdir_cmd(args):  # {{{2
 
 def mv_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
-                                         usage='%(prog)s mv [options] ids... dest_folder_id',
+                                         prog=progname, usage='%(prog)s mv [options] ids... dest_folder_id',
                                          description='Move items')
     cli_parser.add_argument('ids', nargs='+', help='Item IDs to move')
     cli_parser.add_argument('dest_folder_id', help='Destination folder ID')
@@ -1154,7 +1155,7 @@ def mv_cmd(args):  # {{{2
 
 def cp_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
-                                         usage='%(prog)s cp [options] ids... dest_folder_id',
+                                         prog=progname, usage='%(prog)s cp [options] ids... dest_folder_id',
                                          description='Copy items')
     cli_parser.add_argument('ids', nargs='+', help='Item IDs to copy')
     cli_parser.add_argument('dest_folder_id', help='Destination folder ID')
@@ -1174,7 +1175,7 @@ def cp_cmd(args):  # {{{2
 
 def rn_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
-                                         usage='%(prog)s rn [options] id new_name',
+                                         prog=progname, usage='%(prog)s rn [options] id new_name',
                                          description='Rename an item')
     cli_parser.add_argument('id', help='Item ID')
     cli_parser.add_argument('new_name', help='New name for the item')
@@ -1195,7 +1196,7 @@ def rn_cmd(args):  # {{{2
 
 def desc_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
-                                         usage='%(prog)s desc [options] id [description]',
+                                         prog=progname, usage='%(prog)s desc [options] id [description]',
                                          description='Print or update the description of an item')
     cli_parser.add_argument('id', help='Item ID')
     cli_parser.add_argument('description', nargs='?', help='If present, set the item description')
@@ -1221,7 +1222,7 @@ def desc_cmd(args):  # {{{2
 
 def ln_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
-                                         usage='%(prog)s ln [options] ids...',
+                                         prog=progname, usage='%(prog)s ln [options] ids...',
                                          description='Get links for files or folders')
     cli_parser.add_argument('ids', nargs='+', help='Item IDs')
     cli_parser.add_argument('-p', '--password', help='Set a password to access items')
@@ -1267,7 +1268,7 @@ def readlink_cmd(args):  # {{{2
 
 def stat_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
-                                         usage='%(prog)s stat [options] ids...',
+                                         prog=progname, usage='%(prog)s stat [options] ids...',
                                          description='Get info about items')
     cli_parser.add_argument('ids', nargs='+', help='Item IDs')
     options = cli_parser.parse_args(args)
@@ -1285,7 +1286,7 @@ def stat_cmd(args):  # {{{2
 def trash_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(
         exit_on_error=False,
-        usage='%(prog)s trash [options] action [id...]',
+        prog=progname, usage='%(prog)s trash [options] action [id...]',
         description='List, view, restore, or purge items in the trash.',
         epilog='To get a reasonable listing of recently deleted items, use "trash list -trl 10", '
                 'which will show the 10 most-recently-deleted items, newest first.'
@@ -1361,7 +1362,7 @@ def trash_cmd(args):  # {{{2
 
 def ver_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
-                                         usage='%(prog)s ver [options] id',
+                                         prog=progname, usage='%(prog)s ver [options] id',
                                          description='List, download, and manipulate file versions')
     cli_parser.add_argument('id', help='File ID')
     action_group = cli_parser.add_mutually_exclusive_group(required=True)
