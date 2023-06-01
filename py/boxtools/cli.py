@@ -1367,6 +1367,7 @@ def ver_cmd(args):  # {{{2
     action_group = cli_parser.add_mutually_exclusive_group(required=True)
     action_group.add_argument('-t', '--list', action='store_true', help='List file versions')
     action_group.add_argument('-d', '--delete', help='Delete file version')
+    action_group.add_argument('-r', '--restore', help='Restore a deleted file version')
     action_group.add_argument('-p', '--promote', help='Promote file version')
     action_group.add_argument('-g', '--get', nargs=2, metavar=('version_id', 'path'),
         help='Get (download) a specific file version. The first argument is the version ID, '
@@ -1379,32 +1380,57 @@ def ver_cmd(args):  # {{{2
     file_id = translate_id(options.id)
     if file_id is None:
         return
-    do_list, do_delete, do_promote, do_get = (False,) * 4
+    do_list, do_delete, do_restore, do_promote, do_get = (False,) * 5
     if options.list:
         do_list = True
         limit = options.limit
         offset = options.offset
     elif version_id := options.delete:
         do_delete = True
+    elif version_id := options.restore:
+        do_restore = True
     elif version_id := options.promote:
         do_promote = True
     elif options.get:
         do_get = True
         version_id, filepath = options.get
     client = get_ops_client()
-    file = client.file(file_id).get(fields=['id', 'name', 'content_modified_at'])
+    file = client.file(file_id).get(fields=['id', 'name', 'modified_at'])
     if do_list:
         versions_iter = file.get_previous_versions(limit=limit, offset=offset)
         versions = []
+        has_trashed = False
         for ver in versions_iter:
-            if not ver.trashed_at:
-                versions.append({'version_id' : ver.id, 'modified' : ver.modified_at, 'name' : ver.name})
-        print_name_header(file.name, context_info=f"( Modified: {file.content_modified_at} )")
-        print_table(versions, ('version_id', 'modified', 'name'), is_dict=True)
+            _id = ver.id
+            if ver.trashed_at:
+                _id += '*'
+                has_trashed = True
+            versions.append({'version_id' : _id, 'created' : ver.created_at, 'name' : ver.name})
+        print_name_header(file.name, context_info=f"( Modified: {file.modified_at} )")
+        print_table(versions, ('version_id', 'created', 'name'), no_leader_fields=('version_id',), is_dict=True)
+        if has_trashed:
+            print("\n* = version has been trashed")
     elif do_delete:
         version_to_delete = client.file_version(version_id)
         file.delete_version(version_to_delete)
         print(f'Version {version_id} of file "{file.name}" trashed')
+    elif do_restore:
+        # We're going to have to do this manually, like the titans of old.
+        try:
+            response = client.session.put(f'https://api.box.com/2.0/files/{file_id}/versions/{version_id}',
+                                          data='{ "trashed_at" : null }')
+        except BoxAPIException as e:
+            raise  # Send it upward for handling
+        except Exception as e:
+            # Everything else we'll just print, since we don't want our loop to exit
+            print("An exception occured with our PUT request:\n")
+            print(e)
+        else:
+            if response.status_code == 200:
+                version_rsrc = response.json()
+                print(f'Version {version_rsrc["id"]} of file "{version_rsrc["name"]}" was restored')
+            else:
+                print(f'Error: status code {response.status_code}')
     elif do_promote:
         version_to_promote = client.file_version(version_id)
         new_version = file.promote_version(version_to_promote)
