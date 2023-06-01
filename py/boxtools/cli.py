@@ -921,7 +921,12 @@ def tree_cmd(args):  # {{{2
     path_entries = [folder.name for folder in initial_folder.path_collection['entries'][1:]]
     path_entries.append(initial_folder.name)
     initial_folder.fullpath = "/" + "/".join(path_entries)
-    _tree_helper(initial_folder, 0)
+    try:
+        _tree_helper(initial_folder, 0)
+    except KeyboardInterrupt:
+        sys.stdout.write('\033[2K\033[1G')
+        print("Cancelled")
+        # But we'll print out what we have anyway, so the user knows why it was taking a long time
     print_table(tree_entries, ('name_part', 'id_part'), print_header=False, is_sequence=True)
 
 _tree_item_markers = ['*', '-']
