@@ -274,6 +274,8 @@ def translate_id(id_):
         retid = last_id
     elif id_[0] == '@':
         retid = id_aliases.get(id_[1:])
+        if retid is None:
+            print(f"{id_} is not a known alias")
     elif id_ == '/':
         retid = '0'
     elif id_[0] == '%' or id_[-1] == '%':
@@ -1375,6 +1377,8 @@ def ver_cmd(args):  # {{{2
                             help='The number of versions to skip before displaying results')
     options = cli_parser.parse_args(args)
     file_id = translate_id(options.id)
+    if file_id is None:
+        return
     do_list, do_delete, do_promote, do_get = (False,) * 4
     if options.list:
         do_list = True
