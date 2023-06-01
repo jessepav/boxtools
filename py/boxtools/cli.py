@@ -1366,12 +1366,12 @@ def ver_cmd(args):  # {{{2
     cli_parser.add_argument('id', help='File ID')
     action_group = cli_parser.add_mutually_exclusive_group(required=True)
     action_group.add_argument('-t', '--list', action='store_true', help='List file versions')
-    action_group.add_argument('-d', '--delete', help='Delete file version')
-    action_group.add_argument('-r', '--restore', help='Restore a deleted file version')
-    action_group.add_argument('-p', '--promote', help='Promote file version')
-    action_group.add_argument('-g', '--get', nargs=2, metavar=('version_id', 'path'),
+    action_group.add_argument('-d', '--delete', metavar='VERSION', help='Delete file version')
+    action_group.add_argument('-r', '--restore', metavar='VERSION', help='Restore a deleted file version')
+    action_group.add_argument('-p', '--promote', metavar='VERSION', help='Promote file version')
+    action_group.add_argument('-g', '--get', nargs=2, metavar=('VERSION', 'PATH'),
         help='Get (download) a specific file version. The first argument is the version ID, '
-             'and the second is the full path to the local destination file.')
+             'and the second is a local path where the version contents will be saved.')
     cli_parser.add_argument('-l', '--limit', type=int, default=BOX_GET_ITEMS_LIMIT,
                             help='Maximum number of versions to list')
     cli_parser.add_argument('-o', '--offset', type=int, default=0,
