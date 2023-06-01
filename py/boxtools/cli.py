@@ -269,9 +269,15 @@ def print_stat_info(item, add_history=True):
 
 def translate_id(id_):
     global current_cmd_last_id
+    #
     if not id_:
         return None
-    elif id_ == '@':
+    use_most_recent = False
+    if id_[-1] == '!':
+        use_most_recent = True
+        id_ = id_[:-1]
+    #
+    if id_ == '@':
         retid = last_id
     elif id_[0] == '@':
         retid = id_aliases.get(id_[1:])
@@ -281,47 +287,49 @@ def translate_id(id_):
         retid = '0'
     elif id_[0] == '%' or id_[-1] == '%':
         term = id_.strip('%')
-        retid = _choose_history_entry(id_, lambda entry : term in entry['name'])
-    elif id_[0] == '=':
-        term = id_[1:]
-        retid = _choose_history_entry(id_, lambda entry : term == entry['name'])
+        retid = _choose_history_entry(id_, lambda entry : term in entry['name'], use_most_recent)
+    elif id_[0] == '=' or id_[-1] == '=':
+        term = id_.strip('=')
+        retid = _choose_history_entry(id_, lambda entry : term == entry['name'], use_most_recent)
     elif id_[0] == '^':
         term = id_[1:]
-        retid = _choose_history_entry(id_, lambda entry : entry['name'].startswith(term))
+        retid = _choose_history_entry(id_, lambda entry : entry['name'].startswith(term), use_most_recent)
     elif id_[-1] == '$':
         term = id_[0:-1]
         retid = _choose_history_entry(id_,
-                    lambda entry : any(entry[k].endswith(term) for k in ('name', 'id')))
+                    lambda entry : any(entry[k].endswith(term) for k in ('name', 'id')), use_most_recent)
     elif len(id_) >= 3 and id_[0] == '/' and id_[-1] == '/':  # a regex
         matched_ids = []
         regexp = re.compile(id_[1:-1], re.IGNORECASE)
         retid = _choose_history_entry(id_,
-                    lambda entry : any(regexp.search(entry[k]) for k in ('name', 'id')))
+                    lambda entry : any(regexp.search(entry[k]) for k in ('name', 'id')), use_most_recent)
     elif (slash_count := id_.count('/')) == 2 and len(id_) >= 4 and id_[0] == '/':  # /p/s
         p, s = id_[1:].split('/')
         retid = _choose_history_entry(id_,
                     lambda entry : (_parent := entry['parent_name']) and
-                                    s in entry['name'] and p in _parent)
+                                    s in entry['name'] and p in _parent, use_most_recent)
     elif len(id_) >= 3 and slash_count == 1:
         s, n = id_.split('/')
         retid = _choose_history_entry(id_,
-                    lambda entry : s in entry['name'] and entry['id'].endswith(n))
+                    lambda entry : s in entry['name'] and entry['id'].endswith(n), use_most_recent)
     elif id_.isdigit():
         retid = id_
     else:
         term = id_.casefold()
-        retid = _choose_history_entry(id_, lambda entry : term == entry['name'].casefold())
+        retid = _choose_history_entry(id_, lambda entry : term == entry['name'].casefold(), use_most_recent)
     if retid:
         current_cmd_last_id = retid
     return retid
 
-def _choose_history_entry(id_, entry_filter_func):
+def _choose_history_entry(id_, entry_filter_func, use_most_recent):
     matched_ids = list(filter(entry_filter_func, item_history_map.values()))
     numchoices = len(matched_ids)
     if numchoices == 0:
         print(f'"{id_}" did not match any previous IDs')
         return None
     elif numchoices > 1:
+        if use_most_recent:
+            return matched_ids[-1]['id']
         print(f'"{id_}" matched multiple previous IDs (listed from old to new):\n')
         choices = []
         for i, entry in enumerate(matched_ids, start=1):
