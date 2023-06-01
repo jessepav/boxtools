@@ -285,6 +285,9 @@ def translate_id(id_):
             print(f"{id_} is not a known alias")
     elif id_ == '/':
         retid = '0'
+    elif id_ in '%=^$/':
+        print(f"'{id_}' is composed only of operators!")
+        retid = None
     elif id_[0] == '%' or id_[-1] == '%':
         term = id_.strip('%')
         retid = _choose_history_entry(id_, lambda entry : term in entry['name'], use_most_recent)
@@ -322,6 +325,8 @@ def translate_id(id_):
     return retid
 
 def _choose_history_entry(id_, entry_filter_func, use_most_recent):
+    if not id_:
+        return None
     matched_ids = list(filter(entry_filter_func, item_history_map.values()))
     numchoices = len(matched_ids)
     if numchoices == 0:
