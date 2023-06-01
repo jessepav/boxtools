@@ -848,12 +848,13 @@ def search_cmd(args):  # {{{2
 def tree_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          prog=progname, usage='%(prog)s tree [options] folder_id',
-                                         description='Display a tree of folders')
+                                         description='Display a tree of items')
     cli_parser.add_argument('folder_id', help='Folder ID')
     cli_parser.add_argument('-L', '--max-levels', type=int, default=999,
                             help='Maximum number of levels to recurse (>= 1)')
     cli_parser.add_argument('-i', '--re-filter', metavar='RE',
-                help='Only display and recurse into sub-folders whose names fully match RE')
+                help='Only display items and recurse into sub-folders whose names fully match RE')
+    cli_parser.add_argument('-d', '--directories-only', action='store_true', help='Only show directories')
     options = cli_parser.parse_args(args)
     folder_id = translate_id(options.folder_id)
     if not folder_id:
@@ -863,6 +864,7 @@ def tree_cmd(args):  # {{{2
         print('--max-levels must be >= 1')
         return
     re_pattern = options.re_filter and re.compile(options.re_filter)
+    dirs_only = options.directories_only
     indent_str = " " * 2
     client = get_ops_client()
     tree_entries = []
@@ -875,22 +877,32 @@ def tree_cmd(args):  # {{{2
         else:
             marker = _tree_item_markers[level % len(_tree_item_markers)]
             name_part = (indent_str * level) + f"{marker} {folder.name}"
-        tree_entries.append((name_part, id_part))
+        tree_entries.append((name_part + '/', id_part))
         if sys.stdout.isatty():  # Display a progress report
             sys.stdout.write('\033[2K\033[1G') # erase and go to beginning of line
             print('*', folder.name, end="", flush=True)
         if level < max_levels:
-            # Since folders are always returned before other item types, we can break_on_filter;
-            # also, we specify a small pagesize_limit so that we don't retrieve the whole
-            # BOX_GET_ITEMS_LIMIT page from a folder, most of which will be files.
-            folder_items = retrieve_folder_items(client, folder, sort='name', pagesize_limit=30,
+            if dirs_only:
+                # Since folders are always returned before other item types, we can break_on_filter;
+                # also, we specify a small pagesize_limit so that we don't retrieve the whole
+                # BOX_GET_ITEMS_LIMIT page from a folder, most of which will be files.
+                items = retrieve_folder_items(client, folder, sort='name', pagesize_limit=30,
                                 filter_func=lambda it: it.type == 'folder', break_on_filter=True)
-            for f in folder_items:
-                if not re_pattern or re_pattern.fullmatch(f.name):
-                    _tree_helper(f, level + 1)
+            else:
+                items = retrieve_folder_items(client, folder, sort='name')
+            level += 1
+            file_entry_prefix = (indent_str * level) + _tree_item_markers[level % len(_tree_item_markers)] + ' '
+            for item in items:
+                if re_pattern and not re_pattern.fullmatch(item.name):
+                    continue
+                if item.type == 'folder':
+                    _tree_helper(item, level)
+                else:
+                    add_history_item(item)
+                    tree_entries.append((file_entry_prefix + item.name, item.id))
+            level -= 1
         if level == 0 and sys.stdout.isatty():
-            sys.stdout.write('\033[2K\033[1G')
-
+            sys.stdout.write('\033[2K\033[1G')  # Erase the progress report text
     ####
     initial_folder = client.folder(folder_id).get()
     path_entries = [folder.name for folder in initial_folder.path_collection['entries'][1:]]
