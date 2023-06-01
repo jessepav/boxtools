@@ -119,7 +119,13 @@ if client_id == "(your client-id)" or client_secret == "(your client-secret)":
 
 # }}}1
 
-# Support functions {{{1
+# Support functions and classes {{{1
+
+# LimitReachedException {{{2
+
+# Used to unwind the call stack when a limit of some kind has been reached
+class LimitReachedException(Exception):
+    pass
 
 # save_tokens() {{{2
 
@@ -850,8 +856,10 @@ def tree_cmd(args):  # {{{2
                                          prog=progname, usage='%(prog)s tree [options] folder_id',
                                          description='Display a tree of items')
     cli_parser.add_argument('folder_id', help='Folder ID')
-    cli_parser.add_argument('-L', '--max-levels', type=int, default=999,
+    cli_parser.add_argument('-L', '--max-levels', type=int, default=999, metavar='LEVELS',
                             help='Maximum number of levels to recurse (>= 1)')
+    cli_parser.add_argument('-C', '--max-count', metavar='N', type=int, default=0,
+        help='Gather at most N items for display. Useful to prevent unintended deep folder recursion.')
     cli_parser.add_argument('-i', '--re-filter', metavar='RE',
                 help='Only display items and recurse into sub-folders whose names fully match RE')
     cli_parser.add_argument('-d', '--directories-only', action='store_true', help='Only show directories')
@@ -863,6 +871,7 @@ def tree_cmd(args):  # {{{2
     if max_levels <= 0:
         print('--max-levels must be >= 1')
         return
+    max_count = options.max_count
     re_pattern = options.re_filter and re.compile(options.re_filter)
     dirs_only = options.directories_only
     indent_str = " " * 2
@@ -882,17 +891,21 @@ def tree_cmd(args):  # {{{2
             sys.stdout.write('\033[2K\033[1G') # erase and go to beginning of line
             print('*', folder.name, end="", flush=True)
         if level < max_levels:
+            limit = max_count - len(tree_entries) if max_count else None
             if dirs_only:
                 # Since folders are always returned before other item types, we can break_on_filter;
                 # also, we specify a small pagesize_limit so that we don't retrieve the whole
                 # BOX_GET_ITEMS_LIMIT page from a folder, most of which will be files.
                 items = retrieve_folder_items(client, folder, sort='name', pagesize_limit=30,
-                                filter_func=lambda it: it.type == 'folder', break_on_filter=True)
+                                filter_func=lambda it: it.type == 'folder',
+                                break_on_filter=True, limit=limit)
             else:
-                items = retrieve_folder_items(client, folder, sort='name')
+                items = retrieve_folder_items(client, folder, sort='name', limit=limit)
             level += 1
             file_entry_prefix = (indent_str * level) + _tree_item_markers[level % len(_tree_item_markers)] + ' '
             for item in items:
+                if max_count and len(tree_entries) >= max_count:
+                    break
                 if re_pattern and not re_pattern.fullmatch(item.name):
                     continue
                 if item.type == 'folder':
