@@ -187,14 +187,17 @@ def get_ops_client():
 #   is_sequence      : True if `items` is a sequence
 #   field_val_func   : If provided, will be called when retrieving the field value for each item,
 #                      so that the value may be transformed, if desired. (See code below for usage)
+#   output_file      : the file object where output will be printed; default sys.stdout
 #
 # If both is_dict and is_sequence are False, `items` will be treated as a namespace,
 # and fields will be accessed via getattr()
+#
+# Returns the total width, in characters, of the table.
 
 def print_table(items, fields, *, colgap=2, print_header=True,
                 clip_fields=None, no_leader_fields=(),
                 is_dict=False, is_sequence=False,
-                field_val_func=None):
+                field_val_func=None, output_file=sys.stdout):
     numcols = len(fields)
     # Helper function so we can work with all sorts of items
     def _get_field_val(item, idx, field):
@@ -215,16 +218,16 @@ def print_table(items, fields, *, colgap=2, print_header=True,
             return v
     #
     def _print_column_val(val, colidx, leader=" "):
-        print(val, end="")
+        print(val, end="", file=output_file)
         if colidx == numcols - 1:
-            print()
+            print(file=output_file)
         else:
             r = max_field_len[colidx] - len(val)
             if colidx not in no_leader_colidxs and r > 1:
-                print(" " + leader*(r-1), end="")
+                print(" " + leader*(r-1), end="", file=output_file)
             else:
-                print(" " * r, end="")
-            print(" " * colgap, end="")
+                print(" " * r, end="", file=output_file)
+            print(" " * colgap, end="", file=output_file)
     #
     max_field_len = [len(field) for field in fields]
     no_leader_colidxs = {i for i, field in enumerate(fields) if field in no_leader_fields}
@@ -235,7 +238,7 @@ def print_table(items, fields, *, colgap=2, print_header=True,
     if print_header:
         for i, field in enumerate(fields):
             _print_column_val(field.capitalize(), i)
-        print("-" * total_width)
+        print("-" * total_width, file=output_file)
     for item in items:
         for i, field in enumerate(fields):
             _print_column_val(_get_field_val(item, i, field), i,
