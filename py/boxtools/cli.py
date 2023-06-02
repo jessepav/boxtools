@@ -1,4 +1,4 @@
-import os, os.path, sys, argparse, re
+import os, os.path, sys, argparse, re, io
 import shutil, shlex, subprocess, logging, readline, pprint
 from collections import OrderedDict, deque
 import json, pickle
@@ -1442,10 +1442,10 @@ def ver_cmd(args):  # {{{2
         do_get = True
         version_id, filepath = options.get
     client = get_ops_client()
-    file = client.file(file_id).get(fields=['id', 'name', 'modified_at'])
+    file = client.file(file_id).get(fields=['id', 'name', 'created_at', 'file_version'])
     if do_list:
+        versions = [{'version_id' : file.file_version.id, 'created' : file.created_at, 'name' : file.name}]
         versions_iter = file.get_previous_versions(limit=limit, offset=offset)
-        versions = []
         has_trashed = False
         for ver in versions_iter:
             _id = ver.id
@@ -1453,8 +1453,12 @@ def ver_cmd(args):  # {{{2
                 _id += '*'
                 has_trashed = True
             versions.append({'version_id' : _id, 'created' : ver.created_at, 'name' : ver.name})
-        print_name_header(file.name, context_info=f"( Modified: {file.modified_at} )")
-        print_table(versions, ('version_id', 'created', 'name'), no_leader_fields=('version_id',), is_dict=True)
+        buf = io.StringIO()
+        table_width = print_table(versions, ('version_id', 'created', 'name'), no_leader_fields=('version_id',),
+                                  is_dict=True, output_file=buf)
+        print('-' * table_width)
+        print(buf.getvalue(), end="")
+        del buf
         if has_trashed:
             print("\n* = version has been trashed")
     elif do_delete:
