@@ -884,7 +884,7 @@ def tree_cmd(args):  # {{{2
     tree_entries = []
     ####
     def _tree_helper(folder, level, *, fullpath=None):
-        if unspace:
+        if unspace and folder.id != '0':  # Do not attempt to rename "All Files"!
             folder = _tree_item_unspace(client, folder)
         add_history_item(folder)
         name_part, id_part = None, folder.id
