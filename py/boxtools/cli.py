@@ -1540,7 +1540,7 @@ command_funcs = {
     'auth'     : auth_cmd,
     'refresh'  : refresh_cmd,
     'userinfo' : userinfo_cmd,
-    'history'  : history_cmd,
+    'history'  : history_cmd, 'hist' : history_cmd,
     'ls'       : ls_cmd, 'list' : ls_cmd,
     'fd'       : search_cmd, 'search' : search_cmd, 'find' : search_cmd,
     'tree'     : tree_cmd,

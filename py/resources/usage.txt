@@ -53,7 +53,7 @@ Commands:
     refresh       Refresh existing auth tokens
 
     userinfo      Print user info as JSON
-    history       Show previous ID history
+    history,hist  Show previous ID history
 
     ls, list      List contents of a folder
     fd, search    Search for items
