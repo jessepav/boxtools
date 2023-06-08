@@ -886,17 +886,19 @@ def tree_cmd(args):  # {{{2
     client = get_ops_client()
     tree_entries = []
     ####
-    def _tree_helper(folder, level, *, fullpath=None):
+    def _tree_helper(folder, level):
         if unspace and folder.id != '0':  # Do not attempt to rename "All Files"!
             folder = _tree_item_unspace(client, folder)
         add_history_item(folder)
         name_part, id_part = None, folder.id
         if level == 0:
-            name_part = fullpath
+            path_entries = [f.name for f in folder.path_collection['entries'][1:]]
+            path_entries.append(folder.name)
+            name_part = '/' + '/'.join(path_entries) + '/'
         else:
             marker = _tree_item_markers[level % len(_tree_item_markers)]
-            name_part = (indent_str * level) + f"{marker} {folder.name}"
-        tree_entries.append((name_part + '/', id_part))
+            name_part = (indent_str * level) + f"{marker} {folder.name}/"
+        tree_entries.append((name_part, id_part))
         if level < max_levels:
             if sys.stdout.isatty():  # Display a progress report
                 sys.stdout.write('\033[2K\033[1G') # erase and go to beginning of line
@@ -923,7 +925,7 @@ def tree_cmd(args):  # {{{2
                 if item.type == 'folder':
                     _tree_helper(item, level)
                 else:
-                    if unspace:
+                    if unspace and item.type in ('file', 'folder'):
                         item = _tree_item_unspace(client, item)
                     add_history_item(item)
                     tree_entries.append((file_entry_prefix + item.name, item.id))
@@ -932,10 +934,8 @@ def tree_cmd(args):  # {{{2
             sys.stdout.write('\033[2K\033[1G')  # Erase the progress report text
     ####
     initial_folder = client.folder(folder_id).get()
-    path_entries = [folder.name for folder in initial_folder.path_collection['entries'][1:]]
-    path_entries.append(initial_folder.name)
     try:
-        _tree_helper(initial_folder, 0, fullpath="/" + "/".join(path_entries))
+        _tree_helper(initial_folder, 0)
     except KeyboardInterrupt:
         sys.stdout.write('\033[2K\033[1G')
         print("Cancelled")
@@ -957,8 +957,9 @@ def _tree_item_unspace(client, item):
     newname = _unspace_regexps[2].sub('+', newname)   # Ampersands turn into plusses
     newname = newname.replace('-.', '.')              # Don't leave a dash right before the file extension
     newname = newname.strip('-')                      # Get rid of leading and trailing dashes
-    if item.type == 'file' and item.name != newname:
-        print('#', end='', flush=True)  # Indicate a rename in the progress display
+    if item.name != newname:
+        if item.type == 'file':
+            print('#', end='', flush=True)  # Indicate a rename in the progress display
         item = item.rename(newname)
     return item
 
