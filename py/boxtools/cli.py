@@ -888,7 +888,7 @@ def tree_cmd(args):  # {{{2
     ####
     def _tree_helper(folder, level):
         if unspace and folder.id != '0':  # Do not attempt to rename "All Files"!
-            folder = _tree_item_unspace(client, folder)
+            folder, _ = _tree_item_unspace(client, folder)
         add_history_item(folder)
         name_part, id_part = None, folder.id
         if level == 0:
@@ -902,7 +902,7 @@ def tree_cmd(args):  # {{{2
         if level < max_levels:
             if sys.stdout.isatty():  # Display a progress report
                 sys.stdout.write('\033[2K\033[1G') # erase and go to beginning of line
-                print('*', folder.name + '/ ', end="", flush=True)
+                print('*', folder.name + '/', end="", flush=True)
             limit = max_count - len(tree_entries) if max_count else None
             if dirs_only:
                 # Since folders are always returned before other item types, we can break_on_filter;
@@ -915,6 +915,7 @@ def tree_cmd(args):  # {{{2
                 items = retrieve_folder_items(client, folder, sort='name', limit=limit)
             level += 1
             file_entry_prefix = (indent_str * level) + _tree_item_markers[level % len(_tree_item_markers)] + ' '
+            first_rename_marker = True
             for item in items:
                 if max_count and len(tree_entries) >= max_count:
                     break
@@ -925,8 +926,12 @@ def tree_cmd(args):  # {{{2
                 if item.type == 'folder':
                     _tree_helper(item, level)
                 else:
-                    if unspace and item.type in ('file', 'folder'):
-                        item = _tree_item_unspace(client, item)
+                    if unspace and item.type == 'file':  # Don't attempt to rename web_link items
+                        item, renamed = _tree_item_unspace(client, item)
+                        if renamed:
+                            _marker = ' #' if first_rename_marker else '#'
+                            print(_marker, end='', flush=True)  # Indicate a rename in the progress display
+                            first_rename_marker = False
                     add_history_item(item)
                     tree_entries.append((file_entry_prefix + item.name, item.id))
             level -= 1
@@ -958,10 +963,9 @@ def _tree_item_unspace(client, item):
     newname = newname.replace('-.', '.')              # Don't leave a dash right before the file extension
     newname = newname.strip('-')                      # Get rid of leading and trailing dashes
     if item.name != newname:
-        if item.type == 'file':
-            print('#', end='', flush=True)  # Indicate a rename in the progress display
-        item = item.rename(newname)
-    return item
+        return item.rename(newname), True
+    else:
+        return item, False
 
 def get_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
