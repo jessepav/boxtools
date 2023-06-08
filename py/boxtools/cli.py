@@ -866,6 +866,7 @@ def tree_cmd(args):  # {{{2
     cli_parser.add_argument('-i', '--re-filter', metavar='RE',
                 help='Only display items and recurse into sub-folders whose names fully match RE')
     cli_parser.add_argument('-d', '--directories-only', action='store_true', help='Only show directories')
+    cli_parser.add_argument('-u', '--unspace', action='store_true', help='Rename encountered items to remove spaces.')
     options = cli_parser.parse_args(args)
     folder_id = translate_id(options.folder_id)
     if not folder_id:
@@ -877,23 +878,26 @@ def tree_cmd(args):  # {{{2
     max_count = options.max_count
     re_pattern = options.re_filter and re.compile(options.re_filter)
     dirs_only = options.directories_only
+    unspace = options.unspace
     indent_str = " " * 2
     client = get_ops_client()
     tree_entries = []
     ####
-    def _tree_helper(folder, level):
+    def _tree_helper(folder, level, *, fullpath=None):
+        if unspace:
+            folder = _tree_item_unspace(client, folder)
         add_history_item(folder)
         name_part, id_part = None, folder.id
         if level == 0:
-            name_part = f"{folder.fullpath}"
+            name_part = fullpath
         else:
             marker = _tree_item_markers[level % len(_tree_item_markers)]
             name_part = (indent_str * level) + f"{marker} {folder.name}"
         tree_entries.append((name_part + '/', id_part))
-        if sys.stdout.isatty():  # Display a progress report
-            sys.stdout.write('\033[2K\033[1G') # erase and go to beginning of line
-            print('*', folder.name, end="", flush=True)
         if level < max_levels:
+            if sys.stdout.isatty():  # Display a progress report
+                sys.stdout.write('\033[2K\033[1G') # erase and go to beginning of line
+                print('*', folder.name + '/ ', end="", flush=True)
             limit = max_count - len(tree_entries) if max_count else None
             if dirs_only:
                 # Since folders are always returned before other item types, we can break_on_filter;
@@ -914,6 +918,8 @@ def tree_cmd(args):  # {{{2
                 if item.type == 'folder':
                     _tree_helper(item, level)
                 else:
+                    if unspace:
+                        item = _tree_item_unspace(client, item)
                     add_history_item(item)
                     tree_entries.append((file_entry_prefix + item.name, item.id))
             level -= 1
@@ -923,9 +929,8 @@ def tree_cmd(args):  # {{{2
     initial_folder = client.folder(folder_id).get()
     path_entries = [folder.name for folder in initial_folder.path_collection['entries'][1:]]
     path_entries.append(initial_folder.name)
-    initial_folder.fullpath = "/" + "/".join(path_entries)
     try:
-        _tree_helper(initial_folder, 0)
+        _tree_helper(initial_folder, 0, fullpath="/" + "/".join(path_entries))
     except KeyboardInterrupt:
         sys.stdout.write('\033[2K\033[1G')
         print("Cancelled")
@@ -933,6 +938,24 @@ def tree_cmd(args):  # {{{2
     print_table(tree_entries, ('name_part', 'id_part'), print_header=False, is_sequence=True)
 
 _tree_item_markers = ['*', '-']
+
+_unspace_regexps = None
+
+def _tree_item_unspace(client, item):
+    global _unspace_regexps
+    if not _unspace_regexps:
+        _unspace_regexps = (re.compile(r'[ ,\(\)\-\[\]]+'),
+                            re.compile(r"""['"]"""),
+                            re.compile(r'-?&-?'))
+    newname = _unspace_regexps[0].sub('-', item.name) # replace runs of troublesome characters with a dash
+    newname = _unspace_regexps[1].sub('', newname)    # Get rid of quotes
+    newname = _unspace_regexps[2].sub('+', newname)   # Ampersands turn into plusses
+    newname = newname.replace('-.', '.')              # Don't leave a dash right before the file extension
+    newname = newname.strip('-')                      # Get rid of leading and trailing dashes
+    if item.type == 'file' and item.name != newname:
+        print('#', end='', flush=True)  # Indicate a rename in the progress display
+        item = item.rename(newname)
+    return item
 
 def get_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
