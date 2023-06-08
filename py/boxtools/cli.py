@@ -1175,8 +1175,9 @@ def mkdir_cmd(args):  # {{{2
     foldername = args[1]
     client = get_ops_client()
     folder = client.folder(folder_id=parent_folder_id).get(fields=['id', 'name', 'type', 'parent'])
-    print(f'Creating "{foldername}" in "{folder.name}"...')
+    print(f'Creating "{foldername}" in "{folder.name}"...', end='')
     newfolder = folder.create_subfolder(foldername)
+    print('ID:', newfolder.id)
     add_history_item(newfolder, folder)
 
 def mv_cmd(args):  # {{{2
