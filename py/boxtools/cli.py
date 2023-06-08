@@ -863,8 +863,10 @@ def tree_cmd(args):  # {{{2
                             help='Maximum number of levels to recurse (>= 1)')
     cli_parser.add_argument('-C', '--max-count', metavar='N', type=int, default=0,
         help='Gather at most N items for display. Useful to prevent unintended deep folder recursion.')
-    cli_parser.add_argument('-i', '--re-filter', metavar='RE',
+    cli_parser.add_argument('-i', '--re-include', metavar='RE',
                 help='Only display items and recurse into sub-folders whose names fully match RE')
+    cli_parser.add_argument('-x', '--re-exclude', metavar='RE',
+                help='Exclude items and sub-folders whose names fully match RE')
     cli_parser.add_argument('-d', '--directories-only', action='store_true', help='Only show directories')
     cli_parser.add_argument('-u', '--unspace', action='store_true', help='Rename encountered items to remove spaces.')
     options = cli_parser.parse_args(args)
@@ -876,7 +878,8 @@ def tree_cmd(args):  # {{{2
         print('--max-levels must be >= 1')
         return
     max_count = options.max_count
-    re_pattern = options.re_filter and re.compile(options.re_filter)
+    re_include_pattern = options.re_include and re.compile(options.re_include)
+    re_exclude_pattern = options.re_exclude and re.compile(options.re_exclude)
     dirs_only = options.directories_only
     unspace = options.unspace
     indent_str = " " * 2
@@ -913,7 +916,9 @@ def tree_cmd(args):  # {{{2
             for item in items:
                 if max_count and len(tree_entries) >= max_count:
                     break
-                if re_pattern and not re_pattern.fullmatch(item.name):
+                if re_include_pattern and not re_include_pattern.fullmatch(item.name):
+                    continue
+                if re_exclude_pattern and re_exclude_pattern.fullmatch(item.name):
                     continue
                 if item.type == 'folder':
                     _tree_helper(item, level)
