@@ -255,6 +255,8 @@ def print_stat_info(item, add_history=True):
     for field in ('name', 'type', 'id', 'content_created_at', 'content_modified_at',
                     'created_at', 'modified_at', 'size'):
         print(f"{field:20}: {getattr(item, field, 'N/A')}")
+    owner = item.owned_by
+    print(f"{'owned_by':20}: {owner.name} ({owner.login})")
     if item.shared_link:
         print(f"{'url':20}: {item.shared_link['url']}")
         print(f"{'download_url':20}: {item.shared_link['download_url']}")
