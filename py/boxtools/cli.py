@@ -613,12 +613,11 @@ def refresh_cmd(args):  # {{{2
 def userinfo_cmd(args):  # {{{2
     if len(args):
         print(f"usage: {os.path.basename(sys.argv[0])} userinfo\n\n"
-               "Print authorized user information as a JSON object")
+               "Print authorized user information")
         return
     client = get_ops_client()
     user = client.user().get()
-    infodict = {field : getattr(user, field) for field in ('id', 'login', 'name')}
-    print(json.dumps(infodict, indent=2))
+    print_table((user,), ('name', 'login', 'id'), colgap=4)
 
 def history_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,

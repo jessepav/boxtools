@@ -52,7 +52,7 @@ Commands:
     auth          Obtain auth tokens via OAuth2
     refresh       Refresh existing auth tokens
 
-    userinfo      Print user info as JSON
+    userinfo      Print authorized user info
     history,hist  Show previous ID history
 
     ls, list      List contents of a folder
