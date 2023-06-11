@@ -517,7 +517,11 @@ def process_cmdline(cmdline):
     if len(cmdline) == 0:
         return
     if type(cmdline) == str:
-        cmdline = shlex.split(cmdline)
+        try:
+            cmdline = shlex.split(cmdline)
+        except ValueError as ex:
+            print('shlex error:', ex)
+            return
     #
     if cmdline == ['@']:
         print(f"Last ID: {last_id}")
