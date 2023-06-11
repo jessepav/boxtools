@@ -1,4 +1,4 @@
-import os, os.path, sys, argparse, re, io
+import os, os.path, sys, argparse, re, io, ast
 import shutil, shlex, subprocess, logging, readline, pprint
 from collections import OrderedDict, deque
 import json, pickle
@@ -1285,16 +1285,28 @@ def desc_cmd(args):  # {{{2
                                          description='Print or update the description of an item')
     cli_parser.add_argument('id', help='Item ID')
     cli_parser.add_argument('description', nargs='?', help='If present, set the item description')
+    cli_parser.add_argument('-e', '--enable-escapes', action='store_true',
+                            help='Enable Python string literal backslash escapes in passed description')
+    cli_parser.add_argument('-a', '--append', action='store_true',
+                            help='Append to current description rather than replace it.')
     options = cli_parser.parse_args(args)
     item_id = translate_id(options.id)
     if item_id is None:
         return
     description = options.description
+    enable_escapes = options.enable_escapes
+    append = options.append
     client = get_ops_client()
     _type, item = get_api_item(client, item_id)
     if not _type:
         return
     if description:
+        if enable_escapes:
+            description = ast.literal_eval('"' + description.replace('"', '\\"') + '"')
+        if append:
+            item = item.get(fields=('name', 'description'))
+            if item.description:
+                description = item.description + description
         item = item.update_info(data = {'description' : description})
         print(f'Updated the description of {_type} "{item.name}"')
     else:
