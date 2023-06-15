@@ -873,6 +873,8 @@ def tree_cmd(args):  # {{{2
     cli_parser.add_argument('-x', '--re-exclude', metavar='RE',
                 help='Exclude items and sub-folders whose names fully match RE')
     cli_parser.add_argument('-d', '--directories-only', action='store_true', help='Only show directories')
+    cli_parser.add_argument('-H', '--no-header', action='store_true',
+                            help='Do not print the full folder path before the tree')
     cli_parser.add_argument('-u', '--unspace', action='store_true', help='Rename encountered items to remove spaces.')
     options = cli_parser.parse_args(args)
     folder_id = translate_id(options.folder_id)
@@ -887,6 +889,7 @@ def tree_cmd(args):  # {{{2
     re_exclude_pattern = options.re_exclude and re.compile(options.re_exclude)
     dirs_only = options.directories_only
     unspace = options.unspace
+    no_header = options.no_header
     indent_str = " " * 2
     client = get_ops_client()
     tree_entries = []
@@ -897,9 +900,7 @@ def tree_cmd(args):  # {{{2
         add_history_item(folder)
         name_part, id_part = None, folder.id
         if level == 0:
-            path_entries = [f.name for f in folder.path_collection['entries'][1:]]
-            path_entries.append(folder.name)
-            name_part = '/' + '/'.join(path_entries) + '/'
+            name_part = folder.name + '/'
         else:
             marker = _tree_item_markers[level % len(_tree_item_markers)]
             name_part = (indent_str * level) + f"{marker} {folder.name}/"
@@ -944,6 +945,12 @@ def tree_cmd(args):  # {{{2
             sys.stdout.write('\033[2K\033[1G')  # Erase the progress report text
     ####
     initial_folder = client.folder(folder_id).get()
+    if not no_header:
+        path_entries = [f.name for f in initial_folder.path_collection['entries'][1:]]
+        path_entries.append(initial_folder.name)
+        full_path = '/' + '/'.join(path_entries) + '/'
+        _hr = "─" * (len(full_path) + 2)
+        print(_hr, full_path, _hr, sep='\n')
     try:
         _tree_helper(initial_folder, 0)
     except KeyboardInterrupt:
