@@ -1,4 +1,4 @@
-import os, os.path, sys, argparse, re, io, ast
+import os, os.path, sys, argparse, re, io, ast, time
 import shutil, shlex, subprocess, logging, readline, pprint
 from collections import OrderedDict, deque
 import json, pickle
@@ -60,6 +60,8 @@ ls_history_size = config_table.get('ls-history-size', 10)
 chunked_upload_size_threshold = config_table.get('chunked-upload-size-threshold', 20_971_520)
 chunked_upload_num_threads = config_table.get('chunked-upload-num-threads', 2)
 rclone_remote_name = config_table.get('rclone-remote-name', 'box')
+representation_max_attempts = config_table.get('representation-max-attempts', 15)
+representation_wait_time = config_table.get('representation-wait-time', 2.0)
 
 # Get terminal size for use in default lengths {{{2
 screen_cols = shutil.get_terminal_size(fallback=(0, 0))[0] if sys.stdout.isatty() else 0
@@ -603,6 +605,16 @@ def unspace_name(name):
 
 _unspace_regexps = None
 
+def get_repr_map(file):  # {{{2
+    representations = file.get_representation_info()
+    repr_map = {}
+    for rep in representations:
+        url = rep['info']['url']
+        name = url[url.rindex('/') + 1:]
+        repr_map[name] = {'url' : url,
+                          'paged' : rep['properties'].get('paged') == 'true'}
+    return repr_map
+
 # }}}1
 
 # Define command functions {{{1
@@ -1069,6 +1081,51 @@ def get_cmd(args):  # {{{2
                 print(f"Downloading {filename}...")
                 with open(os.path.join(target_dir, filename), "wb") as f:
                     file.download_to(f)
+
+def repr_cmd(args):  # {{{2
+    cli_parser = argparse.ArgumentParser(exit_on_error=False,
+                                         prog=progname, usage='%(prog)s repr [options] id',
+                                         description='Get representation info about a file')
+    cli_parser.add_argument('id', help='File ID')
+    group = cli_parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-l', '--list', action='store_true', help='List all available representations')
+    group.add_argument('-r', '--representation', metavar='repname', help='Get info about a specific representation')
+    options = cli_parser.parse_args(args)
+    do_list = options.list
+    do_repname = options.representation
+    client = get_ops_client()
+    file_id = translate_id(options.id)
+    if file_id is None:
+        return
+    file = client.file(file_id).get()
+    repr_map = get_repr_map(file)
+    if do_list:
+        print("Available representations:", end='\n\n')
+        for (repname, rep) in repr_map.items():
+            print(f"  {repname}{' (paged)' if rep['paged'] else ''}")
+        print()
+    elif do_repname:
+        rep = repr_map.get(do_repname)
+        if rep is None:
+            print(f'"{do_repname}" is not a valid representation name')
+        else:
+            state = None
+            attempts = 0
+            while attempts < representation_max_attempts and state != 'success':
+                response = client.session.get(rep['url']).json()
+                state = response['status']['state'] 
+                if state == 'pending':
+                    if attempts == 0:
+                        print("Representation is pending - waiting..", end='', flush=True)
+                    print('.', end='', flush=True)
+                    time.sleep(representation_wait_time)
+                    attempts += 1
+                    continue
+            if attempts != 0: print()   # Go to next line if we've printed "waiting" messages
+            if state != 'success':
+                print("#### ERROR ####\n")
+            pprint.pp(response, indent=2, width=screen_cols if screen_cols else 80)
+
 
 def put_cmd(args):  # {{{2
     import glob
@@ -1620,6 +1677,7 @@ command_funcs = {
     'fd'       : search_cmd, 'search' : search_cmd, 'find' : search_cmd,
     'tree'     : tree_cmd,
     'get'      : get_cmd,
+    'repr'     : repr_cmd,
     'put'      : put_cmd,
     'cat'      : cat_cmd,
     'rm'       : rm_cmd, 'del' : rm_cmd,
