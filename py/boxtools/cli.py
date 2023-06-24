@@ -585,6 +585,24 @@ def get_id_len(argval):
     else:
         return max(argval, MIN_ID_LEN)
 
+# unspace_name() {{{2
+
+def unspace_name(name):
+    global _unspace_regexps
+    if not _unspace_regexps:
+        _unspace_regexps = (re.compile(r'[ ,\(\)\-\[\]]+'),
+                            re.compile(r"""['"]"""),
+                            re.compile(r'-?&-?'))
+    newname = name
+    newname = _unspace_regexps[0].sub('-', newname)   # replace runs of troublesome characters with a dash
+    newname = _unspace_regexps[1].sub('', newname)    # Get rid of quotes
+    newname = _unspace_regexps[2].sub('+', newname)   # Ampersands turn into plusses
+    newname = newname.replace('-.', '.')              # Don't leave a dash right before the file extension
+    newname = newname.strip('-')                      # Get rid of leading and trailing dashes
+    return newname
+
+_unspace_regexps = None
+
 # }}}1
 
 # Define command functions {{{1
@@ -972,16 +990,7 @@ _tree_item_markers = ['*', '-']
 _unspace_regexps = None
 
 def _tree_item_unspace(client, item):
-    global _unspace_regexps
-    if not _unspace_regexps:
-        _unspace_regexps = (re.compile(r'[ ,\(\)\-\[\]]+'),
-                            re.compile(r"""['"]"""),
-                            re.compile(r'-?&-?'))
-    newname = _unspace_regexps[0].sub('-', item.name) # replace runs of troublesome characters with a dash
-    newname = _unspace_regexps[1].sub('', newname)    # Get rid of quotes
-    newname = _unspace_regexps[2].sub('+', newname)   # Ampersands turn into plusses
-    newname = newname.replace('-.', '.')              # Don't leave a dash right before the file extension
-    newname = newname.strip('-')                      # Get rid of leading and trailing dashes
+    newname = unspace_name(item.name)
     if item.name != newname:
         return item.rename(newname), True
     else:
