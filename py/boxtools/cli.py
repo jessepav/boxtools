@@ -614,6 +614,14 @@ def refresh_cmd(args):  # {{{2
     refresh_tokens(client_id, client_secret, access_token, refresh_token, save_tokens)
     print(f"Tokens refreshed and saved")
 
+def token_cmd(args):  # {{{2
+    if len(args):
+        print(f"usage: {progname} token\n\n"
+               "Print access token to stdout")
+        return
+    client = get_ops_client()
+    print(client.session._oauth.access_token)
+
 def userinfo_cmd(args):  # {{{2
     if len(args):
         print(f"usage: {os.path.basename(sys.argv[0])} userinfo\n\n"
@@ -1596,6 +1604,7 @@ def source_cmd(args):  # {{{2
 command_funcs = {
     'auth'     : auth_cmd,
     'refresh'  : refresh_cmd,
+    'token'    : token_cmd,
     'userinfo' : userinfo_cmd,
     'history'  : history_cmd, 'hist' : history_cmd,
     'ls'       : ls_cmd, 'list' : ls_cmd,

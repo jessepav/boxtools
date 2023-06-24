@@ -51,6 +51,7 @@ be passed to the system shell after stripping off the '!'.
 Commands:
     auth          Obtain auth tokens via OAuth2
     refresh       Refresh existing auth tokens
+    token         Print access token to stdout
 
     userinfo      Print authorized user info
     history,hist  Show previous ID history
