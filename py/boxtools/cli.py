@@ -1069,10 +1069,12 @@ def get_cmd(args):  # {{{2
     cli_parser.add_argument('directory', help='Destination directory')
     cli_parser.add_argument('-d', '--folders', action='store_true',
                             help="Item IDs specify folders from which to download files")
-    cli_parser.add_argument('-i', '--re-filter', metavar='RE',
+    cli_parser.add_argument('-i', '--re-include', metavar='RE',
                             help="Applies when -d/--folders is used: rather than downloading all files "
                                  "from the specified folders, only download those files whose names "
                                  "fully match the regular expression RE")
+    cli_parser.add_argument('-x', '--re-exclude', metavar='RE',
+                            help="Applies when -d/--folders is used: exclude files whose names fully match RE")
     cli_parser.add_argument('-r', '--representation', metavar='REPR',
                             help="Rather than downloading the file itself, download the representation given "
                                  "by REPR. (Use the 'repr' command to find possible values of REPR)")
@@ -1088,7 +1090,8 @@ def get_cmd(args):  # {{{2
     if repname:
         repname = representation_aliases.get(repname, repname)
     do_folders = options.folders
-    re_pattern = options.re_filter and re.compile(options.re_filter)
+    include_pattern = options.re_include and re.compile(options.re_include)
+    exclude_pattern = options.re_exclude and re.compile(options.re_exclude)
     client = get_ops_client()
     for item_id in item_ids:
         if do_folders:
@@ -1097,7 +1100,9 @@ def get_cmd(args):  # {{{2
             def _filter_func(item):
                 if item.type != 'file':
                     return False
-                elif re_pattern and not re_pattern.fullmatch(item.name):
+                elif include_pattern and not include_pattern.fullmatch(item.name):
+                    return False
+                elif exclude_pattern and exclude_pattern.fullmatch(item.name):
                     return False
                 else:
                     return True
