@@ -967,6 +967,8 @@ def tree_cmd(args):  # {{{2
     cli_parser.add_argument('-H', '--no-header', action='store_true',
                             help='Do not print the full folder path before the tree')
     cli_parser.add_argument('-u', '--unspace', action='store_true', help='Rename encountered items to remove spaces.')
+    cli_parser.add_argument('-D', '--delete-files', action='store_true',
+                        help='Delete files and web-links encountered on tree traversal that pass all regexp filters.')
     options = cli_parser.parse_args(args)
     folder_id = translate_id(options.folder_id)
     if not folder_id:
@@ -979,13 +981,20 @@ def tree_cmd(args):  # {{{2
     re_include_pattern = options.re_include and re.compile(options.re_include)
     re_exclude_pattern = options.re_exclude and re.compile(options.re_exclude)
     dirs_only = options.directories_only
-    unspace = options.unspace
     no_header = options.no_header
+    unspace = options.unspace
+    delete_files = options.delete_files
+    if delete_files and not re_include_pattern and not re_exclude_pattern:
+        print("Using --delete-files without an include/exclude pattern is dangerous: aborting")
+        return
+    delete_count = 0
     indent_str = " " * 2
     client = get_ops_client()
     tree_entries = []
     ####
     def _tree_helper(folder, level):
+        nonlocal delete_count
+        #
         if unspace and folder.id != '0':  # Do not attempt to rename "All Files"!
             folder, _ = _tree_item_unspace(client, folder)
         add_history_item(folder)
@@ -1012,7 +1021,7 @@ def tree_cmd(args):  # {{{2
                 items = retrieve_folder_items(client, folder, sort='name', limit=limit)
             level += 1
             file_entry_prefix = (indent_str * level) + _tree_item_markers[level % len(_tree_item_markers)] + ' '
-            first_rename_marker = True
+            first_process_marker = True
             for item in items:
                 if max_count and len(tree_entries) >= max_count:
                     break
@@ -1023,14 +1032,21 @@ def tree_cmd(args):  # {{{2
                 if item.type == 'folder':
                     _tree_helper(item, level)
                 else:
-                    if unspace and item.type == 'file':  # Don't attempt to rename web_link items
-                        item, renamed = _tree_item_unspace(client, item)
-                        if renamed:
-                            _marker = ' #' if first_rename_marker else '#'
-                            print(_marker, end='', flush=True)  # Indicate a rename in the progress display
-                            first_rename_marker = False
-                    add_history_item(item)
-                    tree_entries.append((file_entry_prefix + item.name, item.id))
+                    if delete_files:
+                        item_history_map.pop(item.id, None)
+                        item.delete()
+                        delete_count += 1
+                        print(' #' if first_process_marker else '#', end='', flush=True) # print progress indicator
+                        first_process_marker = False
+                        tree_entries.append((file_entry_prefix + item.name + ' (D)', item.id))
+                    else:
+                        if unspace and item.type == 'file':  # Don't attempt to rename web_link items
+                            item, renamed = _tree_item_unspace(client, item)
+                            if renamed:
+                                print(' #' if first_process_marker else '#', end='', flush=True)
+                                first_process_marker = False
+                        add_history_item(item)
+                        tree_entries.append((file_entry_prefix + item.name, item.id))
             level -= 1
         if level == 0 and sys.stdout.isatty():
             sys.stdout.write('\033[2K\033[1G')  # Erase the progress report text
@@ -1049,6 +1065,8 @@ def tree_cmd(args):  # {{{2
         print("Cancelled")
         # But we'll print out what we have anyway, so the user knows why it was taking a long time
     print_table(tree_entries, ('name_part', 'id_part'), print_header=False, is_sequence=True)
+    if delete_count:
+        print(f"\n  * {delete_count} item(s) deleted *")
 
 _tree_item_markers = ['*', '-']
 
