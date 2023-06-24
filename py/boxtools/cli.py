@@ -62,6 +62,7 @@ chunked_upload_num_threads = config_table.get('chunked-upload-num-threads', 2)
 rclone_remote_name = config_table.get('rclone-remote-name', 'box')
 representation_max_attempts = config_table.get('representation-max-attempts', 15)
 representation_wait_time = config_table.get('representation-wait-time', 2.0)
+representation_aliases = dict(config_table.get('representation-aliases', []))
 
 # Get terminal size for use in default lengths {{{2
 screen_cols = shutil.get_terminal_size(fallback=(0, 0))[0] if sys.stdout.isatty() else 0
@@ -605,7 +606,9 @@ def unspace_name(name):
 
 _unspace_regexps = None
 
-def get_repr_map(file):  # {{{2
+# get_repr_map(), get_repr_info(), download_repr() {{{2
+
+def get_repr_map(file):
     representations = file.get_representation_info()
     repr_map = {}
     for rep in representations:
@@ -614,6 +617,56 @@ def get_repr_map(file):  # {{{2
         repr_map[name] = {'url' : url,
                           'paged' : rep['properties'].get('paged') == 'true'}
     return repr_map
+
+# `rep` is a dict as found in the values of the name->rep dict returned by get_repr_map()
+# This function polls the URL of the representation until the state is no longer pending,
+# and returns a tuple of the final state and a dict of the API response.
+# If `silent` is True, no messages will be printed.
+
+def get_repr_info(client, rep, silent=False):
+    state = None
+    attempts = 0
+    while attempts < representation_max_attempts and state != 'success':
+        response = client.session.get(rep['url']).json()
+        state = response['status']['state']
+        if state == 'pending':
+            if not silent:
+                if attempts == 0:
+                    print("Representation is pending - waiting..", end='', flush=True)
+                print('.', end='', flush=True)
+            time.sleep(representation_wait_time)
+            attempts += 1
+        else:
+            break
+    if not silent and attempts != 0: print()   # Go to next line if we've printed "waiting" messages
+    return state, response
+
+def download_repr(client, repr_info, item_name, savedir, silent=False):
+    repformat = repr_info['representation']
+    if "text" in repformat:
+        ext = ".txt"
+    else:
+        ext = '.' + repformat
+    basename = unspace_name(os.path.splitext(item_name)[0])
+    pages = repr_info.get('metadata', {}).get('pages')
+    url = repr_info['content']['url_template']
+    if pages is None:
+        filename = basename + ext
+        if not silent: print(f"Downloading {filename}...", end='', flush=True)
+        response = client.session.get(url.replace('{+asset_path}', ''), expect_json_response=False)
+        with open(os.path.join(savedir, filename), "wb") as f:
+            f.write(response.content)
+        if not silent: print('done.')
+    else:
+        if not silent: print(f"{pages} pages total")
+        ndigits = len(str(pages))
+        for page in range(1, pages + 1):
+            filename = basename + '-' + str(page).rjust(ndigits, '0') + ext
+            if not silent: print(f"Downloading {filename}...", end='', flush=True)
+            response = client.session.get(url.replace('{+asset_path}', str(page) + ext), expect_json_response=False)
+            with open(os.path.join(savedir, filename), "wb") as f:
+                f.write(response.content)
+            if not silent: print('done.')
 
 # }}}1
 
@@ -1014,23 +1067,15 @@ def get_cmd(args):  # {{{2
                                          description='Download files or thumbnails')
     cli_parser.add_argument('ids', nargs='+', help='File or Folder IDs')
     cli_parser.add_argument('directory', help='Destination directory')
-    cli_parser.add_argument('-t', '--thumbnails', action='store_true',
-                            help="Download thumbnail images rather than the files themselves")
-    cli_parser.add_argument('-s', '--thumbnail-size', metavar='N', type=int,
-                            help="Retrieve a thumbnail with dimensions NxN. For .png thumbnails, "
-                                 "valid sizes are 1024 and 2048. For .jpg thumbnails, valid sizes "
-                                 "are 32, 94, 160, 320, 1024, and 2048. Attempting to use "
-                                 "an invalid size will result in an empty thumbnail file.")
-    # https://developer.box.com/guides/representations/thumbnail-representation/#supported-file-sizes
-    cli_parser.add_argument('-e', '--thumbnail-ext', metavar='EXT', default="jpg",
-                            help="Set the format for thumbnails (either 'png' or 'jpg'). "
-                                 "(Note that it seems png thumbnails don't work.)")
     cli_parser.add_argument('-d', '--folders', action='store_true',
                             help="Item IDs specify folders from which to download files")
     cli_parser.add_argument('-i', '--re-filter', metavar='RE',
                             help="Applies when -d/--folders is used: rather than downloading all files "
                                  "from the specified folders, only download those files whose names "
                                  "fully match the regular expression RE")
+    cli_parser.add_argument('-r', '--representation', metavar='REPR',
+                            help="Rather than downloading the file itself, download the representation given "
+                                 "by REPR. (Use the 'repr' command to find possible values of REPR)")
     options = cli_parser.parse_args(args)
     item_ids = [translate_id(id) for id in options.ids]
     if any(id is None for id in item_ids):
@@ -1039,14 +1084,9 @@ def get_cmd(args):  # {{{2
     if not os.path.isdir(target_dir):
         print(f"{target_dir} is not a directory!")
         return
-    do_thumbnails = options.thumbnails
-    thumbnail_size = options.thumbnail_size
-    thumbnail_ext = options.thumbnail_ext.lstrip(".").lower()
-    if thumbnail_ext not in ('jpg', 'png'):
-        print(f"Invalid extensions: {thumbnail_ext}")
-        return
-    if not thumbnail_size:
-        thumbnail_size = 1024 if thumbnail_ext == 'png' else 320
+    repname = options.representation
+    if repname:
+        repname = representation_aliases.get(repname, repname)
     do_folders = options.folders
     re_pattern = options.re_filter and re.compile(options.re_filter)
     client = get_ops_client()
@@ -1068,15 +1108,17 @@ def get_cmd(args):  # {{{2
         for file_id in file_ids:
             file = client.file(file_id)
             filename = file.get(fields=['name']).name
-            if do_thumbnails:
-                root, ext = os.path.splitext(filename)
-                filename = f"{root}-{thumbnail_size}x{thumbnail_size}.{thumbnail_ext}"
-                print(f'Downloading "{filename}"...')
-                imgbytes = file.get_thumbnail_representation(
-                        dimensions=f"{thumbnail_size}x{thumbnail_size}",
-                        extension=thumbnail_ext)
-                with open(os.path.join(target_dir, filename), "wb") as f:
-                    f.write(imgbytes)
+            if repname:
+                repr_map = get_repr_map(file)
+                rep = repr_map.get(repname)
+                if rep is None:
+                    print(f'Representation "{repname}" not available for {filename}')
+                    continue
+                state, repr_info = get_repr_info(client, rep)
+                if state != 'success':
+                    print(f'Failed to retrieve representation info for {filename}')
+                    continue
+                download_repr(client, repr_info, filename, target_dir)
             else:
                 print(f"Downloading {filename}...")
                 with open(os.path.join(target_dir, filename), "wb") as f:
@@ -1084,48 +1126,20 @@ def get_cmd(args):  # {{{2
 
 def repr_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
-                                         prog=progname, usage='%(prog)s repr [options] id',
-                                         description='Get representation info about a file')
+                                         prog=progname, usage='%(prog)s repr id',
+                                         description='Get list of representations for a file')
     cli_parser.add_argument('id', help='File ID')
-    group = cli_parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-l', '--list', action='store_true', help='List all available representations')
-    group.add_argument('-r', '--representation', metavar='repname', help='Get info about a specific representation')
     options = cli_parser.parse_args(args)
-    do_list = options.list
-    do_repname = options.representation
     client = get_ops_client()
     file_id = translate_id(options.id)
     if file_id is None:
         return
     file = client.file(file_id).get()
     repr_map = get_repr_map(file)
-    if do_list:
-        print("Available representations:", end='\n\n')
-        for (repname, rep) in repr_map.items():
-            print(f"  {repname}{' (paged)' if rep['paged'] else ''}")
-        print()
-    elif do_repname:
-        rep = repr_map.get(do_repname)
-        if rep is None:
-            print(f'"{do_repname}" is not a valid representation name')
-        else:
-            state = None
-            attempts = 0
-            while attempts < representation_max_attempts and state != 'success':
-                response = client.session.get(rep['url']).json()
-                state = response['status']['state'] 
-                if state == 'pending':
-                    if attempts == 0:
-                        print("Representation is pending - waiting..", end='', flush=True)
-                    print('.', end='', flush=True)
-                    time.sleep(representation_wait_time)
-                    attempts += 1
-                    continue
-            if attempts != 0: print()   # Go to next line if we've printed "waiting" messages
-            if state != 'success':
-                print("#### ERROR ####\n")
-            pprint.pp(response, indent=2, width=screen_cols if screen_cols else 80)
-
+    print(f'Available representations for "{file.name}":', end='\n\n')
+    for (repname, rep) in repr_map.items():
+        print(f"  {repname}{' (paged)' if rep['paged'] else ''}")
+    print()
 
 def put_cmd(args):  # {{{2
     import glob

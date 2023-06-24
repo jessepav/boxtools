@@ -14,6 +14,14 @@ rclone-remote-name = 'box'
 representation-max-attempts = 15
 representation-wait-time = 2.0  # In seconds
 
+# When using the 'get' command with the -r, --representation flag, these aliases
+# may be passed rather than the full representation name (as returned by 'repr').
+representation-aliases = [
+    ['png1024', 'png_paged_1024x1024'],
+    ['png2048', 'png_paged_2048x2048'],
+    ['etext', 'extracted_text'],
+]
+
 # These determine the default --max-name-length and --max-id-length for
 # commands that accept those arguments, if they're not explicitly given.
 #

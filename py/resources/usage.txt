@@ -61,7 +61,7 @@ Commands:
     tree          Display a tree of items
 
     get           Download files or thumbnails
-    repr          Get representation info about a file
+    repr          Get list of representations for a file
     put           Upload a file
     cat           Write the contents of files or web-links to stdout
     mkdir         Create a new folder
