@@ -17,6 +17,12 @@ representation-wait-time = 2.0  # In seconds
 # When using the 'get' command with the -r, --representation flag, these aliases
 # may be passed rather than the full representation name (as returned by 'repr').
 representation-aliases = [
+    ['jpg32',   'jpg_thumb_32x32'],
+    ['jpg94',   'jpg_thumb_94x94'],
+    ['jpg160',  'jpg_160x160'],
+    ['jpg320',  'jpg_320x320'],
+    ['jpg1024', 'jpg_1024x1024'],
+    ['jpg2048', 'jpg_paged_2048x2048'],
     ['png1024', 'png_paged_1024x1024'],
     ['png2048', 'png_paged_2048x2048'],
     ['etext', 'extracted_text'],
