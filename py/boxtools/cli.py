@@ -1021,7 +1021,7 @@ def tree_cmd(args):  # {{{2
                 items = retrieve_folder_items(client, folder, sort='name', limit=limit)
             level += 1
             file_entry_prefix = (indent_str * level) + _tree_item_markers[level % len(_tree_item_markers)] + ' '
-            first_process_marker = True
+            first_progress_hash = True
             for item in items:
                 if max_count and len(tree_entries) >= max_count:
                     break
@@ -1031,20 +1031,20 @@ def tree_cmd(args):  # {{{2
                     continue
                 if item.type == 'folder':
                     _tree_helper(item, level)
-                else:
+                else:  # What we have is a file or web-link that passes our filters
                     if delete_files:
                         item_history_map.pop(item.id, None)
                         item.delete()
                         delete_count += 1
-                        print(' #' if first_process_marker else '#', end='', flush=True) # print progress indicator
-                        first_process_marker = False
+                        print(' #' if first_progress_hash else '#', end='', flush=True) # print progress indicator
+                        first_progress_hash = False
                         tree_entries.append((file_entry_prefix + item.name + ' (D)', item.id))
                     else:
                         if unspace and item.type == 'file':  # Don't attempt to rename web_link items
                             item, renamed = _tree_item_unspace(client, item)
                             if renamed:
-                                print(' #' if first_process_marker else '#', end='', flush=True)
-                                first_process_marker = False
+                                print(' #' if first_progress_hash else '#', end='', flush=True)
+                                first_progress_hash = False
                         add_history_item(item)
                         tree_entries.append((file_entry_prefix + item.name, item.id))
             level -= 1
