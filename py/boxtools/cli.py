@@ -1118,7 +1118,8 @@ def get_cmd(args):  # {{{2
                 if state != 'success':
                     print(f'Failed to retrieve representation info for {filename}')
                     continue
-                download_repr(client, repr_info, filename, target_dir)
+                root, ext = os.path.splitext(filename)
+                download_repr(client, repr_info, root + '-' + repname + ext, target_dir)
             else:
                 print(f"Downloading {filename}...")
                 with open(os.path.join(target_dir, filename), "wb") as f:
