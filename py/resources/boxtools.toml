@@ -25,7 +25,7 @@ representation-aliases = [
     ['jpg2048', 'jpg_paged_2048x2048'],
     ['png1024', 'png_paged_1024x1024'],
     ['png2048', 'png_paged_2048x2048'],
-    ['etext', 'extracted_text'],
+    ['etext',   'extracted_text'],
 ]
 
 # These determine the default --max-name-length and --max-id-length for

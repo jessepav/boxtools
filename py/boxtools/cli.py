@@ -1132,20 +1132,27 @@ def get_cmd(args):  # {{{2
 
 def repr_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
-                                         prog=progname, usage='%(prog)s repr id',
-                                         description='Get list of representations for a file')
-    cli_parser.add_argument('id', help='File ID')
+                                         prog=progname, usage='%(prog)s repr [options]',
+                                         description='Get representation information')
+    group = cli_parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-l', '--list', dest='file_id', metavar='ID',
+                       help='List available representations for a file')
+    group.add_argument('-a', '--aliases', action='store_true', help='Print representation aliases')
     options = cli_parser.parse_args(args)
-    client = get_ops_client()
-    file_id = translate_id(options.id)
-    if file_id is None:
-        return
-    file = client.file(file_id).get()
-    repr_map = get_repr_map(file)
-    print(f'Available representations for "{file.name}":', end='\n\n')
-    for (repname, rep) in repr_map.items():
-        print(f"  {repname}{' (paged)' if rep['paged'] else ''}")
-    print()
+    if options.aliases:
+        aliases = list(representation_aliases.items())
+        print_table(aliases, ('Alias', 'Representation'), no_leader_fields = ('Alias',), is_sequence=True)
+    else:
+        file_id = translate_id(options.file_id)
+        if file_id is None:
+            return
+        client = get_ops_client()
+        file = client.file(file_id).get()
+        repr_map = get_repr_map(file)
+        print(f'Available representations for "{file.name}":', end='\n\n')
+        for (repname, rep) in repr_map.items():
+            print(f"  {repname}{' (paged)' if rep['paged'] else ''}")
+        print()
 
 def put_cmd(args):  # {{{2
     import glob
