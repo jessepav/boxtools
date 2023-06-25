@@ -120,6 +120,9 @@ if client_id == "(your client-id)" or client_secret == "(your client-secret)":
     print(f"Edit '{config_file}' to supply a valid client ID and secret")
     sys.exit(1)
 
+# Initialize the item_stash {{{2
+item_stash = []
+
 # }}}1
 
 # Support functions and classes {{{1
@@ -534,6 +537,8 @@ def process_cmdline(cmdline):
     #
     if cmdline == ['@']:
         print(f"Last ID: {last_id}")
+    elif cmdline == ['@@']:
+        print_table(item_stash, ('Name', 'Id', 'Type'), is_sequence=True)
     elif len(cmdline) in (1,2) and cmdline[0] == '@list':
         list_aliases(cmdline[1] if len(cmdline) == 2 else None)
     elif cmdline[0].startswith('@'):
@@ -957,8 +962,6 @@ def search_cmd(args):  # {{{2
                              'parent' : (max_name_len, 'r'), 'parent_id' : (max_id_len, 'l')})
 
 def tree_cmd(args):  # {{{2
-    global item_stash
-    #
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          prog=progname, usage='%(prog)s tree [options] folder_id',
                                          description='Display a tree of items')
@@ -976,6 +979,12 @@ def tree_cmd(args):  # {{{2
                             help='Recurse into directories regardless of regexp filters')
     cli_parser.add_argument('-H', '--no-header', action='store_true',
                             help='Do not print the full folder path before the tree')
+    cli_parser.add_argument('-s', '--stash-files', action='store_true',
+                            help='Add encountered files to the item stash')
+    cli_parser.add_argument('-S', '--stash-folders', action='store_true',
+                            help='Add encountered folders to the item stash')
+    cli_parser.add_argument('-a', '--append-stash', action='store_true',
+                            help='Append items to the current stash, rather than replacing it')
     options = cli_parser.parse_args(args)
     folder_id = translate_id(options.folder_id)
     if not folder_id:
@@ -990,6 +999,11 @@ def tree_cmd(args):  # {{{2
     force_recurse = options.force_recurse
     dirs_only = options.directories_only
     no_header = options.no_header
+    stash_files = options.stash_files
+    stash_folders = options.stash_folders
+    append_stash = options.append_stash
+    if (stash_files or stash_folders) and not append_stash:
+        item_stash.clear()
     indent_str = " " * 2
     client = get_ops_client()
     tree_entries = []
@@ -1003,6 +1017,8 @@ def tree_cmd(args):  # {{{2
             marker = _tree_item_markers[level % len(_tree_item_markers)]
             name_part = (indent_str * level) + f"{marker} {folder.name}/"
         tree_entries.append((name_part, id_part))
+        if stash_folders:
+            item_stash.append((folder.name, folder.id, 'folder'))
         if level < max_levels:
             if sys.stdout.isatty():  # Display a progress report
                 sys.stdout.write('\033[2K\033[1G') # erase and go to beginning of line
@@ -1033,6 +1049,8 @@ def tree_cmd(args):  # {{{2
                 else:  # What we have is a file or web-link that passes our filters
                     add_history_item(item)
                     tree_entries.append((file_entry_prefix + item.name, item.id))
+                    if stash_files and item.type == 'file':
+                        item_stash.append((item.name, item.id, 'file'))
             level -= 1
         if level == 0 and sys.stdout.isatty():
             sys.stdout.write('\033[2K\033[1G')  # Erase the progress report text
