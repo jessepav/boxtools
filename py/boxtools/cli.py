@@ -429,6 +429,7 @@ def get_api_item(client, item_id):
     if histentry:
         _type = histentry['type']
         item = getattr(client, _type)(item_id)
+        item.name = histentry['name']  # So that all returned items have at least an id and name
         return (_type, item)
     else:
         return determine_item_type(client, item_id)
