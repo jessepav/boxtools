@@ -963,18 +963,20 @@ def tree_cmd(args):  # {{{2
     cli_parser.add_argument('folder_id', help='Folder ID')
     cli_parser.add_argument('-L', '--max-levels', type=int, default=999, metavar='LEVELS',
                             help='Maximum number of levels to recurse (>= 1)')
+    cli_parser.add_argument('-d', '--directories-only', action='store_true', help='Only show directories')
     cli_parser.add_argument('-C', '--max-count', metavar='N', type=int, default=0,
         help='Gather at most N items for display. Useful to prevent unintended deep folder recursion.')
     cli_parser.add_argument('-i', '--re-include', metavar='RE',
                 help='Only display items and recurse into sub-folders whose names fully match RE')
     cli_parser.add_argument('-x', '--re-exclude', metavar='RE',
                 help='Exclude items and sub-folders whose names fully match RE')
-    cli_parser.add_argument('-d', '--directories-only', action='store_true', help='Only show directories')
-    cli_parser.add_argument('-H', '--no-header', action='store_true',
-                            help='Do not print the full folder path before the tree')
+    cli_parser.add_argument('-F', '--force-recurse', action='store_true',
+                            help='Recurse into directories regardless of regexp filters')
     cli_parser.add_argument('-u', '--unspace', action='store_true', help='Rename encountered items to remove spaces.')
     cli_parser.add_argument('-D', '--delete-files', action='store_true',
                         help='Delete files and web-links encountered on tree traversal that pass all regexp filters.')
+    cli_parser.add_argument('-H', '--no-header', action='store_true',
+                            help='Do not print the full folder path before the tree')
     options = cli_parser.parse_args(args)
     folder_id = translate_id(options.folder_id)
     if not folder_id:
@@ -986,6 +988,7 @@ def tree_cmd(args):  # {{{2
     max_count = options.max_count
     re_include_pattern = options.re_include and re.compile(options.re_include)
     re_exclude_pattern = options.re_exclude and re.compile(options.re_exclude)
+    force_recurse = options.force_recurse
     dirs_only = options.directories_only
     no_header = options.no_header
     unspace = options.unspace
@@ -1031,11 +1034,13 @@ def tree_cmd(args):  # {{{2
             for item in items:
                 if max_count and len(tree_entries) >= max_count:
                     break
-                if re_include_pattern and not re_include_pattern.fullmatch(item.name):
+                elif force_recurse and item.type == 'folder':
+                    _tree_helper(item, level)
+                elif re_include_pattern and not re_include_pattern.fullmatch(item.name):
                     continue
-                if re_exclude_pattern and re_exclude_pattern.fullmatch(item.name):
+                elif re_exclude_pattern and re_exclude_pattern.fullmatch(item.name):
                     continue
-                if item.type == 'folder':
+                elif item.type == 'folder':
                     _tree_helper(item, level)
                 else:  # What we have is a file or web-link that passes our filters
                     if delete_files:
