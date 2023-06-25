@@ -96,10 +96,12 @@ if os.path.exists(app_state_file):
     last_id = _app_state['last_id']
     _lshist = _app_state.get('ls_history', [])
     ls_history_deque.extend(_lshist[:ls_history_size])
+    item_stash = _app_state.get('item_stash', {})
     del _app_state
 else:
     item_history_map = OrderedDict()
     last_id = None
+    item_stash = {}
 current_cmd_last_id = last_id
 
 readline.set_history_length(readline_history_size)
@@ -119,9 +121,6 @@ if os.path.exists(aliases_file):
 if client_id == "(your client-id)" or client_secret == "(your client-secret)":
     print(f"Edit '{config_file}' to supply a valid client ID and secret")
     sys.exit(1)
-
-# Initialize the item_stash {{{2
-item_stash = {}
 
 # }}}1
 
@@ -581,8 +580,9 @@ def save_state():
     with open(app_state_file, "wb") as f:
         pickle.dump(file=f,
                     obj={ 'item_history_map' : item_history_map,
-                          'last_id' : last_id,
-                          'ls_history' : _lshist })
+                          'last_id'          : last_id,
+                          'ls_history'       : _lshist,
+                          'item_stash'       : item_stash })
     # Save readline history
     readline.write_history_file(readline_history_file)
     # Save ID aliases
