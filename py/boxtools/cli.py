@@ -121,7 +121,7 @@ if client_id == "(your client-id)" or client_secret == "(your client-secret)":
     sys.exit(1)
 
 # Initialize the item_stash {{{2
-item_stash = []
+item_stash = {}
 
 # }}}1
 
@@ -539,7 +539,8 @@ def process_cmdline(cmdline):
     if cmdline == ['@']:
         print(f"Last ID: {last_id}")
     elif cmdline == ['@@']:
-        print_table(item_stash, ('Name', 'Id', 'Type'), is_sequence=True)
+        _items = tuple(v for v in item_stash.values())
+        print_table(_items, ('Name', 'Id', 'Type'), is_sequence=True)
     elif len(cmdline) in (1,2) and cmdline[0] == '@list':
         list_aliases(cmdline[1] if len(cmdline) == 2 else None)
     elif cmdline[0].startswith('@'):
@@ -686,7 +687,7 @@ def expand_item_ids(ids):
     item_ids = []
     for id in ids:
         if id == '@@':
-            item_ids.extend((entry[1] for entry in item_stash))
+            item_ids.extend(v[1] for v in item_stash.values())
         else:
             if (tid := translate_id(id)) is not None:
                 item_ids.append(tid)
@@ -1033,7 +1034,7 @@ def tree_cmd(args):  # {{{2
             name_part = (indent_str * level) + f"{marker} {folder.name}/"
         tree_entries.append((name_part, id_part))
         if stash_folders:
-            item_stash.append((folder.name, folder.id, 'folder'))
+            item_stash[folder.id] = (folder.name, folder.id, 'folder')
         if level < max_levels:
             if sys.stdout.isatty():  # Display a progress report
                 sys.stdout.write('\033[2K\033[1G') # erase and go to beginning of line
@@ -1065,7 +1066,7 @@ def tree_cmd(args):  # {{{2
                     add_history_item(item)
                     tree_entries.append((file_entry_prefix + item.name, item.id))
                     if stash_files and item.type == 'file':
-                        item_stash.append((item.name, item.id, 'file'))
+                        item_stash[item.id] = (item.name, item.id, 'file')
             level -= 1
         if level == 0 and sys.stdout.isatty():
             sys.stdout.write('\033[2K\033[1G')  # Erase the progress report text
