@@ -50,7 +50,9 @@ be passed to the system shell after stripping off the '!'.
 The 'tree' command has flags for adding encountered files and folders to
 the "item stash". The items in the stash may then be referred to by the
 ID '@@' in relevant commands (those that accept multiple non-trash IDs).
-You can display the contents of the stash by using '@@' as a command.
+The 'stash' command lets you manipulate and display the list of stashed
+items.  You can also display the contents of the stash by using '@@' as
+a command.
 
 ------------------------------------------------------------------------
   BOXTOOLS_APP_DIR = {app_dir}
@@ -86,8 +88,7 @@ Commands:
     desc          Print or update the description of a file or folder
     trash         List, view, restore, or purge items in the trash.
     ver, version  List, download, and manipulate file versions
-    unspace       Rename items to remove spaces and other
-                  troublesome characters
+    unspace       Rename items to remove spaces and other odd chars
     stash         Manipulate the item stash
 
     shell         Enter an interactive shell
