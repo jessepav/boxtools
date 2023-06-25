@@ -1567,7 +1567,24 @@ def stat_cmd(args):  # {{{2
                                          prog=progname, usage='%(prog)s stat [options] ids...',
                                          description='Get info about items')
     cli_parser.add_argument('ids', nargs='+', help='Item IDs')
+    fieldgroup = cli_parser.add_mutually_exclusive_group()
+    fieldgroup.add_argument('-f', '--fields', help='Specify fields to show, as a comma-separated list')
+    fieldgroup.add_argument('-d', '--only-dates', action='store_true',
+                            help='Only show the name and date fields')
+    fieldgroup.add_argument('-m', '--only-mtime', action='store_true',
+                            help='Only show the name and content_modified_at fields')
+    fieldgroup.add_argument('-c', '--only-item-count', action='store_true',
+                            help='Only show the name and item_count fields (for folders)')
     options = cli_parser.parse_args(args)
+    fields = None
+    if options.fields:
+        fields = tuple(f.strip() for f in options.fields.split(','))
+    elif options.only_dates:
+        fields = ('name', 'content_created_at', 'content_modified_at', 'created_at', 'modified_at')
+    elif options.only_mtime:
+        fields = ('name', 'content_modified_at')
+    elif options.only_item_count:
+        fields = ('name', 'item_count')
     item_ids = expand_item_ids(options.ids)
     if not item_ids:
         return
@@ -1577,7 +1594,7 @@ def stat_cmd(args):  # {{{2
         if not _type: continue
         item = item.get()
         if i != 0: print()
-        print_stat_info(item)
+        print_stat_info(item, fields=fields)
 
 def trash_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(
