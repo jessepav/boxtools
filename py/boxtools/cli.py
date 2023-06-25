@@ -299,6 +299,12 @@ def translate_id(id_):
             print(f"{id_} is not a known alias")
     elif id_ == '/':
         retid = '0'
+    elif id_ == '.':
+        if len(ls_history_deque):
+            retid = ls_history_deque[-1][1]
+        else:
+            print("ls history is empty!")
+            retid = None
     elif id_ in '%=^$/':
         print(f"'{id_}' is composed only of operators!")
         retid = None
@@ -308,11 +314,11 @@ def translate_id(id_):
     elif id_[0] == '=' or id_[-1] == '=':
         term = id_.strip('=')
         retid = _choose_history_entry(id_, lambda entry : term == entry['name'], use_most_recent)
-    elif id_[0] == '^':
-        term = id_[1:]
+    elif id_[0] == '^' or id_[-1] == '^':
+        term = id_.strip('^')
         retid = _choose_history_entry(id_, lambda entry : entry['name'].startswith(term), use_most_recent)
-    elif id_[-1] == '$':
-        term = id_[0:-1]
+    elif id_[0] == '$' or id_[-1] == '$':
+        term = id_.strip('$')
         retid = _choose_history_entry(id_,
                     lambda entry : any(entry[k].endswith(term) for k in ('name', 'id')), use_most_recent)
     elif len(id_) >= 3 and id_[0] == '/' and id_[-1] == '/':  # a regex
