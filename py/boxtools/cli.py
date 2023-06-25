@@ -679,6 +679,18 @@ def download_repr(client, repr_info, item_name, savedir, silent=False):
                 f.write(response.content)
             if not silent: print('done.')
 
+# expand_item_ids() {{{2
+
+def expand_item_ids(ids):
+    if ids == ['@@']:
+        item_ids = [entry[1] for entry in item_stash]
+    else:
+        item_ids = [translate_id(id) for id in ids]
+    if len(item_ids) == 0 or any(id is None for id in item_ids):
+        return None
+    else:
+        return item_ids
+
 # }}}1
 
 # Define command functions {{{1
@@ -1078,8 +1090,8 @@ def unspace_cmd(args):  # {{{2
                     description='Rename items to remove spaces and other troublesome characters')
     cli_parser.add_argument('ids', nargs='+', help='Item IDs')
     options = cli_parser.parse_args(args)
-    item_ids = [translate_id(_id) for _id in options.ids]
-    if any(id is None for id in item_ids):
+    item_ids = expand_item_ids(options.ids)
+    if not item_ids:
         return
     client = get_ops_client()
     for item_id in item_ids:
