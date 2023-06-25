@@ -957,6 +957,8 @@ def search_cmd(args):  # {{{2
                              'parent' : (max_name_len, 'r'), 'parent_id' : (max_id_len, 'l')})
 
 def tree_cmd(args):  # {{{2
+    global item_stash
+    #
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          prog=progname, usage='%(prog)s tree [options] folder_id',
                                          description='Display a tree of items')
@@ -972,9 +974,6 @@ def tree_cmd(args):  # {{{2
                 help='Exclude items and sub-folders whose names fully match RE')
     cli_parser.add_argument('-F', '--force-recurse', action='store_true',
                             help='Recurse into directories regardless of regexp filters')
-    cli_parser.add_argument('-u', '--unspace', action='store_true', help='Rename encountered items to remove spaces.')
-    cli_parser.add_argument('-D', '--delete-files', action='store_true',
-                        help='Delete files and web-links encountered on tree traversal that pass all regexp filters.')
     cli_parser.add_argument('-H', '--no-header', action='store_true',
                             help='Do not print the full folder path before the tree')
     options = cli_parser.parse_args(args)
@@ -991,21 +990,11 @@ def tree_cmd(args):  # {{{2
     force_recurse = options.force_recurse
     dirs_only = options.directories_only
     no_header = options.no_header
-    unspace = options.unspace
-    delete_files = options.delete_files
-    if delete_files and not re_include_pattern and not re_exclude_pattern:
-        print("Using --delete-files without an include/exclude pattern is dangerous: aborting")
-        return
-    delete_count = 0
     indent_str = " " * 2
     client = get_ops_client()
     tree_entries = []
     ####
     def _tree_helper(folder, level):
-        nonlocal delete_count
-        #
-        if unspace and folder.id != '0':  # Do not attempt to rename "All Files"!
-            folder, _ = _tree_item_unspace(client, folder)
         add_history_item(folder)
         name_part, id_part = None, folder.id
         if level == 0:
@@ -1030,7 +1019,6 @@ def tree_cmd(args):  # {{{2
                 items = retrieve_folder_items(client, folder, sort='name', limit=limit)
             level += 1
             file_entry_prefix = (indent_str * level) + _tree_item_markers[level % len(_tree_item_markers)] + ' '
-            first_progress_hash = True
             for item in items:
                 if max_count and len(tree_entries) >= max_count:
                     break
@@ -1043,21 +1031,8 @@ def tree_cmd(args):  # {{{2
                 elif item.type == 'folder':
                     _tree_helper(item, level)
                 else:  # What we have is a file or web-link that passes our filters
-                    if delete_files:
-                        item_history_map.pop(item.id, None)
-                        item.delete()
-                        delete_count += 1
-                        print(' #' if first_progress_hash else '#', end='', flush=True) # print progress indicator
-                        first_progress_hash = False
-                        tree_entries.append((file_entry_prefix + item.name + ' (D)', item.id))
-                    else:
-                        if unspace and item.type == 'file':  # Don't attempt to rename web_link items
-                            item, renamed = _tree_item_unspace(client, item)
-                            if renamed:
-                                print(' #' if first_progress_hash else '#', end='', flush=True)
-                                first_progress_hash = False
-                        add_history_item(item)
-                        tree_entries.append((file_entry_prefix + item.name, item.id))
+                    add_history_item(item)
+                    tree_entries.append((file_entry_prefix + item.name, item.id))
             level -= 1
         if level == 0 and sys.stdout.isatty():
             sys.stdout.write('\033[2K\033[1G')  # Erase the progress report text
@@ -1076,19 +1051,27 @@ def tree_cmd(args):  # {{{2
         print("Cancelled")
         # But we'll print out what we have anyway, so the user knows why it was taking a long time
     print_table(tree_entries, ('name_part', 'id_part'), print_header=False, is_sequence=True)
-    if delete_count:
-        print(f"\n  * {delete_count} item(s) deleted *")
 
 _tree_item_markers = ['*', '-']
 
-_unspace_regexps = None
-
-def _tree_item_unspace(client, item):
-    newname = unspace_name(item.name)
-    if item.name != newname:
-        return item.rename(newname), True
-    else:
-        return item, False
+def unspace_cmd(args):  # {{{2
+    cli_parser = argparse.ArgumentParser(exit_on_error=False,
+                    prog=progname, usage='%(prog)s unspace ids',
+                    description='Rename items to remove spaces and other troublesome characters')
+    cli_parser.add_argument('ids', nargs='+', help='Item IDs')
+    options = cli_parser.parse_args(args)
+    item_ids = [translate_id(_id) for _id in options.ids]
+    if any(id is None for id in item_ids):
+        return
+    client = get_ops_client()
+    for item_id in item_ids:
+        _type, item = get_api_item(client, item_id)
+        if not _type: continue
+        item = item.get(fields=['id', 'name'])
+        newname = unspace_name(item.name)
+        if item.name != newname:
+            print(f'Renaming "{item.name}" -> "{newname}"')
+            item.rename(newname)
 
 def get_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
@@ -1732,6 +1715,7 @@ command_funcs = {
     'ls'       : ls_cmd, 'list' : ls_cmd,
     'fd'       : search_cmd, 'search' : search_cmd, 'find' : search_cmd,
     'tree'     : tree_cmd,
+    'unspace'  : unspace_cmd,
     'get'      : get_cmd,
     'repr'     : repr_cmd,
     'put'      : put_cmd,

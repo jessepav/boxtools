@@ -63,6 +63,8 @@ Commands:
     ls, list      List contents of a folder
     fd, search    Search for items
     tree          Display a tree of items
+    unspace       Rename items to remove spaces and other
+                  troublesome characters
 
     get           Download files or thumbnails
     repr          Get represenation information
