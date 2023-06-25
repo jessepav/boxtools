@@ -429,7 +429,9 @@ def get_api_item(client, item_id):
     if histentry:
         _type = histentry['type']
         item = getattr(client, _type)(item_id)
-        item.name = histentry['name']  # So that all returned items have at least an id and name
+        item.id = item_id  # So that all returned items have at least id, name, and type
+        item.name = histentry['name']
+        item.type = _type
         return (_type, item)
     else:
         return determine_item_type(client, item_id)
@@ -539,8 +541,7 @@ def process_cmdline(cmdline):
     if cmdline == ['@']:
         print(f"Last ID: {last_id}")
     elif cmdline == ['@@']:
-        _items = tuple(v for v in item_stash.values())
-        print_table(_items, ('Name', 'Id', 'Type'), is_sequence=True)
+        print_item_stash()
     elif len(cmdline) in (1,2) and cmdline[0] == '@list':
         list_aliases(cmdline[1] if len(cmdline) == 2 else None)
     elif cmdline[0].startswith('@'):
@@ -694,6 +695,12 @@ def expand_item_ids(ids):
             else:
                 return None
     return item_ids
+
+# print_item_stash() {{{2
+
+def print_item_stash():
+    items = tuple(v for v in item_stash.values())
+    print_table(items, ('Name', 'Id', 'Type'), is_sequence=True)
 
 # }}}1
 
@@ -1106,6 +1113,33 @@ def unspace_cmd(args):  # {{{2
         if item.name != newname:
             print(f'Renaming "{item.name}" -> "{newname}"')
             item.rename(newname)
+
+def stash_cmd(args):  # {{{2
+    cli_parser = argparse.ArgumentParser(exit_on_error=False,
+                    prog=progname, usage='%(prog)s stash [options]',
+                    description='Manipulate the item stash')
+    group = cli_parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-l', '--list', action='store_true', help='Print items in stash')
+    group.add_argument('-a', '--add', nargs='+', metavar='IDS', help='Add IDS to the item stash')
+    group.add_argument('-r', '--remove', nargs='+', metavar='IDS', help='Remove IDS from the item stash')
+    group.add_argument('-Q', '--clear', action='store_true', help='Clear the item stash')
+    options = cli_parser.parse_args(args)
+    if options.list:
+        print_item_stash()
+    elif options.add:
+        ids = expand_item_ids(options.add)
+        if not ids: return
+        client = get_ops_client()
+        for item_id in ids:
+            _type, item = get_api_item(client, item_id)
+            item_stash[item.id] = (item.name, item.id, item.type)
+    elif options.remove:
+        ids = expand_item_ids(options.remove)
+        if not ids: return
+        for item_id in ids:
+            del item_stash[item_id]
+    elif options.clear:
+        item_stash.clear()
 
 def get_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
@@ -1754,6 +1788,7 @@ command_funcs = {
     'fd'       : search_cmd, 'search' : search_cmd, 'find' : search_cmd,
     'tree'     : tree_cmd,
     'unspace'  : unspace_cmd,
+    'stash'    : stash_cmd,
     'get'      : get_cmd,
     'repr'     : repr_cmd,
     'put'      : put_cmd,

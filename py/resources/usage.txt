@@ -68,8 +68,6 @@ Commands:
     ls, list      List contents of a folder
     fd, search    Search for items
     tree          Display a tree of items and add to stash
-    unspace       Rename items to remove spaces and other
-                  troublesome characters
 
     get           Download files or thumbnails
     repr          Get represenation information
@@ -88,6 +86,9 @@ Commands:
     desc          Print or update the description of a file or folder
     trash         List, view, restore, or purge items in the trash.
     ver, version  List, download, and manipulate file versions
+    unspace       Rename items to remove spaces and other
+                  troublesome characters
+    stash         Manipulate the item stash
 
     shell         Enter an interactive shell
     source        Read commands from a given file
