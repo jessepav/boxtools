@@ -979,7 +979,7 @@ def tree_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          prog=progname, usage='%(prog)s tree [options] folder_id',
                                          description='Display a tree of items')
-    cli_parser.add_argument('folder_id', nargs='?', help='Folder ID')
+    cli_parser.add_argument('folder_id', help='Folder ID')
     cli_parser.add_argument('-L', '--max-levels', type=int, default=999, metavar='LEVELS',
                             help='Maximum number of levels to recurse (>= 1)')
     cli_parser.add_argument('-d', '--directories-only', action='store_true', help='Only show directories')
@@ -999,15 +999,7 @@ def tree_cmd(args):  # {{{2
                             help='Add encountered folders to the item stash')
     cli_parser.add_argument('-a', '--append-stash', action='store_true',
                             help='Append items to the current stash, rather than replacing it')
-    cli_parser.add_argument('-Q', '--clear-stash', action='store_true', help='Clear the item stash')
     options = cli_parser.parse_args(args)
-    if options.clear_stash:
-        item_stash.clear()
-        print("Item stash cleared")
-        return
-    if not options.folder_id:
-        print("folder_id required")
-        return
     folder_id = translate_id(options.folder_id)
     if not folder_id:
         return
