@@ -65,7 +65,7 @@ representation_wait_time = config_table.get('representation-wait-time', 2.0)
 representation_aliases = dict(config_table.get('representation-aliases', []))
 
 # Get terminal size for use in default lengths {{{2
-screen_cols = shutil.get_terminal_size(fallback=(0, 0))[0] if sys.stdout.isatty() else 0
+screen_cols = shutil.get_terminal_size(fallback=(0, 0))[0] if sys.stdout.isatty() else 80
 
 # Default and minimum name and id lengths for commands that allow clipping field values {{{2
 MIN_NAME_LEN = 8
@@ -255,29 +255,36 @@ def print_table(items, fields, *, colgap=2, print_header=True,
 
 # Print item info as for the stat command
 
-def print_stat_info(item, add_history=True):
+def print_stat_info(item, add_history=True, fields=None):
+    fieldset = None if fields is None else set(fields)
+    statlist = []
+    #
+    def add_field(field, value):
+        if fieldset is None or field in fieldset:
+            statlist.append((field + ':', value))
+    #
     if add_history:
         add_history_item(item)
     for field in ('name', 'type', 'id', 'content_created_at', 'content_modified_at',
                     'created_at', 'modified_at', 'size'):
-        print(f"{field:20}: {getattr(item, field, 'N/A')}")
+        add_field(field, str(getattr(item, field, 'N/A')))
     owner = item.owned_by
-    print(f"{'owned_by':20}: {owner.name} ({owner.login})")
+    add_field('owned_by', f"{owner.name} ({owner.login})")
     if item.shared_link:
-        print(f"{'url':20}: {item.shared_link['url']}")
-        print(f"{'download_url':20}: {item.shared_link['download_url']}")
+        add_field('url', item.shared_link['url'])
+        add_field('download_url', item.shared_link['download_url'])
     if hasattr(item, "item_collection"):
-        print(f"{'item_count':20}: {item.item_collection['total_count']}")
+        add_field('item_count', str(item.item_collection['total_count']))
     if item.parent:
-        add_history_item(item.parent)
-        print(f"{'parent_name':20}: {item.parent.name}")
-        print(f"{'parent_id':20}: {item.parent.id}")
+        if add_history:
+            add_history_item(item.parent)
+        add_field('parent_name', item.parent.name)
+        add_field('parent_id', item.parent.id)
     if desc := item.description:
-        print(f"{'description':20}:", end='')
-        if '\n' in desc or len(desc) > screen_cols - 22:
-            print('', '~' * (screen_cols//2), desc, '~' * (screen_cols//2), sep='\n')
-        else:
-            print(' ' + desc)
+        if len(desc) > screen_cols/2:
+            desc = desc[0:screen_cols/2] + '...'
+        add_field('description', desc)
+    print_table(statlist, ('field', 'value'), print_header=False, no_leader_fields=('field',), is_sequence=True)
 
 # translate_id() and co. {{{2
 
