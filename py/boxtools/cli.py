@@ -180,6 +180,8 @@ def get_ops_client():
 
 # Print a pretty table of `fields` in `items`.
 #
+#   items            : a sequence of objects (i.e. namespaces), dicts, or (sub)sequences
+#   fields           : a sequence of field names
 #   colgap           : number of spaces between each column
 #   print_header     : print the names of the fields above the rows
 #   clip_fields      : a map from field name to a tuple of (max_value_len, clip_side). If a
@@ -188,8 +190,8 @@ def get_ops_client():
 #                      clip_side if necessary.  A max_value_len of 0 or None means no limit;
 #                      clip_side is either 'l' or 'r'.
 #   no_leader_fields : A sequence of field names. These fields will not have leaders appended.
-#   is_dict          : True if `items` is a dict
-#   is_sequence      : True if `items` is a sequence
+#   is_dict          : True if the elements of `items` are dicts
+#   is_sequence      : True if the elements of `items` are sequences
 #   field_val_func   : If provided, will be called when retrieving the field value for each item,
 #                      so that the value may be transformed, if desired. (See code below for usage)
 #   output_file      : the file object where output will be printed; default sys.stdout
