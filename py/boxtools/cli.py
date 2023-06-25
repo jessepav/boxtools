@@ -1140,11 +1140,14 @@ def stash_cmd(args):  # {{{2
         for item_id in ids:
             _type, item = get_api_item(client, item_id)
             item_stash[item.id] = (item.name, item.id, item.type)
+            print("Added:", item.name)
     elif options.remove:
         ids = expand_item_ids(options.remove)
         if not ids: return
         for item_id in ids:
-            del item_stash[item_id]
+            entry = item_stash.pop(item_id, None)
+            if entry is not None:
+                print("Removed:", entry[0])
     elif options.clear:
         item_stash.clear()
 
