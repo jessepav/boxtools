@@ -682,14 +682,16 @@ def download_repr(client, repr_info, item_name, savedir, silent=False):
 # expand_item_ids() {{{2
 
 def expand_item_ids(ids):
-    if ids == ['@@']:
-        item_ids = [entry[1] for entry in item_stash]
-    else:
-        item_ids = [translate_id(id) for id in ids]
-    if len(item_ids) == 0 or any(id is None for id in item_ids):
-        return None
-    else:
-        return item_ids
+    item_ids = []
+    for id in ids:
+        if id == '@@':
+            item_ids.extend((entry[1] for entry in item_stash))
+        else:
+            if (tid := translate_id(id)) is not None:
+                item_ids.append(tid)
+            else:
+                return None
+    return item_ids
 
 # }}}1
 
@@ -977,7 +979,7 @@ def tree_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          prog=progname, usage='%(prog)s tree [options] folder_id',
                                          description='Display a tree of items')
-    cli_parser.add_argument('folder_id', help='Folder ID')
+    cli_parser.add_argument('folder_id', nargs='?', help='Folder ID')
     cli_parser.add_argument('-L', '--max-levels', type=int, default=999, metavar='LEVELS',
                             help='Maximum number of levels to recurse (>= 1)')
     cli_parser.add_argument('-d', '--directories-only', action='store_true', help='Only show directories')
@@ -997,7 +999,15 @@ def tree_cmd(args):  # {{{2
                             help='Add encountered folders to the item stash')
     cli_parser.add_argument('-a', '--append-stash', action='store_true',
                             help='Append items to the current stash, rather than replacing it')
+    cli_parser.add_argument('-Q', '--clear-stash', action='store_true', help='Clear the item stash')
     options = cli_parser.parse_args(args)
+    if options.clear_stash:
+        item_stash.clear()
+        print("Item stash cleared")
+        return
+    if not options.folder_id:
+        print("folder_id required")
+        return
     folder_id = translate_id(options.folder_id)
     if not folder_id:
         return
@@ -1121,8 +1131,8 @@ def get_cmd(args):  # {{{2
                             help="Rather than downloading the file itself, download the representation given "
                                  "by REPR. (Use the 'repr' command to find possible values of REPR)")
     options = cli_parser.parse_args(args)
-    item_ids = [translate_id(id) for id in options.ids]
-    if any(id is None for id in item_ids):
+    item_ids = expand_item_ids(options.ids)
+    if not item_ids:
         return
     target_dir = expand_all(options.directory)
     if not os.path.isdir(target_dir):
@@ -1274,8 +1284,8 @@ def cat_cmd(args):  # {{{2
     cli_parser.add_argument('-c', '--byte-count', metavar='N', type=int, default=4096,
                             help='Print the first N bytes of files (default %(default)s)')
     options = cli_parser.parse_args(args)
-    item_ids = [translate_id(_id) for _id in options.ids]
-    if any(id is None for id in item_ids):
+    item_ids = expand_item_ids(options.ids)
+    if not item_ids:
         return
     byte_count = options.byte_count
     headers = options.headers
@@ -1305,8 +1315,8 @@ def rm_cmd(args):  # {{{2
                                          description='Remove items')
     cli_parser.add_argument('ids', nargs='+', help='Item IDs to remove')
     options = cli_parser.parse_args(args)
-    item_ids = [translate_id(_id) for _id in options.ids]
-    if any(id is None for id in item_ids):
+    item_ids = expand_item_ids(options.ids)
+    if not item_ids:
         return
     client = get_ops_client()
     for item_id in item_ids:
@@ -1327,8 +1337,8 @@ def path_cmd(args):  # {{{2
     options = cli_parser.parse_args(args)
     rclone = options.rclone
     verbose = options.verbose
-    item_ids = [translate_id(_id) for _id in options.ids]
-    if any(id is None for id in item_ids):
+    item_ids = expand_item_ids(options.ids)
+    if not item_ids:
         return
     client = get_ops_client()
     for i, id in enumerate(item_ids):
@@ -1375,9 +1385,11 @@ def mv_cmd(args):  # {{{2
     cli_parser.add_argument('ids', nargs='+', help='Item IDs to move')
     cli_parser.add_argument('dest_folder_id', help='Destination folder ID')
     options = cli_parser.parse_args(args)
-    item_ids = [translate_id(_id) for _id in options.ids]
+    item_ids = expand_item_ids(options.ids)
+    if not item_ids:
+        return
     dest_folder_id = translate_id(options.dest_folder_id)
-    if dest_folder_id is None or any(id is None for id in item_ids):
+    if dest_folder_id is None:
         return
     client = get_ops_client()
     dest_folder = client.folder(folder_id=dest_folder_id)
@@ -1395,9 +1407,11 @@ def cp_cmd(args):  # {{{2
     cli_parser.add_argument('ids', nargs='+', help='Item IDs to copy')
     cli_parser.add_argument('dest_folder_id', help='Destination folder ID')
     options = cli_parser.parse_args(args)
-    item_ids = [translate_id(_id) for _id in options.ids]
+    item_ids = expand_item_ids(options.ids)
+    if not item_ids:
+        return
     dest_folder_id = translate_id(options.dest_folder_id)
-    if dest_folder_id is None or any(id is None for id in item_ids):
+    if dest_folder_id is None:
         return
     client = get_ops_client()
     dest_folder = client.folder(folder_id=dest_folder_id)
@@ -1477,8 +1491,8 @@ def ln_cmd(args):  # {{{2
     options = cli_parser.parse_args(args)
     password = options.password
     remove = options.remove
-    item_ids = [translate_id(_id) for _id in options.ids]
-    if any(id is None for id in item_ids):
+    item_ids = expand_item_ids(options.ids)
+    if not item_ids:
         return
     client = get_ops_client()
     for i, item_id in enumerate(item_ids):
@@ -1519,8 +1533,8 @@ def stat_cmd(args):  # {{{2
                                          description='Get info about items')
     cli_parser.add_argument('ids', nargs='+', help='Item IDs')
     options = cli_parser.parse_args(args)
-    item_ids = [translate_id(_id) for _id in options.ids]
-    if any(id is None for id in item_ids):
+    item_ids = expand_item_ids(options.ids)
+    if not item_ids:
         return
     client = get_ops_client()
     for i, item_id in enumerate(item_ids):
@@ -1533,13 +1547,13 @@ def stat_cmd(args):  # {{{2
 def trash_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(
         exit_on_error=False,
-        prog=progname, usage='%(prog)s trash [options] action [id...]',
+        prog=progname, usage='%(prog)s trash [options] action ids',
         description='List, view, restore, or purge items in the trash.',
         epilog='To get a reasonable listing of recently deleted items, use "trash list -trl 10", '
                 'which will show the 10 most-recently-deleted items, newest first.'
     )
     cli_parser.add_argument('action', help='Action to perform: l[ist]/ls, s[tat], r[estore], p[urge]')
-    cli_parser.add_argument('id', nargs='*', help='Item ID(s)')
+    cli_parser.add_argument('ids', nargs='*', help='Item ID(s)')
     cli_parser.add_argument('-l', '--limit', type=int, default=BOX_GET_ITEMS_LIMIT,
                             help='Maximum number of items to return')
     cli_parser.add_argument('-o', '--offset', type=int, default=0,
@@ -1563,7 +1577,7 @@ def trash_cmd(args):  # {{{2
     if not (do_list or do_stat or do_restore or do_purge):
         print("Valid actions are l[ist]/ls, s[tat], r[estore], p[urge]")
         return
-    item_ids = [translate_id(id) for id in options.id]
+    item_ids = [translate_id(id) for id in options.ids]
     if any(id is None for id in item_ids):
         return
     limit = options.limit

@@ -47,6 +47,11 @@ whose names are all digits will not be persisted to the next session.
 When using the 'shell' command, any input line that starts with '!' will
 be passed to the system shell after stripping off the '!'.
 
+The 'tree' command has flags for adding encountered files and folders to
+the "item stash". The items in the stash may then be referred to by the
+ID '@@' in relevant commands (those that accept multiple non-trash IDs).
+You can display the contents of the stash by using '@@' as a command.
+
 ------------------------------------------------------------------------
   BOXTOOLS_APP_DIR = {app_dir}
   BOXTOOLS_DIR     = {config_dir}
@@ -62,7 +67,7 @@ Commands:
 
     ls, list      List contents of a folder
     fd, search    Search for items
-    tree          Display a tree of items
+    tree          Display a tree of items and add to stash
     unspace       Rename items to remove spaces and other
                   troublesome characters
 
