@@ -1060,7 +1060,12 @@ def tree_cmd(args):  # {{{2
             name_part = (indent_str * level) + f"{marker} {folder.name}/"
         tree_entries.append((name_part, id_part))
         if stash_folders:
-            item_stash[folder.id] = (folder.name, folder.id, 'folder')
+            # We could have arrived here because --force-recurse was used, but we only want to
+            # add the folder to the stash if it actually passed any filters.
+            if not force_recurse or \
+                 ((not re_include_pattern or re_include_pattern.fullmatch(folder.name)) and
+                  (not re_exclude_pattern or not re_exclude_pattern.fullmatch(folder.name))):
+                item_stash[folder.id] = (folder.name, folder.id, 'folder')
         if level < max_levels:
             if sys.stdout.isatty():  # Display a progress report
                 sys.stdout.write('\033[2K\033[1G') # erase and go to beginning of line
