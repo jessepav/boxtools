@@ -15,10 +15,11 @@ if not app_dir:
 
 progname = os.environ.get("BOXTOOLS_PROGNAME", os.path.basename(sys.argv[0]))
 
+
 # The user can override the default ~/.boxtools directory by setting $BOXTOOLS_DIR {{{2
 config_dir = os.environ.get("BOXTOOLS_DIR", os.path.expanduser("~/.boxtools"))
 
-# We keep certain resources as their own files for easy editing {{{2
+# Load the resources kept in separate files for easy editing {{{2
 with open(os.path.join(app_dir, 'resources/usage.txt'), "rt") as f:
     general_usage = f.read(). \
         format(progname=progname, app_dir=app_dir, config_dir=config_dir)
@@ -27,14 +28,14 @@ if not os.path.exists(config_dir):
     print(f"Creating {config_dir}...")
     os.mkdir(config_dir)
 
-# These are the configuration files {{{2
+# Derive paths for configuration files {{{2
 config_file = os.path.join(config_dir, "boxtools.toml")
 tokens_file = os.path.join(config_dir, "auth-tokens.json")
 app_state_file = os.path.join(config_dir, "app-state.pickle")
 aliases_file = os.path.join(config_dir, "id-aliases.txt")
 readline_history_file = os.path.join(config_dir, "readline-history")
 
-# Print help if we need to {{{2
+# Print help and exit if appropriate {{{2
 if len(sys.argv) > 1 and sys.argv[1] in ('-h', '--help'):
     print(general_usage, end="")
     sys.exit(1)
@@ -45,7 +46,7 @@ if not os.path.exists(config_file):
     shutil.copyfile(os.path.join(app_dir, 'resources/boxtools.toml'), config_file)
     sys.exit(1)
 
-# Read the config {{{2
+# Read the config file {{{2
 with open(config_file, 'rb') as f:
     config = tomli.load(f)
 auth_table = config['auth']
@@ -118,7 +119,7 @@ if os.path.exists(aliases_file):
             if len(parts) == 3 and parts[1] == '=' and parts[2].isdigit():
                 id_aliases[parts[0]] = parts[2]
 
-# Ensure the user actually modified the config file {{{2
+# Ensure the set a custom client id and secret in the config file {{{2
 if client_id == "(your client-id)" or client_secret == "(your client-secret)":
     print(f"Edit '{config_file}' to supply a valid client ID and secret")
     sys.exit(1)
@@ -255,7 +256,11 @@ def print_table(items, fields, *, colgap=2, print_header=True,
 
 # print_stat_info() {{{2
 
-# Print item info as for the stat command
+# Print item info as for the stat command.
+#
+#  `add_history` determines if the item is added to item history
+#  `fields`, if given, should be a sequence of field names that we'll print
+#
 
 def print_stat_info(item, add_history=True, fields=None):
     fieldset = None if fields is None else set(fields)
@@ -291,7 +296,7 @@ def print_stat_info(item, add_history=True, fields=None):
 # translate_id() and co. {{{2
 
 # Turn a typed ID, in any of the supported shortcuts documented in usage.txt, into a
-# Box ID number, by searching ID aliases and item history.
+# Box ID number, by searching ID aliases, item history, and ls history.
 
 def translate_id(id_):
     global current_cmd_last_id
@@ -499,6 +504,11 @@ def expand_all(path):
 
 # print_name_header() {{{2
 
+# Prints a boxed header spanning the width of the terminal.
+#
+#   leading_blank - if True, print a blank line before the header
+#   context_info  - if not empty, will be printed after the itemname
+
 def print_name_header(itemname, leading_blank=False, context_info=""):
     if leading_blank: print()
     remaining_cols = max(0, screen_cols - len(itemname) - len(context_info) - 6)
@@ -507,6 +517,8 @@ def print_name_header(itemname, leading_blank=False, context_info=""):
     print( " └─", '─' * len(itemname), '─┘', sep='')
 
 # define_alias() {{{2
+
+# Handles command lines of the form "@alias = ID"
 
 def define_alias(cmdline):
     if len(cmdline) == 3 and len(cmdline[0]) >= 2 and cmdline[0][0] == '@' and cmdline[1] == '=':
@@ -527,6 +539,8 @@ def define_alias(cmdline):
 
 # list_aliases() {{{2
 
+# Prints all currently defined ID aliases
+
 def list_aliases(filter_term=None):
     items = id_aliases.items()
     if filter_term:
@@ -539,6 +553,11 @@ def list_aliases(filter_term=None):
     print_table(entries, fields=('alias', 'ID'), no_leader_fields=('alias', 'ID'), is_sequence=True)
 
 # process_cmdline() {{{2
+
+# Top-level handler for interpreting command lines.
+#
+#   cmdline - either a str as entered, or a sequence of tokens as returned,
+#             for example, by shlex.split()
 
 def process_cmdline(cmdline):
     global last_id
@@ -582,6 +601,8 @@ def process_cmdline(cmdline):
 
 # save_state() {{{2
 
+# Writes all persistent program state to their respective files.
+
 def save_state():
     # Save "app state"
     _lshist = list(ls_history_deque)
@@ -601,6 +622,9 @@ def save_state():
 
 # get_name_len() and get_id_len() {{{2
 
+# Used to determine max name and ID length for commands like ls, search, etc.
+# that accept --max-name-length and --max-id-length arguments.
+
 def get_name_len(argval):
     if argval is None:
         return default_max_name_length
@@ -619,6 +643,8 @@ def get_id_len(argval):
 
 # unspace_name() {{{2
 
+# Removes spaces and other troublesome characters from 'name'
+
 def unspace_name(name):
     global _unspace_regexps
     if not _unspace_regexps:
@@ -636,6 +662,11 @@ def unspace_name(name):
 _unspace_regexps = None
 
 # get_repr_map(), get_repr_info(), download_repr() {{{2
+
+# For a given Box file, determine available representations and return a dict that maps
+#
+#   representation_name -> {'url'   : representation info URL,
+#                           'paged' : boolean indicating if its a paged representation }
 
 def get_repr_map(file):
     representations = file.get_representation_info()
@@ -670,6 +701,16 @@ def get_repr_info(client, rep, silent=False):
     if not silent and attempts != 0: print()   # Go to next line if we've printed "waiting" messages
     return state, response
 
+# Download a file representation, either single or paged.
+#
+#   client - Box client object
+#   repr_info - a dict of the API response to a representation info request. This is the second
+#               item in the tuple returned by get_repr_info()
+#   item_name - the name of the Box file. It will be unspaced before use.
+#   savedir   - the directory where representation file(s) will be saved
+#   silent    - if True, no messages are printed
+#
+
 def download_repr(client, repr_info, item_name, savedir, silent=False):
     repformat = repr_info['representation']
     if "text" in repformat:
@@ -699,6 +740,10 @@ def download_repr(client, repr_info, item_name, savedir, silent=False):
 
 # expand_item_ids() {{{2
 
+# Used in commands that accept multiple Box item IDs. Expands a list of IDs as
+# entered by the user to numeric Box IDs, handling the stash, history operators, etc.
+# If any invalid IDs were entered, returns None.
+
 def expand_item_ids(ids):
     item_ids = []
     for id in ids:
@@ -712,6 +757,8 @@ def expand_item_ids(ids):
     return item_ids
 
 # print_item_stash() {{{2
+
+# Prints a table of items currently in the stash.
 
 def print_item_stash():
     items = tuple(v for v in item_stash.values())
