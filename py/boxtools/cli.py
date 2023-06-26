@@ -769,7 +769,7 @@ def history_cmd(args):  # {{{2
                                          description='Show previous ID history')
     cli_parser.add_argument('filter', nargs='?',
                             help='If given, only entries whose names match (case-insensitively) will be shown.')
-    cli_parser.add_argument('-c', '--clear', action='store_true', help='Clear history')
+    cli_parser.add_argument('-Q', '--clear', action='store_true', help='Clear history')
     cli_parser.add_argument('-d', '--delete', metavar='ID', action='append',
                             help='Delete the given item ID from history')
     cli_parser.add_argument('-n', '--max-count', type=int, default=0,
