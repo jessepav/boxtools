@@ -95,7 +95,8 @@ if os.path.exists(app_state_file):
     item_history_map = _app_state['item_history_map']
     last_id = _app_state['last_id']
     _lshist = _app_state.get('ls_history', [])
-    ls_history_deque.extend(_lshist[:ls_history_size])
+    if _lshist and len(_lshist[0]) == 4:  # Don't restore invalid ls history
+        ls_history_deque.extend(_lshist[:ls_history_size])
     item_stash = _app_state.get('item_stash', {})
     del _app_state
 else:
@@ -310,12 +311,17 @@ def translate_id(id_):
             print(f"{id_} is not a known alias")
     elif id_ == '/':
         retid = '0'
-    elif id_ == '.':
+    elif id_ in ('.', '..'):
+        retid = None
         if len(ls_history_deque):
-            retid = ls_history_deque[-1][1]
+            _histentry = ls_history_deque[-1]
+            if id_ == '.':
+                retid = _histentry[1]
+            else:
+                if (retid := _histentry[3]) is None:
+                    print("ls parent directory unavailable")
         else:
             print("ls history is empty!")
-            retid = None
     elif id_ in '%=^$/':
         print(f"'{id_}' is composed only of operators!")
         retid = None
@@ -896,7 +902,11 @@ def ls_cmd(args):  # {{{2
                                       sort=sort, direction=direction, filter_func=filter_func)
         add_history_item(folder)
         if len(ls_history_deque) == 0 or ls_history_deque[-1][1] != folder.id:
-            ls_history_deque.append((folder.name, folder.id, folder.parent.name if folder.parent else None))
+            if _p := folder.parent:
+                _parname, _parid = _p.name, _p.id
+            else:
+                _parname, _parid = None, None
+            ls_history_deque.append((folder.name, folder.id, _parname, _parid))
         if _parent := folder.parent:
             _parent = _parent.get(fields=['id', 'name', 'type', 'parent'])
             add_history_item(_parent)
@@ -1152,6 +1162,7 @@ def stash_cmd(args):  # {{{2
                 print("Removed:", entry[0])
     elif options.clear:
         item_stash.clear()
+        print("Stash cleared")
 
 def get_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,

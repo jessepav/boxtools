@@ -34,7 +34,8 @@ however, if the command were "ls @ 1234" then '@' would become 1234.
 
 The root folder, aka "All Files", has an ID of '0' or '/'.
 
-The most recently listed (via 'ls') folder has an ID of '.'
+The most recently listed (via 'ls') folder has an ID of '.' and its
+parent is '..'.
 
 Aliases may be defined via an '@alias = ID' command.  If a typed ID
 begins with '@', the rest of the ID word will be checked against these
