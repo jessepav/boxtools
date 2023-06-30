@@ -1179,11 +1179,13 @@ def unspace_cmd(args):  # {{{2
     for item_id in item_ids:
         _type, item = get_api_item(client, item_id)
         if not _type: continue
-        item = item.get(fields=['id', 'name'])
+        item = item.get(fields=['id', 'name', 'type', 'parent'])
         newname = unspace_name(item.name)
         if item.name != newname:
             print(f'Renaming "{item.name}" -> "{newname}"')
             item.rename(newname)
+            item.name = newname
+            add_history_item(item)
 
 def stash_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
