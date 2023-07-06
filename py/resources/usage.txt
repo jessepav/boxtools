@@ -37,13 +37,15 @@ The root folder, aka "All Files", has an ID of '0' or '/'.
 The most recently listed (via 'ls') folder has an ID of '.' and its
 parent is '..'.
 
-Aliases may be defined via an '@alias = ID' command.  If a typed ID
-begins with '@', the rest of the ID word will be checked against these
-aliases. '@list' will list all defined aliases. '@list term' will list
-only those aliases that contain 'term'; if 'term' begins with a '^' it
-anchors the search to the start of the alias name. To delete an alias,
-use '@alias = None' or '@alias = ""'. Aliases that begin with '_' or
-whose names are all digits will not be persisted to the next session.
+Aliases may be defined via an '@alias = ID [# comment]' command.  If a
+typed ID begins with '@', the rest of the ID word will be checked
+against these aliases. '@list' will list all defined aliases. '@list
+term' will list only those aliases that contain 'term'; if 'term' begins
+with a '^' it anchors the search to the start of the alias name. To
+delete an alias, use '@alias = None' or '@alias = ""'. Aliases that
+begin with '_' or whose names are all digits will not be persisted to
+the next session. Aliases will be saved to the "id-aliases.txt" file in
+your config directory; this file may be manually edited.
 
 When using the 'shell' command, any input line that starts with '!' will
 be passed to the system shell after stripping off the '!'.

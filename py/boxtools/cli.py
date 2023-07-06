@@ -111,13 +111,15 @@ if os.path.exists(readline_history_file):
     readline.read_history_file(readline_history_file)
 
 # Load ID aliases {{{2
+ID_ALIAS_RE = re.compile(r'(\S+)\s*=\s*(\d+)\s*(#.*)?')
+
 id_aliases = {}
 if os.path.exists(aliases_file):
     with open(aliases_file, 'rt') as f:
         for line in f:
-            parts = line.split()
-            if len(parts) == 3 and parts[1] == '=' and parts[2].isdigit():
-                id_aliases[parts[0]] = parts[2]
+            if mo := ID_ALIAS_RE.fullmatch(line.strip()):
+                _alias, _id, _comment = mo.group(1, 2, 3)
+                id_aliases[_alias] = (_id, _comment)
 
 # Ensure the set a custom client id and secret in the config file {{{2
 if client_id == "(your client-id)" or client_secret == "(your client-secret)":
@@ -311,7 +313,8 @@ def translate_id(id_):
     if id_ == '@':
         retid = last_id
     elif id_[0] == '@':
-        retid = id_aliases.get(id_[1:])
+        _alias = id_aliases.get(id_[1:])
+        retid = _alias[0] if _alias is not None else None
         if retid is None:
             print(f"{id_} is not a known alias")
     elif id_ == '/':
@@ -521,21 +524,32 @@ def print_name_header(itemname, leading_blank=False, context_info=""):
 # Handles command lines of the form "@alias = ID"
 
 def define_alias(cmdline):
-    if len(cmdline) == 3 and len(cmdline[0]) >= 2 and cmdline[0][0] == '@' and cmdline[1] == '=':
+    if len(cmdline) >= 3 and len(cmdline[0]) >= 2 and cmdline[0][0] == '@' and cmdline[1] == '=':
         alias = cmdline[0][1:]
         if (len(cmdline[2]) == 0 or cmdline[2].lower() == 'none'):
             if alias in id_aliases:
-                oldid = id_aliases.pop(alias)
+                oldid = id_aliases.pop(alias)[0]
                 print(f"@{alias} deleted (was {oldid})")
             else:
                 print(f'Alias "@{alias}" did not exist')
         else:
             id = translate_id(cmdline[2])
             if id is not None:
-                id_aliases[alias] = id
-                print(f"@{alias} = {id}")
+                if len(cmdline) >= 4 and cmdline[3][0] == '#':
+                    comment = " ".join(cmdline[3:])
+                else:
+                    hist_entry = item_history_map.get(id)
+                    if hist_entry:
+                        comment = "# " + hist_entry['name']
+                        if hist_entry['type'] == 'folder':
+                            comment += '/'
+                    else:
+                        comment = None
+                id_aliases[alias] = (id, comment)
+                commentstr = "  " + comment if comment else ""
+                print(f"@{alias} = {id}{commentstr}")
     else:
-        print("Incorrect alias definition syntax! [ @alias = ID ]")
+        print("Incorrect alias definition syntax! ( @alias = ID  # comment )")
 
 # list_aliases() {{{2
 
@@ -549,8 +563,8 @@ def list_aliases(filter_term=None):
             items = filter(lambda item : item[0].startswith(filter_term), items)
         else:
             items = filter(lambda item : filter_term in item[0], items)
-    entries = list(items)
-    print_table(entries, fields=('alias', 'ID'), no_leader_fields=('alias', 'ID'), is_sequence=True)
+    entries = [(alias, id, comment if comment else "") for (alias, (id, comment)) in items]
+    print_table(entries, fields=('alias', 'ID', 'comment'), no_leader_fields=('alias', 'ID'), is_sequence=True)
 
 # process_cmdline() {{{2
 
@@ -616,9 +630,10 @@ def save_state():
     readline.write_history_file(readline_history_file)
     # Save ID aliases
     with open(aliases_file, "wt") as f:
-        for alias, id in id_aliases.items():
+        for (alias, (id, comment)) in id_aliases.items():
             if alias[0] != '_' and not alias.isdigit():
-                print(alias, '=', id, file=f)
+                _commentstr = "  " + comment if comment else ""
+                print(f"{alias} = {id}{_commentstr}", file=f)
 
 # get_name_len() and get_id_len() {{{2
 
