@@ -665,7 +665,7 @@ def unspace_name(name):
     global _unspace_regexps
     if not _unspace_regexps:
         _unspace_regexps = (re.compile(r'[ ,\(\)\-\[\]]+'),
-                            re.compile(r"""['"]"""),
+                            re.compile(r"""['"‘’“”]"""),
                             re.compile(r'-?&-?'))
     newname = name
     newname = _unspace_regexps[0].sub('-', newname)   # replace runs of troublesome characters with a dash
