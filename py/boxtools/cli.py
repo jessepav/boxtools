@@ -290,8 +290,9 @@ def print_stat_info(item, add_history=True, fields=None):
         add_field('parent_name', item.parent.name)
         add_field('parent_id', item.parent.id)
     if desc := item.description:
-        if len(desc) > screen_cols/2:
-            desc = desc[0:screen_cols/2] + '...'
+        desc = desc.replace("\n", "↵")
+        if len(desc) > screen_cols//2:
+            desc = desc[0:screen_cols//2] + '...'
         add_field('description', desc)
     print_table(statlist, ('field', 'value'), print_header=False, no_leader_fields=('field',), is_sequence=True)
 
