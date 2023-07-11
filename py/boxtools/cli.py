@@ -1659,8 +1659,8 @@ def stat_cmd(args):  # {{{2
                             help='Only show the name and date fields')
     fieldgroup.add_argument('-m', '--only-mtime', action='store_true',
                             help='Only show the name and content_modified_at fields')
-    fieldgroup.add_argument('-c', '--only-item-count', action='store_true',
-                            help='Only show the name and item_count fields (for folders)')
+    fieldgroup.add_argument('-c', '--only-size-count', action='store_true',
+                            help='Only show the name, size, and item_count fields (for folders)')
     options = cli_parser.parse_args(args)
     fields = None
     if options.fields:
@@ -1669,8 +1669,8 @@ def stat_cmd(args):  # {{{2
         fields = ('name', 'content_created_at', 'content_modified_at', 'created_at', 'modified_at')
     elif options.only_mtime:
         fields = ('name', 'content_modified_at')
-    elif options.only_item_count:
-        fields = ('name', 'item_count')
+    elif options.only_size_count:
+        fields = ('name', 'size', 'item_count')
     item_ids = expand_item_ids(options.ids)
     if not item_ids:
         return
