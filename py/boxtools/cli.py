@@ -1303,6 +1303,33 @@ def get_cmd(args):  # {{{2
                 with open(os.path.join(target_dir, filename), "wb") as f:
                     file.download_to(f)
 
+def zip_cmd(args): # {{{2
+    cli_parser = argparse.ArgumentParser(exit_on_error=False,
+                                         prog=progname, usage='%(prog)s zip [options] ids... zipfile',
+                                         description='Download files or thumbnails')
+    cli_parser.add_argument('ids', nargs='+', help='File or Folder IDs')
+    cli_parser.add_argument('zipfile', help='ZIP file destination')
+    options = cli_parser.parse_args(args)
+    item_ids = expand_item_ids(options.ids)
+    if not item_ids:
+        return
+    zipfile = expand_all(options.zipfile)
+    if not zipfile.lower().endswith(".zip"):
+        zipfile += ".zip"
+    client = get_ops_client()
+    items = [get_api_item(client, id)[1] for id in item_ids]
+    zipname = os.path.basename(zipfile)
+    print(f"Downloading items to {zipname} (this may take a while)...\n", flush=True)
+    for item in items:
+        print("  * ", item.name, '/' if item.type == 'folder' else "", sep="")
+    print(flush=True)
+    with open(zipfile, 'wb') as f:
+        status_dict = client.download_zip(zipname, items, f)
+    total, downloaded, skipped = \
+        (status_dict[k] for k in ('total_file_count', 'downloaded_file_count', 'skipped_file_count'))
+    print(f"Total Files: {total} ({downloaded} downloaded, {skipped} skipped)")
+
+
 def repr_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          prog=progname, usage='%(prog)s repr [options]',
@@ -1900,6 +1927,7 @@ command_funcs = {
     'unspace'  : unspace_cmd,
     'stash'    : stash_cmd,
     'get'      : get_cmd,
+    'zip'      : zip_cmd,
     'repr'     : repr_cmd,
     'put'      : put_cmd,
     'cat'      : cat_cmd,
