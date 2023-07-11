@@ -1237,7 +1237,7 @@ def stash_cmd(args):  # {{{2
 def get_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          prog=progname, usage='%(prog)s get [options] ids... directory',
-                                         description='Download files or thumbnails')
+                                         description='Download files or representations')
     cli_parser.add_argument('ids', nargs='+', help='File or Folder IDs')
     cli_parser.add_argument('directory', help='Destination directory')
     cli_parser.add_argument('-d', '--folders', action='store_true',
@@ -1306,7 +1306,7 @@ def get_cmd(args):  # {{{2
 def zip_cmd(args): # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          prog=progname, usage='%(prog)s zip [options] ids... zipfile',
-                                         description='Download files or thumbnails')
+                                         description='Download a ZIP file of items')
     cli_parser.add_argument('ids', nargs='+', help='File or Folder IDs')
     cli_parser.add_argument('zipfile', help='ZIP file destination')
     options = cli_parser.parse_args(args)
@@ -1358,7 +1358,7 @@ def put_cmd(args):  # {{{2
     import glob
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                                          prog=progname, usage='%(prog)s put [options] file(s)',
-                                         description='Upload a file')
+                                         description='Upload files')
     cli_parser.add_argument('files', nargs='+', help='File(s) to upload')
     cli_parser.add_argument('-f', '--file-version', metavar='file_id',
                             help='Upload a new version of a file')

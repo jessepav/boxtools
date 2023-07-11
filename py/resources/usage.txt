@@ -74,9 +74,10 @@ Commands:
     fd, search    Search for items
     tree          Display a tree of items and add to stash
 
-    get           Download files or thumbnails
+    get           Download files or representations
+    zip           Download a ZIP file of items
     repr          Get represenation information
-    put           Upload a file
+    put           Upload files
     cat           Write the contents of files or web-links to stdout
     mkdir         Create a new folder
     rm, del       Remove files or folders
