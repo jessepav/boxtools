@@ -632,7 +632,7 @@ def save_state():
     # Save ID aliases
     with open(aliases_file, "wt") as f:
         for (alias, (id, comment)) in id_aliases.items():
-            if alias[0] != '_' and not alias.isdigit():
+            if len(alias) > 1 and alias[0] != '_' and not alias.isdigit():
                 _commentstr = "  " + comment if comment else ""
                 print(f"{alias} = {id}{_commentstr}", file=f)
 
