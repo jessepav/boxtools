@@ -1088,6 +1088,8 @@ def tree_cmd(args):  # {{{2
                             help='Add encountered files to the item stash')
     cli_parser.add_argument('-S', '--stash-folders', action='store_true',
                             help='Add encountered folders to the item stash')
+    cli_parser.add_argument('-I', '--stash-initial-folder', action='store_true',
+                            help='With -S, --stash-folders: also add the initial folder to the stash')
     cli_parser.add_argument('-a', '--append-stash', action='store_true',
                             help='Append items to the current stash, rather than replacing it')
     options = cli_parser.parse_args(args)
@@ -1106,12 +1108,17 @@ def tree_cmd(args):  # {{{2
     no_header = options.no_header
     stash_files = options.stash_files
     stash_folders = options.stash_folders
+    stash_initial_folder = options.stash_initial_folder
     append_stash = options.append_stash
     if (stash_files or stash_folders) and not append_stash:
         item_stash.clear()
     indent_str = " " * 2
     client = get_ops_client()
     tree_entries = []
+    ####
+    def _item_passes_filters(item):
+        return (not re_include_pattern or re_include_pattern.fullmatch(item.name)) and \
+               (not re_exclude_pattern or not re_exclude_pattern.fullmatch(item.name))
     ####
     def _tree_helper(folder, level):
         add_history_item(folder)
@@ -1123,11 +1130,12 @@ def tree_cmd(args):  # {{{2
             name_part = (indent_str * level) + f"{marker} {folder.name}/"
         tree_entries.append((name_part, id_part))
         if stash_folders:
-            # We could have arrived here because --force-recurse was used or because this is the
-            # initial_folder, but we only want to add the folder to the stash if it actually passed
-            # any filters that may be active.
-            if (not re_include_pattern or re_include_pattern.fullmatch(folder.name)) and \
-               (not re_exclude_pattern or not re_exclude_pattern.fullmatch(folder.name)):
+            if level != 0:
+                # We could have arrived here because --force-recurse was used, but we only want to add the folder
+                # to the stash if it actually passes any filters that may be active.
+                if not force_recurse or _item_passes_filters(folder):
+                    item_stash[folder.id] = (folder.name, folder.id, 'folder')
+            elif stash_initial_folder:
                 item_stash[folder.id] = (folder.name, folder.id, 'folder')
         if level < max_levels:
             if sys.stdout.isatty():  # Display a progress report
@@ -1139,8 +1147,8 @@ def tree_cmd(args):  # {{{2
                 # also, we specify a small pagesize_limit so that we don't retrieve the whole
                 # BOX_GET_ITEMS_LIMIT page from a folder, most of which will be files.
                 items = retrieve_folder_items(client, folder, sort='name', pagesize_limit=30,
-                                filter_func=lambda it: it.type == 'folder',
-                                break_on_filter=True, limit=limit)
+                                              filter_func=lambda it: it.type == 'folder',
+                                              break_on_filter=True, limit=limit)
             else:
                 items = retrieve_folder_items(client, folder, sort='name', limit=limit)
             level += 1
@@ -1150,9 +1158,7 @@ def tree_cmd(args):  # {{{2
                     break
                 elif force_recurse and item.type == 'folder':
                     _tree_helper(item, level)
-                elif re_include_pattern and not re_include_pattern.fullmatch(item.name):
-                    continue
-                elif re_exclude_pattern and re_exclude_pattern.fullmatch(item.name):
+                elif not _item_passes_filters(item):
                     continue
                 elif item.type == 'folder':
                     _tree_helper(item, level)
