@@ -1884,7 +1884,7 @@ def shell_cmd(args):  # {{{2
     print("Type q(uit)/e(xit) to exit the shell, and h(elp)/? for general usage.")
     while True:
         try:
-            cmdline = input("> ")
+            cmdline = input("> ").strip()
         except KeyboardInterrupt:
             print('^C')
             cmdline = ''
@@ -1897,6 +1897,23 @@ def shell_cmd(args):  # {{{2
             break
         elif cmdline in ('help', 'h', '?'):
             print(general_usage, end="")
+        elif cmdline == "cd" or cmdline.startswith("cd "):
+            cmdargs = shlex.split(cmdline[2:])
+            _n = len(cmdargs)
+            if _n == 0:
+                _dir = os.path.expanduser("~")
+            elif _n == 1:
+                _dir = expand_all(cmdargs[0])
+            else:
+                print("Usage: cd [dir]")
+                continue
+            try:
+                os.chdir(_dir)
+                print(os.getcwd())
+            except OSError as err:
+                print(err)
+        elif cmdline == "pwd":
+            print(os.getcwd())
         elif cmdline[0] == '!':
             subprocess.run(cmdline[1:], shell=True)
         else:

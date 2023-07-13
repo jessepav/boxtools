@@ -96,7 +96,14 @@ Commands:
     unspace       Rename items to remove spaces and other odd chars
     stash         Manipulate the item stash
 
-    shell         Enter an interactive shell
     source        Read commands from a given file
+    shell         Enter an interactive shell. Certain commands are handled
+                  internally by the shell:
+
+                    q(uit)/e(xit)     exit the shell
+                    h(elp)/?          general usage
+                    cd [dir]          change directory
+                    pwd               print current directory
+
 
 Use "{progname} [command] --help" for more information about a command.
