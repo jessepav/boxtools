@@ -837,6 +837,8 @@ def history_cmd(args):  # {{{2
                             help='Delete the given item ID from history')
     cli_parser.add_argument('-n', '--max-count', type=int, default=0,
                             help='Maximum number of (most-recent) items to return')
+    cli_parser.add_argument('-l', '--limit', type=int, default=0,
+                            help='Same as --max-count')
     cli_parser.add_argument('-P', '--no-parent', action='store_true',
                             help="Don't include parent folder information in output")
     cli_parser.add_argument('-m', '--max-name-length', metavar='N', type=int,
@@ -863,7 +865,7 @@ def history_cmd(args):  # {{{2
                 print(f'Removed item {item_id} "{name}" from history')
         return
     # Done with clear/delete
-    max_count = options.max_count
+    max_count = options.max_count or options.limit
     no_parent = options.no_parent
     max_name_len = get_name_len(options.max_name_length)
     max_id_len = get_id_len(options.max_id_length)
