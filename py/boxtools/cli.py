@@ -1259,6 +1259,7 @@ def get_cmd(args):  # {{{2
     cli_parser.add_argument('-r', '--representation', metavar='REPR',
                             help="Rather than downloading the file itself, download the representation given "
                                  "by REPR. (Use the 'repr' command to find possible values of REPR)")
+    cli_parser.add_argument('-u', '--unspace', action='store_true', help='unspace file names when saving locally')
     options = cli_parser.parse_args(args)
     item_ids = expand_item_ids(options.ids)
     if not item_ids:
@@ -1273,6 +1274,7 @@ def get_cmd(args):  # {{{2
     do_folders = options.folders
     include_pattern = options.re_include and re.compile(options.re_include)
     exclude_pattern = options.re_exclude and re.compile(options.re_exclude)
+    unspace = options.unspace
     client = get_ops_client()
     for item_id in item_ids:
         if do_folders:
@@ -1294,6 +1296,8 @@ def get_cmd(args):  # {{{2
         for file_id in file_ids:
             file = client.file(file_id)
             filename = file.get(fields=['name']).name
+            if unspace:
+                filename = unspace_name(filename)
             if repname:
                 repr_map = get_repr_map(file)
                 rep = repr_map.get(repname)
