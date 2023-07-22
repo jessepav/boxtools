@@ -2,6 +2,10 @@ Usage: {progname} command [args...]
 
 Configuration files are stored in $BOXTOOLS_DIR, by default ~/.boxtools
 
+To maintain multiple user identities while using the same aliases, history,
+etc., set $BOXTOOLS_AUTH_NAME to a non-blank value (this will affect only the
+filename in which we keep our auth tokens).
+
 Whenever a command expects a Box Item ID, you can use a special syntax
 to lookup an ID encountered in recent ls or search commands:
 

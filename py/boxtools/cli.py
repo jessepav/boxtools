@@ -30,7 +30,9 @@ if not os.path.exists(config_dir):
 
 # Derive paths for configuration files {{{2
 config_file = os.path.join(config_dir, "boxtools.toml")
-tokens_file = os.path.join(config_dir, "auth-tokens.json")
+tokens_file = os.path.join(config_dir,
+        f"auth-{_authname}-tokens.json" if (_authname := os.environ.get("BOXTOOLS_AUTH_NAME"))
+                                        else "auth-tokens.json")
 app_state_file = os.path.join(config_dir, "app-state.pickle")
 aliases_file = os.path.join(config_dir, "id-aliases.txt")
 readline_history_file = os.path.join(config_dir, "readline-history")
