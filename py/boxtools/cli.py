@@ -1607,26 +1607,29 @@ def rn_cmd(args):  # {{{2
 
 def desc_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
-                                         prog=progname, usage='%(prog)s desc [options] id [description]',
-                                         description='Print or update the description of an item')
-    cli_parser.add_argument('id', help='Item ID')
-    cli_parser.add_argument('description', nargs='?', help='If present, set the item description')
+                    prog=progname, usage='%(prog)s desc [options] ids',
+                    description='Print or update the description of an item',
+                    epilog='If -d, --description is not given, print the description(s) for given items')
+    cli_parser.add_argument('ids', nargs='+', help='Item IDs')
+    cli_parser.add_argument('-d', '--description', metavar='DESC', help='Set description for single item to DESC')
     cli_parser.add_argument('-e', '--enable-escapes', action='store_true',
-                            help='Enable Python string literal backslash escapes in passed description')
+                            help='When setting description, enable Python string literal backslash escapes')
     cli_parser.add_argument('-a', '--append', action='store_true',
-                            help='Append to current description rather than replace it.')
-    options = cli_parser.parse_args(args)
-    item_id = translate_id(options.id)
-    if item_id is None:
+                            help='When setting description, append to current description rather than replace it.')
+    options = cli_parser.parse_intermixed_args(args)
+    item_ids = expand_item_ids(options.ids)
+    if not item_ids:
         return
     description = options.description
     enable_escapes = options.enable_escapes
     append = options.append
-    client = get_ops_client()
-    _type, item = get_api_item(client, item_id)
-    if not _type:
+    if description and len(item_ids) != 1:
+        print("You can set the description for only one item at a time.")
         return
+    client = get_ops_client()
     if description:
+        _type, item = get_api_item(client, item_ids[0])
+        if not _type: return
         if enable_escapes:
             description = ast.literal_eval('"' + description.replace('"', '\\"') + '"')
         if append:
@@ -1636,12 +1639,16 @@ def desc_cmd(args):  # {{{2
         item = item.update_info(data = {'description' : description})
         print(f'Updated the description of {_type} "{item.name}"')
     else:
-        item = item.get(fields=('name', 'description'))
-        if item.description:
-            print_name_header(item.name)
-            print(item.description)
-        else:
-            print(f'{_type.capitalize()} "{item.name}" has no description attached')
+        for i, item_id in enumerate(item_ids):
+            _type, item = get_api_item(client, item_id)
+            if not _type: continue
+            item = item.get(fields=('name', 'description'))
+            if i != 0: print()
+            if item.description:
+                print_name_header(item.name)
+                print(item.description)
+            else:
+                print(f'{_type.capitalize()} "{item.name}" has no description attached')
 
 def ln_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
