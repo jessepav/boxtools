@@ -1609,9 +1609,11 @@ def desc_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
                     prog=progname, usage='%(prog)s desc [options] ids',
                     description='Print or update the description of an item',
-                    epilog='If -d, --description is not given, print the description(s) for given items')
+                    epilog='If -d, --description is not given, print the descriptions for given items')
     cli_parser.add_argument('ids', nargs='+', help='Item IDs')
-    cli_parser.add_argument('-d', '--description', metavar='DESC', help='Set description for single item to DESC')
+    cli_parser.add_argument('-d', '--description', metavar='DESC',
+                            help='Set description for single item to DESC. Use a blank string for DESC '
+                                 'to remove an existing description.')
     cli_parser.add_argument('-e', '--enable-escapes', action='store_true',
                             help='When setting description, enable Python string literal backslash escapes')
     cli_parser.add_argument('-a', '--append', action='store_true',
@@ -1623,11 +1625,11 @@ def desc_cmd(args):  # {{{2
     description = options.description
     enable_escapes = options.enable_escapes
     append = options.append
-    if description and len(item_ids) != 1:
+    if description is not None and len(item_ids) != 1:
         print("You can set the description for only one item at a time.")
         return
     client = get_ops_client()
-    if description:
+    if description is not None:
         _type, item = get_api_item(client, item_ids[0])
         if not _type: return
         if enable_escapes:
