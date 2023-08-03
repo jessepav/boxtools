@@ -277,7 +277,7 @@ def print_stat_info(item, add_history=True, fields=None):
     if add_history:
         add_history_item(item)
     for field in ('name', 'type', 'id', 'content_created_at', 'content_modified_at',
-                    'created_at', 'modified_at', 'size'):
+                    'created_at', 'modified_at', 'size', 'sha1'):
         add_field(field, str(getattr(item, field, 'N/A')))
     owner = item.owned_by
     add_field('owned_by', f"{owner.name} ({owner.login})")
