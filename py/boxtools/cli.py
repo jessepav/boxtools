@@ -1261,6 +1261,8 @@ def get_cmd(args):  # {{{2
     cli_parser.add_argument('-r', '--representation', metavar='REPR',
                             help="Rather than downloading the file itself, download the representation given "
                                  "by REPR. (Use the 'repr' command to find possible values of REPR)")
+    cli_parser.add_argument('-n', '--include-repname', action='store_true',
+                            help="With --representation, include the representation name in the downloaded file name")
     cli_parser.add_argument('-u', '--unspace', action='store_true', help='unspace file names when saving locally')
     options = cli_parser.parse_args(args)
     item_ids = expand_item_ids(options.ids)
@@ -1271,6 +1273,7 @@ def get_cmd(args):  # {{{2
         print(f"{target_dir} is not a directory!")
         return
     repname = options.representation
+    include_repname = options.include_repname
     if repname:
         repname = representation_aliases.get(repname, repname)
     do_folders = options.folders
@@ -1310,8 +1313,12 @@ def get_cmd(args):  # {{{2
                 if state != 'success':
                     print(f'Failed to retrieve representation info for {filename}')
                     continue
-                root, ext = os.path.splitext(filename)
-                download_repr(client, repr_info, root + '-' + repname + ext, target_dir)
+                if include_repname:
+                    root, ext = os.path.splitext(filename)
+                    repr_filename = root + '-' + repname + ext
+                else:
+                    repr_filename = filename
+                download_repr(client, repr_info, repr_filename, target_dir)
             else:
                 print(f"Downloading {filename}...")
                 with open(os.path.join(target_dir, filename), "wb") as f:
