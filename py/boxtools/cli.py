@@ -1249,7 +1249,8 @@ def get_cmd(args):  # {{{2
                                          prog=progname, usage='%(prog)s get [options] ids... directory',
                                          description='Download files or representations')
     cli_parser.add_argument('ids', nargs='+', help='File or Folder IDs')
-    cli_parser.add_argument('directory', help='Destination directory')
+    cli_parser.add_argument('directory', help='Destination directory (or "-" to write one file to stdout. '
+                                              'This is useful to pipe the output to pv to see progress.)')
     cli_parser.add_argument('-d', '--folders', action='store_true',
                             help="Item IDs specify folders from which to download files")
     cli_parser.add_argument('-i', '--re-include', metavar='RE',
@@ -1264,13 +1265,10 @@ def get_cmd(args):  # {{{2
     cli_parser.add_argument('-n', '--include-repname', action='store_true',
                             help="With --representation, include the representation name in the downloaded file name")
     cli_parser.add_argument('-u', '--unspace', action='store_true', help='unspace file names when saving locally')
+    cli_parser.add_argument('-q', '--quiet', action='store_true', help='Do not print status messages')
     options = cli_parser.parse_args(args)
     item_ids = expand_item_ids(options.ids)
     if not item_ids:
-        return
-    target_dir = expand_all(options.directory)
-    if not os.path.isdir(target_dir):
-        print(f"{target_dir} is not a directory!")
         return
     repname = options.representation
     include_repname = options.include_repname
@@ -1280,11 +1278,18 @@ def get_cmd(args):  # {{{2
     include_pattern = options.re_include and re.compile(options.re_include)
     exclude_pattern = options.re_exclude and re.compile(options.re_exclude)
     unspace = options.unspace
+    use_stdout = options.directory == '-' and len(item_ids) == 1 and not repname and not do_folders
+    quiet = options.quiet or use_stdout
+    if not use_stdout:
+        target_dir = expand_all(options.directory)
+        if not os.path.isdir(target_dir):
+            print(f"{target_dir} is not a directory!")
+            return
     client = get_ops_client()
     for item_id in item_ids:
         if do_folders:
             folder = client.folder(folder_id=item_id).get()
-            print(f'== Retrieving files from "{folder.name}" ==')
+            if not quiet: print(f'== Retrieving files from "{folder.name}" ==')
             def _filter_func(item):
                 if item.type != 'file':
                     return False
@@ -1318,11 +1323,14 @@ def get_cmd(args):  # {{{2
                     repr_filename = root + '-' + repname + ext
                 else:
                     repr_filename = filename
-                download_repr(client, repr_info, repr_filename, target_dir)
+                download_repr(client, repr_info, repr_filename, target_dir, silent=quiet)
             else:
-                print(f"Downloading {filename}...")
-                with open(os.path.join(target_dir, filename), "wb") as f:
-                    file.download_to(f)
+                if not quiet: print(f"Downloading {filename}...")
+                if use_stdout:
+                    file.download_to(sys.stdout.buffer)
+                else:
+                    with open(os.path.join(target_dir, filename), "wb") as f:
+                        file.download_to(f)
 
 def zip_cmd(args): # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
