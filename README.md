@@ -17,7 +17,10 @@ of objects:
     blockquote
     tab_list, ordered_list, bullet_list, check_list
     list_item, check_list_item
+    table, table_row, table_cell †
 ```
+
+ † Tables are not rendered as formatted text, but rather as HTML tags
 
 `boxnote2txt.py` has no dependency on the `box-python-sdk`, and can be run with any Python
 3.9+ version.

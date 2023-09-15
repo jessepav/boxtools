@@ -78,6 +78,25 @@ def decode_note_obj(obj, listtype=None, listlevel=0, listitem_cntr=0):
         text = buf.getvalue()
         buf.close()
         return text
+    elif type_ == 'table':
+        row_content = [decode_note_obj(row) for row in content_] if content_ else []
+        return "<table>\n" + "".join(row_content) + "</table>\n"
+    elif type_ == 'table_row':
+        cell_content = [decode_note_obj(cell) for cell in content_] if content_ else []
+        return "<tr>\n" + "".join(cell_content) + "</tr>\n"
+    elif type_ == 'table_cell':
+        attrs = obj.get('attrs', {})
+        colspan, rowspan = attrs.get('colspan', 1), attrs.get('rowspan', 1)
+        html_attrs = f" colspan='{colspan}'" if colspan != 1 else "" + \
+                     f" rowspan='{rowspan}'" if rowspan != 1 else ""
+        cell_content = [decode_note_obj(item) for item in content_] if content_ else []
+        text = "".join(cell_content)
+        buf = StringIO()
+        for line in text.splitlines(keepends=True):
+            buf.write('  ' + line)
+        text = buf.getvalue()
+        buf.close()
+        return f"<td{html_attrs}>\n" + text + "</td>\n"
     else:
         print(f"Unknown content type: '{type_}'", file=sys.stderr)
         return ""
