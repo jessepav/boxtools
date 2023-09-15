@@ -15,12 +15,12 @@ def decode_note_obj(obj, listtype=None, listlevel=0, listitem_cntr=0):
         inlines = [decode_note_obj(x) for x in content_] if content_ else []
         inlines.append('\n')
         return ''.join(inlines)
-    elif type_ in ('tab_list', 'ordered_list', 'bullet_list') and content_:
+    elif type_ in ('tab_list', 'ordered_list', 'bullet_list', 'check_list') and content_:
         item_content = []
         for i, x in enumerate(content_, start=1):
             item_content.append(decode_note_obj(x, type_, listlevel + 1, i))
         return "".join(item_content)
-    elif type_ == 'list_item' and content_:
+    elif type_ in ('list_item', 'check_list_item') and content_:
         item_content = ''.join(decode_note_obj(x) for x in content_)
         if listtype == 'tab_list':
             return " " * (indent_size*listlevel) + item_content
@@ -28,6 +28,10 @@ def decode_note_obj(obj, listtype=None, listlevel=0, listitem_cntr=0):
             return " " * (indent_size*(listlevel-1)) + str(listitem_cntr) + ". " + item_content
         elif listtype == 'bullet_list':
             return " " * (indent_size*(listlevel-1)) + "* " + item_content
+        elif listtype == 'check_list':
+            checked = obj.get('attrs', {}).get('checked', False)
+            checkbox = '[x] ' if checked else '[ ] '
+            return " " * (indent_size*(listlevel-1)) + checkbox + item_content
     elif type_ == 'text':
         text_ = obj['text']
         if marks_ := obj.get('marks'):
