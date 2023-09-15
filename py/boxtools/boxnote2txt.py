@@ -93,7 +93,7 @@ def decode_note_obj(obj, listtype=None, listlevel=0, listitem_cntr=0):
         text = "".join(cell_content)
         buf = StringIO()
         for line in text.splitlines(keepends=True):
-            buf.write('    ' + line)
+            buf.write('   ' + line)
         text = buf.getvalue()
         buf.close()
         return f"  <td{html_attrs}>\n" + text + "  </td>\n"
