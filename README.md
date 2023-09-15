@@ -8,15 +8,15 @@ This utility converts Box Notes from the new JSON format to text. It supports th
 of objects:
 
 ```
-    'paragraph'
-    'text' (plain, 'strong', and 'em')
-    'tab_list', 'ordered_list', 'bullet_list'
-    'list_item'
-    'hard_break'
-    'code_block'
-    'heading'
-    'horizontal_rule'
-    'blockquote'
+    paragraph
+    text (plain, strong, and em)
+    hard_break
+    code_block
+    heading
+    horizontal_rule
+    blockquote
+    tab_list, ordered_list, bullet_list, check_list
+    list_item, check_list_item
 ```
 
 `boxnote2txt.py` has no dependency on the `box-python-sdk`, and can be run with any Python
