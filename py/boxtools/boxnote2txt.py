@@ -92,6 +92,9 @@ def typography_repl_fn(matchobj):
         return s
 
 if __name__ == '__main__':
+    import locale
+    default_encoding = locale.getpreferredencoding();
+    #
     cli_parser = argparse.ArgumentParser(description='Convert new-style Box Notes to text')
     cli_parser.add_argument('boxnote', help='Box Note JSON input file')
     cli_parser.add_argument('textfile', nargs='?', default='-',
@@ -105,26 +108,32 @@ if __name__ == '__main__':
             help='Strip off trailing blank lines')
     cli_parser.add_argument('-m', '--markdown', action='store_true',
             help='Format (some) output as Markdown rather than plain text')
+    cli_parser.add_argument('-e', '--input-encoding',
+            help=f'Specify the text encoding of the JSON input file (default "{default_encoding}")')
+    cli_parser.add_argument('-E', '--output-encoding',
+            help=f'Specify the text encoding of the output file (default "{default_encoding}")')
     options = cli_parser.parse_args()
-
+    #
     notefile = options.boxnote
     textfile = options.textfile
     indent_size = options.indent
     remove_typography = options.remove_typography
     strip_trailing = options.strip_trailing_lines
     code_block_style = 'markdown' if options.markdown else 'text'
-
-    with open(notefile, "rt") as f:
+    input_encoding = options.input_encoding
+    output_encoding = options.output_encoding
+    #
+    with open(notefile, "rt", encoding=input_encoding) as f:
         notejson = json.load(f)
-
+    #
     text = decode_note_obj(notejson['doc'])
     if strip_trailing:
         text = text.rstrip() + '\n'
     if remove_typography:
         text = re.sub(r"[“”’—\u00A0]", typography_repl_fn, text)
-
+    #
     if textfile == '-':
         print(text, end='')
     else:
-        with open(textfile, "wt") as f:
+        with open(textfile, "wt", encoding=output_encoding) as f:
             f.write(text)
