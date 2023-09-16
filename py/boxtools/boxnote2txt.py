@@ -116,7 +116,7 @@ def typography_repl_fn(matchobj):
 
 if __name__ == '__main__':
     import locale
-    default_encoding = locale.getpreferredencoding();
+    default_encoding = locale.getpreferredencoding()
     #
     cli_parser = argparse.ArgumentParser(description='Convert new-style Box Notes to text')
     cli_parser.add_argument('boxnote', help='Box Note JSON input file')
