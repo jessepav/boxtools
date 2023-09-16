@@ -1436,7 +1436,7 @@ def put_cmd(args):  # {{{2
                 else:
                     file = folder.upload(filepath)
                 add_history_item(file)
-                print("done")
+                print(f"done (ID: {file.id})")
             except BoxAPIException as ex:
                 if ex.status == 409:
                     _file_id = ex.context_info['conflicts']['id']
