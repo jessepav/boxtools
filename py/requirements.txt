@@ -1,11 +1,11 @@
 attrs==23.1.0
-boxsdk==3.9.1
+boxsdk==3.9.2
 certifi==2023.7.22
-charset-normalizer==3.2.0
+charset-normalizer==3.3.0
 idna==3.4
 python-dateutil==2.8.2
 requests==2.31.0
 requests-toolbelt==1.0.0
 six==1.16.0
 tomli==2.0.1
-urllib3==1.26.16
+urllib3==2.0.7
