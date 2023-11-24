@@ -1956,18 +1956,22 @@ def shell_cmd(args):  # {{{2
 def source_cmd(args):  # {{{2
     if len(args) != 1 or '-h' in args or '--help' in args:
         print(f"usage: {os.path.basename(sys.argv[0])} source file\n\n"
-               "Read commands from a given file")
+               "Read commands from a given file. Use '-' for stdin.")
         return
     cmdfile = expand_all(args[0])
-    if not os.path.exists(cmdfile):
-        print(f'"{cmdfile}" is not a file.')
+    if cmdfile == '-':
+        lines = sys.stdin.readlines()
     else:
+        if not os.path.exists(cmdfile):
+            print(f'"{cmdfile}" is not a file.')
+            return
         with open(cmdfile, "rt") as f:
-            for cmdline in f:
-                cmdline = cmdline.strip()
-                if len(cmdline) == 0 or cmdline[0] == '#':
-                    continue
-                process_cmdline(cmdline)
+            lines = f.readlines()
+    for cmdline in lines:
+        cmdline = cmdline.strip()
+        if len(cmdline) == 0 or cmdline[0] == '#':
+            continue
+        process_cmdline(cmdline)
 
 # Map command names to the implementing command function  # {{{2
 command_funcs = {
