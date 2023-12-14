@@ -1848,7 +1848,7 @@ def ver_cmd(args):  # {{{2
     do_list, do_delete, do_restore, do_promote, do_get = (False,) * 5
     if options.list:
         do_list = True
-        limit = options.limit
+        limit = options.limit or BOX_GET_ITEMS_LIMIT  # So that a limit of 0 doesn't muck things up
         offset = options.offset
     elif version_id := options.delete:
         do_delete = True
