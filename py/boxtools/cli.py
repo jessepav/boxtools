@@ -365,7 +365,7 @@ def translate_id(id_):
         retid = _choose_history_entry(id_,
                     lambda entry : s in entry['name'] and entry['id'].endswith(n), use_most_recent)
     elif id_.isdigit():
-        if len(id_) <= 4:
+        if id_ != '0' and len(id_) <= 4:
             if (_n := int(id_) - 1) < len(numeric_item_list):
                 retid = numeric_item_list[_n]
             else:
