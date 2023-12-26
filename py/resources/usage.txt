@@ -23,9 +23,11 @@ to lookup an ID encountered in recent ls or search commands:
 For the =, %, ^, and $ operators, the sigil character can appear either
 at the beginning or the end of the name.
 
-If you don't use any special syntax, then if the ID is composed of all
-digits, it's treated as a numeric ID; otherwise, it's matched against
-known item names case-insensitively.
+If the ID is composed of 1-4 numeric digits, then it will be treated as the
+n-th item printed by the last 'ls' or 'search' command. If it has 5+ digits,
+it's treated as a literal numeric ID.
+
+Finally, it's matched against known item names case-insensitively.
 
 By appending a '!' to any of the above search terms, you can skip any
 prompts to select among matching items, and automatically use the most

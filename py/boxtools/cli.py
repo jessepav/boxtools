@@ -91,6 +91,7 @@ del _decode_length_val
 # Restore app state and readline history if available {{{2
 
 ls_history_deque = deque(maxlen = ls_history_size)
+numeric_item_list = []  # Okay, this isn't persisted at the moment, but here is a good place for it anyhow
 
 if os.path.exists(app_state_file):
     with open(app_state_file, 'rb') as f:
@@ -364,7 +365,14 @@ def translate_id(id_):
         retid = _choose_history_entry(id_,
                     lambda entry : s in entry['name'] and entry['id'].endswith(n), use_most_recent)
     elif id_.isdigit():
-        retid = id_
+        if len(id_) <= 4:
+            if (_n := int(id_) - 1) < len(numeric_item_list):
+                retid = numeric_item_list[_n]
+            else:
+                print(f"There was no item no. {id_} in the previous 'list' or 'search' results")
+                retid = None
+        else:
+            retid = id_
     else:
         term = id_.casefold()
         retid = _choose_history_entry(id_, lambda entry : term == entry['name'].casefold(), use_most_recent)
@@ -989,8 +997,12 @@ def ls_cmd(args):  # {{{2
                 print('~' * (screen_cols//2))
         elif i != 0:
             print()
+        numeric_item_list.clear()
+        for n, item in enumerate(items, start=1):
+            item.n = str(n) + '.'
+            numeric_item_list.append(item.id)
         # We use the field_val_func to indicate if an item has a description, similar to the web interface
-        print_table(items, ('type', 'name', 'id'), print_header=print_header, no_leader_fields=('type',),
+        print_table(items, ('n', 'type', 'name', 'id'), print_header=print_header, no_leader_fields=('type',),
                     clip_fields={'name': (max_name_len, 'r'), 'id': (max_id_len, 'l')},
                     field_val_func =
                         lambda v, item, idx, field :
@@ -1049,8 +1061,10 @@ def search_cmd(args):  # {{{2
     # We can't just throw the iterator returned by query() into a list(), because it stalls,
     # so we need to manually retrieve 'limit' items
     items = []
+    numeric_item_list.clear()
     for i, result_item in enumerate(results, start=1):
-        item = { 'type' : result_item.type,
+        item = { 'n'    : str(i) + '.',
+                 'type' : result_item.type,
                  'name' : result_item.name,
                  'id'   : result_item.id }
         add_history_item(result_item)
@@ -1060,12 +1074,14 @@ def search_cmd(args):  # {{{2
         else:
             item['parent'] = item['parent_id'] = None
         items.append(item)
+        numeric_item_list.append(result_item.id)
         if i == limit: break
     fields = ['name', 'id']
     if result_type is None:
         fields.insert(0, 'type')
     if not no_parent:
         fields.extend(('parent', 'parent_id'))
+    fields.insert(0, 'n')
     print_table(items, is_dict=True, fields=fields, no_leader_fields=('type',),
                 clip_fields={'name'   : (max_name_len, 'r'), 'id'        : (max_id_len, 'l'),
                              'parent' : (max_name_len, 'r'), 'parent_id' : (max_id_len, 'l')})
