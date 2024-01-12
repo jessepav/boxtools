@@ -770,11 +770,20 @@ def download_repr(client, repr_info, item_name, savedir, silent=False):
 # entered by the user to numeric Box IDs, handling the stash, history operators, etc.
 # If any invalid IDs were entered, returns None.
 
+NUMERIC_RANGE_REGEX = re.compile(r'(\d{1,4})-(\d{1,4})')
+
 def expand_item_ids(ids):
     item_ids = []
     for id in ids:
         if id == '@@':
             item_ids.extend(v[1] for v in item_stash.values())
+        elif match := NUMERIC_RANGE_REGEX.fullmatch(id):
+            start, end = int(match[1]), int(match[2])
+            for n in range(start, end + 1):
+                if (tid := translate_id(str(n))) is not None:
+                    item_ids.append(tid)
+                else:
+                    return None
         else:
             if (tid := translate_id(id)) is not None:
                 item_ids.append(tid)
