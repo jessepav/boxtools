@@ -966,9 +966,16 @@ def ls_cmd(args):  # {{{2
         print("ls history cleared")
         return
     if options.history:
-        print_table(ls_history_deque, is_sequence=True,
-                    fields=('name', 'id', 'parent'), no_leader_fields=('ID',),
-                    clip_fields={'name': (max_name_len, 'r'), 'id': (max_id_len, 'l'), 'parent': (max_name_len, 'r')})
+        _printlist = []
+        numeric_item_list.clear()
+        for n, histitem in enumerate(ls_history_deque, start=1):
+            _name, _id, _parname, _parid = histitem
+            _printlist.append((str(n), _name, _id, _parname, _parid))
+            numeric_item_list.append(_id)
+        print_table(_printlist, is_sequence=True,
+                    fields=('n', 'name', 'id', 'parent', 'parent_id'),
+                    clip_fields={'name': (max_name_len, 'r'), 'id': (max_id_len, 'l'),
+                                 'parent': (max_name_len, 'r'), 'parent_id': (max_id_len, 'l'),})
         return
     if len(folder_ids) == 0:
         if len(ls_history_deque) > 0:
