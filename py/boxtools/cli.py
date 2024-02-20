@@ -1758,6 +1758,8 @@ def stat_cmd(args):  # {{{2
                             help='Only show the name and content_modified_at fields')
     fieldgroup.add_argument('-c', '--only-size-count', action='store_true',
                             help='Only show the name, size, and item_count fields (for folders)')
+    fieldgroup.add_argument('-1', '--only-sha1', action='store_true',
+                            help='Only show the SHA1 field')
     options = cli_parser.parse_args(args)
     fields = None
     if options.fields:
@@ -1768,6 +1770,8 @@ def stat_cmd(args):  # {{{2
         fields = ('name', 'content_modified_at')
     elif options.only_size_count:
         fields = ('name', 'size', 'item_count')
+    elif options.only_sha1:
+        fields = ('name', 'sha1')
     item_ids = expand_item_ids(options.ids)
     if not item_ids:
         return
