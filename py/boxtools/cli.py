@@ -1557,18 +1557,17 @@ def path_cmd(args):  # {{{2
             _type, item = get_api_item(client, id)
             if not _type: continue
             item = item.get()
+            path_items = item.path_collection['entries'].copy()
+            path_items.append(item)
+            for j, path_item in enumerate(path_items[1:]):
+                add_history_item(path_item, parent=path_items[j])
             if verbose:
                 if i != 0: print()
-                path_items = item.path_collection['entries'].copy()
-                path_items.append(item)
                 for j, path_item in enumerate(path_items[1:]):
                     print(" " * (j*2) + '/ ', end="")
                     print(f"{path_item.name} [{path_item.id}]")
-                    add_history_item(path_item, parent=path_items[j])
             else:
-                path_entries = [folder.name for folder in item.path_collection['entries'][1:]]
-                path_entries.append(item.name)
-                path = "/" + "/".join(path_entries)
+                path = "/" + "/".join(_item.name for _item in path_items)
                 if rclone:
                     print('box:', end="")
                 print(path)
