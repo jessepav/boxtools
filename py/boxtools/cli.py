@@ -315,6 +315,7 @@ def translate_id(id_):
     if id_[-1] == '!':
         use_most_recent = True
         id_ = id_[:-1]
+    id_len = len(id_)
     #
     if id_ == '@':
         retid = last_id
@@ -352,22 +353,27 @@ def translate_id(id_):
         term = id_.strip('$')
         retid = _choose_history_entry(id_,
                     lambda entry : any(entry[k].endswith(term) for k in ('name', 'id')), use_most_recent)
-    elif len(id_) >= 3 and id_[0] == '/' and id_[-1] == '/':  # a regex
+    elif id_len >= 3 and id_[0] == '/' and id_[-1] == '/':  # a regex
         matched_ids = []
         regexp = re.compile(id_[1:-1], re.IGNORECASE)
         retid = _choose_history_entry(id_,
                     lambda entry : any(regexp.search(entry[k]) for k in ('name', 'id')), use_most_recent)
-    elif (slash_count := id_.count('/')) == 2 and len(id_) >= 4 and id_[0] == '/':  # /p/s
+    elif (slash_count := id_.count('/')) == 2 and id_len >= 4 and id_[0] == '/':  # /p/s
         p, s = id_[1:].split('/')
         retid = _choose_history_entry(id_,
                     lambda entry : (_parent := entry['parent_name']) and
                                     s in entry['name'] and p in _parent, use_most_recent)
-    elif len(id_) >= 3 and slash_count == 1:
+    elif id_len >= 3 and slash_count == 1:
         s, n = id_.split('/')
         retid = _choose_history_entry(id_,
                     lambda entry : s in entry['name'] and entry['id'].endswith(n), use_most_recent)
+    elif id_len >= 3 and id_.count(';') == 1:
+        s, n = id_.split(';')
+        retid = _choose_history_entry(id_,
+                    lambda entry : s.lower() in entry['name'].lower()
+                                      and entry['id'].endswith(n), use_most_recent)
     elif id_.isdigit():
-        if id_ != '0' and len(id_) <= 4:
+        if id_ != '0' and id_len <= 4:
             if (_n := int(id_) - 1) < len(numeric_item_list):
                 retid = numeric_item_list[_n]
             else:

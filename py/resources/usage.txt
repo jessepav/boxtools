@@ -17,6 +17,7 @@ to lookup an ID encountered in recent ls or search commands:
            case-insensitive regular expression re
   s/n      The double-focus operator! It's the best. Matches an item if
            the name includes s as a substring, and the ID ends with n.
+  s;n      Like s/n but matches s case-insensitively (it's also the best).
   /p/s     Matches an item if the name includes s as a substring,
            and the parent folder name includes p.
 
