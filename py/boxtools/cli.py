@@ -91,7 +91,6 @@ del _decode_length_val
 # Restore app state and readline history if available {{{2
 
 ls_history_deque = deque(maxlen = ls_history_size)
-numeric_item_list = []  # Okay, this isn't persisted at the moment, but here is a good place for it anyhow
 
 if os.path.exists(app_state_file):
     with open(app_state_file, 'rb') as f:
@@ -102,11 +101,14 @@ if os.path.exists(app_state_file):
     if _lshist and len(_lshist[0]) == 4:  # Don't restore invalid ls history
         ls_history_deque.extend(_lshist[:ls_history_size])
     item_stash = _app_state.get('item_stash', {})
+    numeric_item_list = _app_state.get('numeric_item_list', [])
     del _app_state
 else:
     item_history_map = OrderedDict()
     last_id = None
     item_stash = {}
+    numeric_item_list = []
+
 current_cmd_last_id = last_id
 
 readline.set_history_length(readline_history_size)
@@ -633,10 +635,11 @@ def save_state():
     _lshist = list(ls_history_deque)
     with open(app_state_file, "wb") as f:
         pickle.dump(file=f,
-                    obj={ 'item_history_map' : item_history_map,
-                          'last_id'          : last_id,
-                          'ls_history'       : _lshist,
-                          'item_stash'       : item_stash })
+                    obj={ 'item_history_map'  : item_history_map,
+                          'last_id'           : last_id,
+                          'ls_history'        : _lshist,
+                          'item_stash'        : item_stash,
+                          'numeric_item_list' : numeric_item_list })
     # Save readline history
     readline.write_history_file(readline_history_file)
     # Save ID aliases
