@@ -269,12 +269,24 @@ def print_table(items, fields, *, colgap=2, print_header=True,
 #  `fields`, if given, should be a sequence of field names that we'll print
 #
 
+KB = 1024
+MB = KB * 1024
+GB = MB * 1024
+
 def print_stat_info(item, add_history=True, fields=None):
     fieldset = None if fields is None else set(fields)
     statlist = []
     #
     def add_field(field, value):
         if fieldset is None or field in fieldset:
+            if field == 'size':
+                ival = int(value)
+                if ival >= GB:
+                    value = f"{ival} ({ival / GB:.2f} G)"
+                elif ival >= MB:
+                    value = f"{ival} ({ival / MB:.1f} M)"
+                elif ival >= KB:
+                    value = f"{ival} ({ival / KB:.1f} K)"
             statlist.append((field + ':', value))
     #
     if add_history:
