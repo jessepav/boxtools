@@ -1588,6 +1588,8 @@ def mkdir_cmd(args):  # {{{2
                "Create a new folder")
         return
     parent_folder_id = translate_id(args[0])
+    if not parent_folder_id:
+        return
     foldername = args[1]
     client = get_ops_client()
     folder = client.folder(folder_id=parent_folder_id).get(fields=['id', 'name', 'type', 'parent'])
