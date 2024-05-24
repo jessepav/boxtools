@@ -20,7 +20,8 @@ of objects:
     table, table_row, table_cell †
 ```
 
- † Tables are not rendered as formatted text, but rather as HTML tags
+ † Tables can be rendered as formatted text if [`links`](http://links.twibright.com/) is
+available on your computer; otherwise tables are rendered as HTML.
 
 `boxnote2txt.py` has no dependency on the `box-python-sdk`, and can be run with any Python
 3.9+ version.
@@ -123,3 +124,5 @@ But the official Box CLI covers the whole API, while this project treats just a 
 ```
 
 See [`py/resources/usage.txt`](py/resources/usage.txt) for the built-in help.
+
+<!-- vim: set tw=90 : -->
