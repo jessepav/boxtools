@@ -5,6 +5,8 @@ from io import StringIO
 
 indent_size = 4
 code_block_style = ''
+html_tables = False
+links_path = None
 
 def decode_note_obj(obj, listtype=None, listlevel=0, listitem_cntr=0):
     type_ = obj.get('type')
@@ -80,7 +82,20 @@ def decode_note_obj(obj, listtype=None, listlevel=0, listitem_cntr=0):
         return text
     elif type_ == 'table':
         row_content = [decode_note_obj(row) for row in content_] if content_ else []
-        return "<table>\n" + "".join(row_content) + "</table>\n"
+        borderattr = " border='1'" if html_tables else ""
+        table = f"<table{borderattr}>\n" + "".join(row_content) + "</table>\n"
+        if html_tables:
+            global links_path
+            if not links_path:
+                links_path = shutil.which('links')
+            if links_path:
+                with tempfile.NamedTemporaryFile(mode='wt', suffix='.html') as tf:
+                    tf.write(table)
+                    tf.flush()
+                    cproc = subprocess.run([links_path, '-width', '80', '-dump', tf.name],
+                                            capture_output=True, text=True)
+                    table = cproc.stdout
+        return table
     elif type_ == 'table_row':
         cell_content = [decode_note_obj(cell) for cell in content_] if content_ else []
         return " <tr>\n" + "".join(cell_content) + " </tr>\n"
@@ -91,12 +106,16 @@ def decode_note_obj(obj, listtype=None, listlevel=0, listitem_cntr=0):
                      f" rowspan='{rowspan}'" if rowspan != 1 else ""
         cell_content = [decode_note_obj(item) for item in content_] if content_ else []
         text = "".join(cell_content)
-        buf = StringIO()
-        for line in text.splitlines(keepends=True):
-            buf.write('   ' + line)
-        text = buf.getvalue()
-        buf.close()
-        return f"  <td{html_attrs}>\n" + text + "  </td>\n"
+        if html_tables:
+            text = html.escape(text).replace("\n", "<br>\n")
+        else:
+            buf = StringIO()
+            buf.write('\n')
+            for line in text.splitlines(keepends=True):
+                buf.write('   ' + line)
+            text = buf.getvalue()
+            buf.close()
+        return f"  <td{html_attrs}>" + text + "  </td>\n"
     else:
         print(f"Unknown content type: '{type_}'", file=sys.stderr)
         return ""
@@ -135,6 +154,10 @@ if __name__ == '__main__':
             help=f'Specify the text encoding of the JSON input file (default "{default_encoding}")')
     cli_parser.add_argument('-E', '--output-encoding',
             help=f'Specify the text encoding of the output file (default "{default_encoding}")')
+    cli_parser.add_argument('-H', '--html-tables', action='store_true',
+            help='Generate tables as HTML, and if "links" is available, use it to render the tables as text.')
+    cli_parser.add_argument('-L', '--links-path',
+            help='Specify the path to "links" instead of searching on PATH (when -H, --html-tables is given)')
     options = cli_parser.parse_args()
     #
     notefile = options.boxnote
@@ -145,6 +168,10 @@ if __name__ == '__main__':
     code_block_style = 'markdown' if options.markdown else 'text'
     input_encoding = options.input_encoding
     output_encoding = options.output_encoding
+    html_tables = options.html_tables
+    if html_tables:
+        import shutil, html, subprocess, tempfile
+        links_path = options.links_path
     #
     with open(notefile, "rt", encoding=input_encoding) as f:
         notejson = json.load(f)
