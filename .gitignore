@@ -3,3 +3,4 @@ GRTAGS
 GPATH
 gtags.files
 tags
+*.tags
