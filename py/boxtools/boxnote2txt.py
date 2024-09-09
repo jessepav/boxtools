@@ -43,6 +43,10 @@ def decode_note_obj(obj, listtype=None, listlevel=0, listitem_cntr=0):
                     return f'**{text_}**'
                 elif mtype_ == 'em':
                     return f'*{text_}*'
+                elif mtype_ == 'underline':
+                    return f'_{text_}_'
+                elif mtype_ == 'strikethrough':
+                    return f'~~{text_}~~'
         return text_
     elif type_ == 'hard_break':
         return '\n'
