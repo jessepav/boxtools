@@ -643,6 +643,7 @@ def process_cmdline(cmdline):
             last_id = current_cmd_last_id
         else:
             print(f"Unknown command '{cmd}'")
+    sys.stdout.flush()  # make sure output is visible even if sourcing a script
 
 # save_state() {{{2
 
