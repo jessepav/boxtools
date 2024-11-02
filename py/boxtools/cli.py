@@ -964,6 +964,8 @@ def ls_cmd(args):  # {{{2
                             help='Display queue of ls folder history')
     cli_parser.add_argument('-Q', '--clear-history', action='store_true',
                             help='Clear queue of ls folder history')
+    cli_parser.add_argument('-k', '--skip-history', action='store_true',
+                            help='Do not update the ls folder or numeric item number histories')
     options = cli_parser.parse_args(args)
     folder_ids = [translate_id(_id) for _id in options.id]
     if any(id is None for id in folder_ids):  # translate_id() failed
@@ -1019,7 +1021,8 @@ def ls_cmd(args):  # {{{2
                 _parname, _parid = _p.name, _p.id
             else:
                 _parname, _parid = None, None
-            ls_history_deque.append((folder.name, folder.id, _parname, _parid))
+            if not options.skip_history:
+                ls_history_deque.append((folder.name, folder.id, _parname, _parid))
         if _parent := folder.parent:
             _parent = _parent.get(fields=['id', 'name', 'type', 'parent'])
             add_history_item(_parent)
@@ -1035,10 +1038,12 @@ def ls_cmd(args):  # {{{2
                 print('~' * (screen_cols//2))
         elif i != 0:
             print()
-        numeric_item_list.clear()
+        if not options.skip_history:
+            numeric_item_list.clear()
         for n, item in enumerate(items, start=1):
             item.n = str(n) + '.'
-            numeric_item_list.append(item.id)
+            if not options.skip_history:
+                numeric_item_list.append(item.id)
         # We use the field_val_func to indicate if an item has a description, similar to the web interface
         print_table(items, ('n', 'type', 'name', 'id'), print_header=print_header, no_leader_fields=('type',),
                     clip_fields={'name': (max_name_len, 'r'), 'id': (max_id_len, 'l')},
