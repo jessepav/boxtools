@@ -1615,6 +1615,8 @@ def mkdir_cmd(args):  # {{{2
     newfolder = folder.create_subfolder(foldername)
     print('ID:', newfolder.id)
     add_history_item(newfolder, folder)
+    global current_cmd_last_id
+    current_cmd_last_id = newfolder.id
 
 def mv_cmd(args):  # {{{2
     cli_parser = argparse.ArgumentParser(exit_on_error=False,
