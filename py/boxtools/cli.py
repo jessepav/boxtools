@@ -622,6 +622,16 @@ def process_cmdline(cmdline):
         print_item_stash()
     elif len(cmdline) in (1,2) and cmdline[0] == '@list':
         list_aliases(cmdline[1] if len(cmdline) == 2 else None)
+    elif len(cmdline) in (1,2) and cmdline[0] == '@sort':
+        if len(cmdline) == 2 and cmdline[1] in ('c', 'comment'):
+            sortkey = lambda item: item[1][1].casefold()  # the comment
+        else:
+            sortkey = lambda item: item[0]  # the alias
+        alias_items = list(id_aliases.items())  # save the entries in id_aliases
+        id_aliases.clear()
+        for alias, value in sorted(alias_items, key = sortkey):
+            id_aliases[alias] = value
+        list_aliases()
     elif cmdline[0].startswith('@'):
         define_alias(cmdline)
     else:
